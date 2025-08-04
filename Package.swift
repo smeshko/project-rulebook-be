@@ -1,0 +1,41 @@
+// swift-tools-version:6.0
+import PackageDescription
+
+let fluent = Target.Dependency.product(name: "Fluent", package: "fluent")
+let vapor = Target.Dependency.product(name: "Vapor", package: "vapor")
+
+let package = Package(
+    name: "project-rulebook",
+    platforms: [
+        .macOS(.v15)
+    ],
+    products: [
+    ],
+    dependencies: [
+        .package(url: "https://github.com/vapor/vapor.git", from: "4.89.0"),
+        .package(url: "https://github.com/vapor/fluent.git", from: "4.8.0"),
+        .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0"),
+        .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
+        .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
+        .package(url: "https://github.com/binarybirds/swift-html", from: "1.7.0"),
+    ],
+    targets: [
+        .executableTarget(
+            name: "App",
+            dependencies: [
+                vapor, fluent,
+                .product(name: "SwiftHtml", package: "swift-html"),
+                .product(name: "SwiftSvg", package: "swift-html"),
+                .product(name: "FluentSQLiteDriver", package: "fluent-sqlite-driver"),
+                .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
+                .product(name: "JWT", package: "jwt"),
+            ]
+        ),
+        .testTarget(name: "AppTests", dependencies: [
+            .target(name: "App"),
+            .product(name: "XCTVapor", package: "vapor"),
+            .product(name: "Vapor", package: "vapor"),
+            .product(name: "Fluent", package: "Fluent")
+        ])
+    ]
+)
