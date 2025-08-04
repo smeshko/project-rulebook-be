@@ -26,7 +26,7 @@ struct AuthController {
             try await req.repositories.users.update(user)
             try await req.repositories.refreshTokens.delete(forUserID: try user.requireID())
             
-            let token = req.random.generate(bits: 256)
+            let token = req.services.randomGenerator.generate(bits: 256)
             let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
             
             try await req.repositories.refreshTokens.create(refreshToken)
@@ -54,7 +54,7 @@ struct AuthController {
                 throw AuthenticationError.emailAlreadyExists
             }
             
-            let token = req.random.generate(bits: 256)
+            let token = req.services.randomGenerator.generate(bits: 256)
             let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
             
             try await req.repositories.refreshTokens.create(refreshToken)
@@ -69,7 +69,7 @@ struct AuthController {
         let user = try req.auth.require(UserAccountModel.self)
         try await req.repositories.refreshTokens.delete(forUserID: try user.requireID())
         
-        let token = req.random.generate(bits: 256)
+        let token = req.services.randomGenerator.generate(bits: 256)
         let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
         
         try await req.repositories.refreshTokens.create(refreshToken)
@@ -98,7 +98,7 @@ struct AuthController {
             throw AuthenticationError.emailAlreadyExists
         }
 
-        let token = req.random.generate(bits: 256)
+        let token = req.services.randomGenerator.generate(bits: 256)
         let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
         
         try await req.repositories.refreshTokens.create(refreshToken)
@@ -128,7 +128,7 @@ struct AuthController {
         
         try await req.repositories.refreshTokens.delete(id: token.requireID())
         
-        let generatedToken = req.random.generate(bits: 256)
+        let generatedToken = req.services.randomGenerator.generate(bits: 256)
         let newRefreshToken = try RefreshTokenModel(value: SHA256.hash(generatedToken), userID: user.requireID())
         
         let payload = try TokenPayload(with: user)

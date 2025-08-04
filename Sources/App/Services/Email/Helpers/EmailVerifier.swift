@@ -2,7 +2,7 @@ import Vapor
 
 struct EmailVerifier {
     let emailTokenRepository: any EmailTokenRepository
-    let generator: RandomGenerator
+    let generator: RandomGeneratorService
     let application: Application
     
     func verify(for user: UserAccountModel) async throws {
@@ -38,7 +38,7 @@ extension Application {
     var emailVerifier: EmailVerifier {
         .init(
             emailTokenRepository: repositories.emailTokens,
-            generator: random,
+            generator: services.randomGenerator.service,
             application: self
         )
     }
@@ -48,7 +48,7 @@ extension Request {
     var emailVerifier: EmailVerifier {
         .init(
             emailTokenRepository: repositories.emailTokens,
-            generator: application.random,
+            generator: services.randomGenerator,
             application: application
         )
     }

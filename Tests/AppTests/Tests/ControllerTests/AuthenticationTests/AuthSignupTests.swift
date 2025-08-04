@@ -21,7 +21,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterHappyPath() async throws {
-        app.randomGenerators.use(.rigged(value: "token"))
+        app.services.randomGenerator.use(.rigged(value: "token"))
         
         let data = Auth.SignUp.Request(
             email: "test@test.com",
@@ -85,7 +85,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterValidations() async throws {
-        app.randomGenerators.use(.rigged(value: "token"))
+        app.services.randomGenerator.use(.rigged(value: "token"))
 
         let data = Auth.SignUp.Request(
             email: "TEStest.com",
@@ -106,7 +106,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterLowercaseEmail() async throws {
-        app.randomGenerators.use(.rigged(value: "token"))
+        app.services.randomGenerator.use(.rigged(value: "token"))
 
         let data = Auth.SignUp.Request(
             email: "TEST@test.com",

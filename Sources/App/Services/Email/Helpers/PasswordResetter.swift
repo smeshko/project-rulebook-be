@@ -2,7 +2,7 @@ import Vapor
 
 struct PasswordResetter {
     let repository: any PasswordTokenRepository
-    let generator: RandomGenerator
+    let generator: RandomGeneratorService
     let application: Application
 
     /// Sends a email to the user with a reset-password URL
@@ -33,7 +33,7 @@ extension Request {
     var passwordResetter: PasswordResetter {
         .init(
             repository: repositories.passwordTokens,
-            generator: application.random,
+            generator: services.randomGenerator,
             application: application
         )
     }

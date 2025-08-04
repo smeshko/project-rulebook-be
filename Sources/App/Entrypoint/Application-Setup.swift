@@ -83,7 +83,8 @@ extension Application {
         repositories.passwordTokensService.use { app in DatabasePasswordTokenRepository(database: app.db) }
         
         services.email.use(.brevo)
-        randomGenerators.use(.random)
+        services.randomGenerator.use(.random)
+        services.uuidGenerator.use(.random)
         services.llm.use(.openAI)
     }
 }
