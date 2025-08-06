@@ -27,7 +27,7 @@ struct TestingConfiguration: ConfigurationService {
     
     var security: SecurityConfig {
         get throws {
-            SecurityConfig(
+            return SecurityConfig(
                 baseURL: "http://localhost:8080",
                 appIdentifier: "com.test.app",
                 jwtKey: "test_jwt_key_32_characters_long!",

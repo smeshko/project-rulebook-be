@@ -31,7 +31,7 @@ struct DevelopmentConfiguration: ConfigurationService {
                 .split(separator: ",")
                 .map(String.init) ?? ["http://localhost:3000", "http://localhost:8080"]
             
-            SecurityConfig(
+            return SecurityConfig(
                 baseURL: Environment.get("BASE_URL") ?? "http://localhost:8080",
                 appIdentifier: Environment.get("APPLICATION_IDENTIFIER") ?? "com.dev.app",
                 jwtKey: Environment.get("JWT_KEY") ?? "development_jwt_secret_key_minimum_32_characters_required_for_security",
