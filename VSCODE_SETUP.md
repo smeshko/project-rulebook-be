@@ -38,16 +38,190 @@ All required environment variables are automatically configured in the VS Code s
 - `BASE_URL` - Application base URL
 - `APPLICATION_IDENTIFIER` - App identifier
 
-## File Structure
+## Configuration Files
 
-The VS Code configuration includes these files:
+Create these files in your `.vscode/` directory:
 
+### `.vscode/tasks.json`
+```json
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "swift: build",
+            "type": "shell",
+            "command": "swift",
+            "args": ["build"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$swiftc"]
+        },
+        {
+            "label": "swift: run server",
+            "type": "shell",
+            "command": "swift",
+            "args": ["run", "App", "serve", "--hostname", "0.0.0.0", "--port", "8080"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated",
+                "clear": true
+            },
+            "isBackground": true,
+            "problemMatcher": [{
+                "pattern": [{
+                    "regexp": ".*",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                }],
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "Building for debugging...",
+                    "endsPattern": "Server starting on"
+                }
+            }],
+            "options": {
+                "env": {
+                    "JWT_KEY": "development_jwt_secret_key_minimum_32_characters_required_for_security",
+                    "DATABASE_HOST": "localhost",
+                    "DATABASE_NAME": "project_rulebook_dev", 
+                    "DATABASE_USERNAME": "vapor",
+                    "DATABASE_PASSWORD": "password",
+                    "DATABASE_PORT": "5432",
+                    "BASE_URL": "http://localhost:8080",
+                    "APPLICATION_IDENTIFIER": "com.dev.app",
+                    "BREVO_API_KEY": "dev_brevo_key",
+                    "BREVO_URL": "https://api.brevo.com",
+                    "OPENAI_KEY": "dev_openai_key"
+                }
+            }
+        },
+        {
+            "label": "swift: test",
+            "type": "shell",
+            "command": "swift",
+            "args": ["test"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": ["$swiftc"]
+        }
+    ]
+}
 ```
-.vscode/
-├── tasks.json          # Build, run, and test tasks
-├── launch.json         # Debug configurations
-├── settings.json       # Workspace settings and environment
-└── keybindings.json    # Custom keyboard shortcuts
+
+### `.vscode/launch.json`
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Vapor Server",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/.build/debug/App",
+            "args": ["serve", "--hostname", "0.0.0.0", "--port", "8080"],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "JWT_KEY": "development_jwt_secret_key_minimum_32_characters_required_for_security",
+                "DATABASE_HOST": "localhost",
+                "DATABASE_NAME": "project_rulebook_dev",
+                "DATABASE_USERNAME": "vapor", 
+                "DATABASE_PASSWORD": "password",
+                "DATABASE_PORT": "5432",
+                "BASE_URL": "http://localhost:8080",
+                "APPLICATION_IDENTIFIER": "com.dev.app",
+                "BREVO_API_KEY": "dev_brevo_key",
+                "BREVO_URL": "https://api.brevo.com",
+                "OPENAI_KEY": "dev_openai_key"
+            },
+            "preLaunchTask": "swift: build",
+            "console": "integratedTerminal",
+            "stopOnEntry": false
+        }
+    ]
+}
+```
+
+### `.vscode/settings.json`
+```json
+{
+    "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
+    "lldb.launch.expressions": "native",
+    "swift.path": "/usr/bin/swift",
+    "swift.buildPath": ".build",
+    "swift.packagePath": ".",
+    "files.watcherExclude": {
+        "**/.build": true,
+        "**/Packages": true,
+        "**/.git": true
+    },
+    "files.exclude": {
+        "**/.build": true,
+        "**/Packages": true,
+        "**/.DS_Store": true,
+        "**/DerivedData": true,
+        "**/*.xcodeproj": true
+    },
+    "search.exclude": {
+        "**/.build": true,
+        "**/Packages": true
+    },
+    "[swift]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": true
+    },
+    "terminal.integrated.env.osx": {
+        "JWT_KEY": "development_jwt_secret_key_minimum_32_characters_required_for_security",
+        "DATABASE_HOST": "localhost",
+        "DATABASE_NAME": "project_rulebook_dev",
+        "DATABASE_USERNAME": "vapor",
+        "DATABASE_PASSWORD": "password",
+        "DATABASE_PORT": "5432",
+        "BASE_URL": "http://localhost:8080",
+        "APPLICATION_IDENTIFIER": "com.dev.app"
+    }
+}
+```
+
+### `.vscode/keybindings.json`
+```json
+[
+    {
+        "key": "cmd+r",
+        "command": "workbench.action.tasks.runTask",
+        "args": "swift: run server",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+r",
+        "command": "workbench.action.debug.start",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+b",
+        "command": "workbench.action.tasks.runTask", 
+        "args": "swift: build"
+    },
+    {
+        "key": "cmd+shift+t",
+        "command": "workbench.action.tasks.runTask",
+        "args": "swift: test"
+    }
+]
 ```
 
 ## Usage Instructions
