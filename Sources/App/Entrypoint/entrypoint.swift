@@ -30,11 +30,13 @@ struct Entrypoint {
         
         do {
             try configure(app)
+            try await app.execute()
         } catch {
             app.logger.report(error: error)
+            try await app.asyncShutdown()
             throw error
         }
         
-        try await app.execute()
+        try await app.asyncShutdown()
     }
 }
