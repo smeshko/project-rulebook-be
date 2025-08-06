@@ -1,0 +1,23 @@
+[
+    {
+        "key": "cmd+r",
+        "command": "workbench.action.tasks.runTask",
+        "args": "swift: run server",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+shift+r",
+        "command": "workbench.action.debug.start",
+        "when": "!inDebugMode"
+    },
+    {
+        "key": "cmd+b",
+        "command": "workbench.action.tasks.runTask", 
+        "args": "swift: build"
+    },
+    {
+        "key": "cmd+shift+t",
+        "command": "workbench.action.tasks.runTask",
+        "args": "swift: test"
+    }
+]

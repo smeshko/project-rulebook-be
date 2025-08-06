@@ -1,0 +1,110 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "swift: build",
+            "type": "shell",
+            "command": "swift",
+            "args": ["build"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$swiftc"
+            ]
+        },
+        {
+            "label": "swift: run server",
+            "type": "shell",
+            "command": "swift",
+            "args": [
+                "run", 
+                "App", 
+                "serve",
+                "--hostname", "0.0.0.0",
+                "--port", "8080"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "dedicated",
+                "clear": true
+            },
+            "isBackground": true,
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".*",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": "Building for debugging...",
+                        "endsPattern": "Server starting on"
+                    }
+                }
+            ],
+            "options": {
+                "env": {
+                    "JWT_KEY": "development_jwt_secret_key_minimum_32_characters_required_for_security",
+                    "DATABASE_HOST": "localhost",
+                    "DATABASE_NAME": "project_rulebook_dev", 
+                    "DATABASE_USERNAME": "vapor",
+                    "DATABASE_PASSWORD": "password",
+                    "DATABASE_PORT": "5432",
+                    "BASE_URL": "http://localhost:8080",
+                    "APPLICATION_IDENTIFIER": "com.dev.app",
+                    "BREVO_API_KEY": "dev_brevo_key",
+                    "BREVO_URL": "https://api.brevo.com",
+                    "OPENAI_KEY": "dev_openai_key",
+                    "AWS_ACCESS_KEY": "dev_access_key",
+                    "AWS_SECRET_ACCESS_KEY": "dev_secret_key",
+                    "AWS_REGION": "us-west-2",
+                    "AWS_S3_BUCKET_NAME": "dev-bucket",
+                    "APNS_KEY": "dev_apns_key",
+                    "APNS_PRIVATE_KEY": "dev_private_key",
+                    "APNS_TEAM_ID": "DEV_TEAM_ID"
+                }
+            }
+        },
+        {
+            "label": "swift: test",
+            "type": "shell",
+            "command": "swift",
+            "args": ["test"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": [
+                "$swiftc"
+            ]
+        },
+        {
+            "label": "swift: clean",
+            "type": "shell",
+            "command": "swift",
+            "args": ["package", "clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ]
+}
