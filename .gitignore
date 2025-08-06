@@ -10,5 +10,6 @@ Tests/LinuxMain.swift
 .vscode
 .bash_history
 .cache/
+.claude
 CLAUDE.md
 CLAUDE.local.md
