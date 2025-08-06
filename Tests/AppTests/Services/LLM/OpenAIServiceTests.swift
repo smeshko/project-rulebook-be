@@ -69,7 +69,7 @@ final class OpenAIServiceTests: XCTestCase {
         let mockClient = MockHTTPClient()
         app.http.client.use { _ in mockClient }
         
-        let rateLimitResponse = MockHTTPResponse.rateLimited()
+        let rateLimitResponse = MockHTTPResponse.rateLimited
         let successResponse = OpenAIResponse(
             id: "test-id",
             object: "response",
@@ -97,7 +97,7 @@ final class OpenAIServiceTests: XCTestCase {
         )
         
         // First call returns rate limit, second call succeeds
-        mockClient.responses = [rateLimitResponse, MockHTTPResponse.success(successResponse)]
+        mockClient.responses = [MockHTTPResponse.rateLimited, MockHTTPResponse.success(successResponse)]
         
         let service = OpenAIService(app: app)
         let input = [
@@ -120,7 +120,7 @@ final class OpenAIServiceTests: XCTestCase {
         let mockClient = MockHTTPClient()
         app.http.client.use { _ in mockClient }
         
-        mockClient.mockResponse = MockHTTPResponse.serverError()
+        mockClient.mockResponse = MockHTTPResponse.serverError
         
         let service = OpenAIService(app: app)
         let input = [
@@ -151,7 +151,7 @@ final class OpenAIServiceTests: XCTestCase {
         let mockClient = MockHTTPClient()
         app.http.client.use { _ in mockClient }
         
-        mockClient.mockResponse = MockHTTPResponse.unauthorized()
+        mockClient.mockResponse = MockHTTPResponse.unauthorized
         
         let service = OpenAIService(app: app)
         let input = [
@@ -229,7 +229,7 @@ final class OpenAIServiceTests: XCTestCase {
         let mockClient = MockHTTPClient()
         app.http.client.use { _ in mockClient }
         
-        mockClient.mockResponse = MockHTTPResponse.invalidJSON()
+        mockClient.mockResponse = MockHTTPResponse.invalidJSON
         
         let service = OpenAIService(app: app)
         let input = [
@@ -256,7 +256,7 @@ final class OpenAIServiceTests: XCTestCase {
 
 // MARK: - Mock HTTP Client
 
-class MockHTTPClient: Client {
+final class MockHTTPClient: @unchecked Sendable, Client {
     var mockResponse: MockHTTPResponse?
     var responses: [MockHTTPResponse] = []
     var requestCount = 0
@@ -270,7 +270,7 @@ class MockHTTPClient: Client {
         } else if let mockResponse = mockResponse {
             response = mockResponse
         } else {
-            response = MockHTTPResponse.serverError()
+            response = MockHTTPResponse.serverError
         }
         
         return eventLoop.makeSucceededFuture(response.clientResponse)
@@ -289,10 +289,10 @@ class MockHTTPClient: Client {
 
 enum MockHTTPResponse {
     case success(OpenAIResponse)
-    case rateLimited()
-    case serverError()
-    case unauthorized()
-    case invalidJSON()
+    case rateLimited
+    case serverError
+    case unauthorized
+    case invalidJSON
     
     var clientResponse: ClientResponse {
         switch self {
