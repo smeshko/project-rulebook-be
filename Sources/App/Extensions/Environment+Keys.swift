@@ -1,162 +1,100 @@
 import Vapor
 
-// MARK: - Database
+extension Application {
+    private struct ConfigurationKey: StorageKey {
+        typealias Value = ConfigurationService
+    }
+    
+    var configuration: ConfigurationService {
+        get {
+            guard let config = storage[ConfigurationKey.self] else {
+                fatalError("Configuration not initialized. Call app.initializeConfiguration() first.")
+            }
+            return config
+        }
+        set {
+            storage[ConfigurationKey.self] = newValue
+        }
+    }
+    
+    func initializeConfiguration() throws {
+        let config = ConfigurationFactory.create(for: environment)
+        try config.validate()
+        self.configuration = config
+    }
+}
+
+// MARK: - Legacy support extensions - use app.configuration directly instead
 extension Environment {
     static var databaseName: String {
-        if let key = Environment.get("DATABASE_NAME") {
-            return key
-        } else {
-            fatalError("DATABASE_NAME is empty")
-        }
+        fatalError("Use app.configuration.database.name instead of Environment.databaseName")
     }
     
     static var databaseHost: String {
-        if let key = Environment.get("DATABASE_HOST") {
-            return key
-        } else {
-            fatalError("DATABASE_HOST is empty")
-        }
+        fatalError("Use app.configuration.database.host instead of Environment.databaseHost")
     }
     
     static var databaseUser: String {
-        if let key = Environment.get("DATABASE_USERNAME") {
-            return key
-        } else {
-            fatalError("DATABASE_USERNAME is empty")
-        }
+        fatalError("Use app.configuration.database.username instead of Environment.databaseUser")
     }
     
     static var databasePassword: String {
-        if let key = Environment.get("DATABASE_PASSWORD") {
-            return key
-        } else {
-            fatalError("DATABASE_PASSWORD is empty")
-        }
+        fatalError("Use app.configuration.database.password instead of Environment.databasePassword")
     }
     
     static var databasePort: Int {
-        if let key = Environment.get("DATABASE_PORT"),
-           let port = Int(key) {
-            return port
-        } else {
-            fatalError("DATABASE_PORT is empty")
-        }
+        fatalError("Use app.configuration.database.port instead of Environment.databasePort")
     }
-}
-
-// MARK: - API
-extension Environment {
+    
     static var mailProviderKey: String {
-        if let key = Environment.get("BREVO_API_KEY") {
-            return key
-        } else {
-            fatalError("BREVO_API_KEY is empty")
-        }
+        fatalError("Use app.configuration.services.brevoAPIKey instead of Environment.mailProviderKey")
     }
     
     static var mailProviderUrl: String {
-        if let key = Environment.get("BREVO_URL") {
-            return key
-        } else {
-            fatalError("BREVO_URL is empty")
-        }
+        fatalError("Use app.configuration.services.brevoURL instead of Environment.mailProviderUrl")
     }
-
+    
     static var openAIKey: String {
-        if let key = Environment.get("OPENAI_KEY") {
-            return key
-        } else {
-            fatalError("OPENAI_KEY is empty")
-        }
+        fatalError("Use app.configuration.services.openAIKey instead of Environment.openAIKey")
     }
-}
-
-// MARK: - AWS
-extension Environment {
+    
     static var awsAccessKey: String {
-        if let key = Environment.get("AWS_ACCESS_KEY") {
-            return key
-        } else {
-            fatalError("AWS_ACCESS_KEY is empty")
-        }
+        fatalError("Use app.configuration.aws.accessKey instead of Environment.awsAccessKey")
     }
     
     static var awsSecretAccessKey: String {
-        if let key = Environment.get("AWS_SECRET_ACCESS_KEY") {
-            return key
-        } else {
-            fatalError("AWS_SECRET_ACCESS_KEY is empty")
-        }
+        fatalError("Use app.configuration.aws.secretAccessKey instead of Environment.awsSecretAccessKey")
     }
     
     static var awsRegion: String {
-        if let key = Environment.get("AWS_REGION") {
-            return key
-        } else {
-            fatalError("AWS_REGION is empty")
-        }
+        fatalError("Use app.configuration.aws.region instead of Environment.awsRegion")
     }
     
     static var awsS3BucketName: String {
-        if let key = Environment.get("AWS_S3_BUCKET_NAME") {
-            return key
-        } else {
-            fatalError("AWS_S3_BUCKET_NAME is empty")
-        }
+        fatalError("Use app.configuration.aws.s3BucketName instead of Environment.awsS3BucketName")
     }
-}
-
-// MARK: - APNS
-extension Environment {
     
     static var apnsKey: String {
-        if let key = Environment.get("APNS_KEY") {
-            return key
-        } else {
-            fatalError("APNS_KEY is empty")
-        }
+        fatalError("Use app.configuration.apns.key instead of Environment.apnsKey")
     }
     
     static var apnsPrivateKey: String {
-        if let key = Environment.get("APNS_PRIVATE_KEY") {
-            return key
-        } else {
-            fatalError("APNS_PRIVATE_KEY is empty")
-        }
+        fatalError("Use app.configuration.apns.privateKey instead of Environment.apnsPrivateKey")
     }
     
     static var apnsTeamId: String {
-        if let key = Environment.get("APNS_TEAM_ID") {
-            return key
-        } else {
-            fatalError("APNS_TEAM_ID is empty")
-        }
+        fatalError("Use app.configuration.apns.teamId instead of Environment.apnsTeamId")
     }
-}
-
-// MARK: - Setup
-extension Environment {
+    
     static var baseURL: String {
-        if let baseURL = Environment.get("BASE_URL") {
-            return baseURL
-        } else {
-            fatalError("BASE_URL is empty")
-        }
+        fatalError("Use app.configuration.security.baseURL instead of Environment.baseURL")
     }
     
     static var appIdentifier: String {
-        if let appIdentifier = Environment.get("APPLICATION_IDENTIFIER") {
-            return appIdentifier
-        } else {
-            fatalError("APPLICATION_IDENTIFIER is empty")
-        }
+        fatalError("Use app.configuration.security.appIdentifier instead of Environment.appIdentifier")
     }
     
     static var jwtKey: String {
-        if let key = Environment.get("JWT_KEY") {
-            return key
-        } else {
-            fatalError("JWT_KEY is empty")
-        }
+        fatalError("Use app.configuration.security.jwtKey instead of Environment.jwtKey")
     }
 }
