@@ -13,6 +13,16 @@ private extension JWKIdentifier {
 }
 
 extension Application {
+    func setupConfiguration() throws {
+        try initializeConfiguration()
+        
+        // Log configuration status (without sensitive data)
+        logger.info("Configuration loaded for environment: \(environment.name)")
+        let db = try configuration.database
+        logger.info("Database host: \(db.host)")
+        logger.info("Services configured: Brevo, OpenAI")
+    }
+    
     func setupMiddleware() {
         middleware = .init()
         let file = FileMiddleware(publicDirectory: directory.publicDirectory)
@@ -59,12 +69,13 @@ extension Application {
             break
         }
         
+        let db = try configuration.database
         let postgresConfig = SQLPostgresConfiguration(
-            hostname: Environment.databaseHost,
-            port: Environment.databasePort,
-            username: Environment.databaseUser,
-            password: Environment.databasePassword,
-            database: Environment.databaseName,
+            hostname: db.host,
+            port: db.port,
+            username: db.username,
+            password: db.password,
+            database: db.name,
             tls: tlsConnectionConfiguration
         )
         databases.use(.postgres(configuration: postgresConfig), as: .psql)
@@ -72,7 +83,8 @@ extension Application {
     
     func setupJWT() throws {
         if environment != .testing {
-            jwt.signers.use(.hs256(key: Environment.jwtKey))
+            let security = try configuration.security
+            jwt.signers.use(.hs256(key: security.jwtKey))
         }
     }
     

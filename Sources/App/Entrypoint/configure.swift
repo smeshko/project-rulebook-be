@@ -7,7 +7,9 @@ extension Environment {
 }
 
 public func configure(_ app: Application) throws {
-
+    // Initialize configuration first
+    try app.setupConfiguration()
+    
     app.setupMiddleware()
     try app.setupDB()
     try app.setupJWT()
