@@ -27,10 +27,17 @@ struct DevelopmentConfiguration: ConfigurationService {
     
     var security: SecurityConfig {
         get throws {
+            let corsOrigins = Environment.get("CORS_ALLOWED_ORIGINS")?
+                .split(separator: ",")
+                .map(String.init) ?? ["http://localhost:3000", "http://localhost:8080"]
+            
             SecurityConfig(
                 baseURL: Environment.get("BASE_URL") ?? "http://localhost:8080",
                 appIdentifier: Environment.get("APPLICATION_IDENTIFIER") ?? "com.dev.app",
-                jwtKey: Environment.get("JWT_KEY") ?? "development_jwt_secret_key_minimum_32_characters_required_for_security"
+                jwtKey: Environment.get("JWT_KEY") ?? "development_jwt_secret_key_minimum_32_characters_required_for_security",
+                corsAllowedOrigins: corsOrigins,
+                rateLimitMaxRequests: Int(Environment.get("RATE_LIMIT_MAX_REQUESTS") ?? "100") ?? 100,
+                rateLimitWindowMinutes: Int(Environment.get("RATE_LIMIT_WINDOW_MINUTES") ?? "1") ?? 1
             )
         }
     }

@@ -98,10 +98,24 @@ struct ProductionConfiguration: ConfigurationService {
                 )
             }
             
+            let corsOrigins = Environment.get("CORS_ALLOWED_ORIGINS")?
+                .split(separator: ",")
+                .map(String.init) ?? []
+            
+            if corsOrigins.isEmpty {
+                throw ConfigurationError.missingRequired(
+                    key: "CORS_ALLOWED_ORIGINS",
+                    suggestion: "Set CORS_ALLOWED_ORIGINS environment variable with comma-separated allowed origins"
+                )
+            }
+            
             return SecurityConfig(
                 baseURL: baseURL,
                 appIdentifier: appIdentifier,
-                jwtKey: jwtKey
+                jwtKey: jwtKey,
+                corsAllowedOrigins: corsOrigins,
+                rateLimitMaxRequests: Int(Environment.get("RATE_LIMIT_MAX_REQUESTS") ?? "100") ?? 100,
+                rateLimitWindowMinutes: Int(Environment.get("RATE_LIMIT_WINDOW_MINUTES") ?? "1") ?? 1
             )
         }
     }

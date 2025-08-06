@@ -3,7 +3,7 @@ import Fluent
 import FluentSQLiteDriver
 import XCTVapor
 
-class TestWorld {
+class TestWorld: @unchecked Sendable {
     let app: Application
     
     // Repositories
@@ -11,26 +11,17 @@ class TestWorld {
     private let userRepository: TestUserRepository = .init()
     private let emailTokenRepository: TestEmailTokenRepository = .init()
     private let passwordTokenRepository: TestPasswordTokenRepository = .init()
-    private let postRepository: TestPostRepository = .init()
-    private let mediaRepository: TestMediaRepository = .init()
-    private let commentRepository: TestCommentRepository = .init()
-    private let businessRepository: TestBusinessRepository = .init()
     
     init(app: Application) throws {
         self.app = app
         
         try app.jwt.signers.use(.es256(key: .generate()))
         
-        app.repositories.use { _ in self.tokenRepository }
-        app.repositories.use { _ in self.userRepository }
-        app.repositories.use { _ in self.emailTokenRepository }
-        app.repositories.use { _ in self.passwordTokenRepository }
-        app.repositories.use { _ in self.postRepository }
-        app.repositories.use { _ in self.mediaRepository }
-        app.repositories.use { _ in self.commentRepository }
-        app.repositories.use { _ in self.businessRepository }
+        app.repositories.refreshTokensService.use { _ in self.tokenRepository }
+        app.repositories.usersService.use { _ in self.userRepository }
+        app.repositories.emailTokensService.use { _ in self.emailTokenRepository }
+        app.repositories.passwordTokensService.use { _ in self.passwordTokenRepository }
         
         app.services.email.use(.fake)
-        app.services.fileStorage.use(.fake)
     }
 }
