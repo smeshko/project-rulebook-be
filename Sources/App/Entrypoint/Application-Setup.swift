@@ -123,7 +123,7 @@ extension Application {
         }
     }
     
-    func setupServices() {
+    func setupServices() throws {
         repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
         repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
         repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db) }
@@ -133,5 +133,8 @@ extension Application {
         services.randomGenerator.use(.random)
         services.uuidGenerator.use(.random)
         services.llm.use(.openAI)
+        
+        // Setup AI cache service
+        try setupAICache()
     }
 }

@@ -63,6 +63,18 @@ struct DevelopmentConfiguration: ConfigurationService {
         }
     }
     
+    var cache: CacheConfig {
+        get throws {
+            CacheConfig(
+                maxEntries: Int(Environment.get("CACHE_MAX_ENTRIES") ?? "500") ?? 500,
+                rulesGenerationTTL: Double(Environment.get("CACHE_RULES_TTL") ?? "3600") ?? 3600, // 1 hour
+                imageAnalysisTTL: Double(Environment.get("CACHE_IMAGE_TTL") ?? "1800") ?? 1800,   // 30 minutes
+                cleanupInterval: Double(Environment.get("CACHE_CLEANUP_INTERVAL") ?? "300") ?? 300, // 5 minutes
+                enableLogging: Environment.get("CACHE_ENABLE_LOGGING")?.lowercased() != "false"  // Default enabled
+            )
+        }
+    }
+    
     func validate() throws {
         let db = try database
         

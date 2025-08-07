@@ -45,6 +45,25 @@ struct RulesGenerationController {
             throw validationError
         }
         
+        // PERFORMANCE OPTIMIZATION: Check cache first
+        let cacheKey = CacheKeyGenerator.generateBoxPhotoKey(for: request.image)
+        
+        if let cachedResponse = await req.aiCache.get(key: cacheKey) {
+            req.logger.info("Cache hit for image analysis", metadata: [
+                "cache_key": .string(cacheKey),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            
+            // Parse and return cached response
+            let cachedBuffer = ByteBuffer(string: cachedResponse)
+            let result = try JSONDecoder().decode(GameboxRecognition.Response.self, from: cachedBuffer)
+            return result
+        }
+        
+        req.logger.debug("Cache miss for image analysis", metadata: [
+            "cache_key": .string(cacheKey)
+        ])
+        
         // Optimized prompt: 65 tokens (64% reduction from 180)
         let systemPrompt = """
         Identify board game from box image. Return JSON:
@@ -92,9 +111,19 @@ struct RulesGenerationController {
             let boxBuffer = ByteBuffer(string: validatedResponse)
             let result = try JSONDecoder().decode(GameboxRecognition.Response.self, from: boxBuffer)
             
-            // Log successful analysis
+            // PERFORMANCE OPTIMIZATION: Cache successful response
+            let cacheConfig = try req.application.configuration.cache
+            await req.aiCache.set(
+                key: cacheKey,
+                value: validatedResponse,
+                ttl: cacheConfig.imageAnalysisTTL
+            )
+            
+            // Log successful analysis and caching
             req.logger.info("AI image analysis completed successfully", metadata: [
                 "confidence": .string("\(result.confidence)"),
+                "cached": .string("true"),
+                "cache_key": .string(cacheKey),
                 "client_ip": .string(extractClientIP(from: req))
             ])
             
@@ -144,6 +173,27 @@ struct RulesGenerationController {
             ])
             throw Abort(.badRequest, reason: sanitizationError.description)
         }
+        
+        // PERFORMANCE OPTIMIZATION: Check cache first
+        let cacheKey = CacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
+        
+        if let cachedResponse = await req.aiCache.get(key: cacheKey) {
+            req.logger.info("Cache hit for rules generation", metadata: [
+                "game_title": .string(sanitizedGameTitle),
+                "cache_key": .string(cacheKey),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            
+            // Parse and return cached response
+            let cachedBuffer = ByteBuffer(string: cachedResponse)
+            let result = try JSONDecoder().decode(RulesSummary.Response.self, from: cachedBuffer)
+            return result
+        }
+        
+        req.logger.debug("Cache miss for rules generation", metadata: [
+            "game_title": .string(sanitizedGameTitle),
+            "cache_key": .string(cacheKey)
+        ])
         
         // Optimized prompt: 120 tokens (66% reduction from 350)
         let systemPrompt = """
@@ -198,10 +248,20 @@ struct RulesGenerationController {
             let rulesBuffer = ByteBuffer(string: validatedResponse)
             let result = try JSONDecoder().decode(RulesSummary.Response.self, from: rulesBuffer)
             
-            // Log successful generation
+            // PERFORMANCE OPTIMIZATION: Cache successful response
+            let cacheConfig = try req.application.configuration.cache
+            await req.aiCache.set(
+                key: cacheKey,
+                value: validatedResponse,
+                ttl: cacheConfig.rulesGenerationTTL
+            )
+            
+            // Log successful generation and caching
             req.logger.info("AI rules generation completed successfully", metadata: [
                 "game_title": .string(sanitizedGameTitle),
                 "confidence": .string("\(result.confidence)"),
+                "cached": .string("true"),
+                "cache_key": .string(cacheKey),
                 "client_ip": .string(extractClientIP(from: req))
             ])
             

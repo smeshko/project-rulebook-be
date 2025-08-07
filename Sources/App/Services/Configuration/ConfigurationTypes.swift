@@ -35,3 +35,11 @@ struct APNSConfig: Sendable {
     let privateKey: String
     let teamId: String
 }
+
+struct CacheConfig: Sendable {
+    let maxEntries: Int
+    let rulesGenerationTTL: TimeInterval
+    let imageAnalysisTTL: TimeInterval
+    let cleanupInterval: TimeInterval
+    let enableLogging: Bool
+}

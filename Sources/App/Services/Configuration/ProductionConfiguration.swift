@@ -190,10 +190,23 @@ struct ProductionConfiguration: ConfigurationService {
         }
     }
     
+    var cache: CacheConfig {
+        get throws {
+            CacheConfig(
+                maxEntries: Int(Environment.get("CACHE_MAX_ENTRIES") ?? "1000") ?? 1000,
+                rulesGenerationTTL: Double(Environment.get("CACHE_RULES_TTL") ?? "3600") ?? 3600, // 1 hour
+                imageAnalysisTTL: Double(Environment.get("CACHE_IMAGE_TTL") ?? "1800") ?? 1800,   // 30 minutes
+                cleanupInterval: Double(Environment.get("CACHE_CLEANUP_INTERVAL") ?? "600") ?? 600, // 10 minutes
+                enableLogging: Environment.get("CACHE_ENABLE_LOGGING")?.lowercased() == "true"    // Default disabled for production
+            )
+        }
+    }
+    
     func validate() throws {
         let db = try database
         let services = try services
         let security = try security
+        let cache = try cache
         _ = try aws
         _ = try apns
         
@@ -234,6 +247,28 @@ struct ProductionConfiguration: ConfigurationService {
             throw ConfigurationError.validationFailed(
                 component: "OpenAI",
                 reason: "OPENAI_KEY cannot be empty"
+            )
+        }
+        
+        // Cache validation
+        if cache.maxEntries < 1 {
+            throw ConfigurationError.validationFailed(
+                component: "Cache",
+                reason: "CACHE_MAX_ENTRIES must be at least 1"
+            )
+        }
+        
+        if cache.rulesGenerationTTL < 60 {
+            throw ConfigurationError.validationFailed(
+                component: "Cache",
+                reason: "CACHE_RULES_TTL must be at least 60 seconds"
+            )
+        }
+        
+        if cache.imageAnalysisTTL < 60 {
+            throw ConfigurationError.validationFailed(
+                component: "Cache",
+                reason: "CACHE_IMAGE_TTL must be at least 60 seconds"
             )
         }
     }
