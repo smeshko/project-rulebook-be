@@ -31,7 +31,7 @@ extension Application {
         
         // CORS Configuration
         let corsConfiguration = CORSMiddleware.Configuration(
-            allowedOrigin: .custom(security.corsAllowedOrigins.joined(separator: ",")),
+            allowedOrigin: .any(security.corsAllowedOrigins),
             allowedMethods: [.GET, .POST, .PUT, .DELETE, .PATCH, .OPTIONS],
             allowedHeaders: [
                 .accept,
