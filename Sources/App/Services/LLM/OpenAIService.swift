@@ -30,22 +30,52 @@ struct OpenAIService: LLMService {
     }
     
     func generate(input: [OpenAIRequest.Message]) async throws -> String {
+        return try await generateOptimized(
+            input: input,
+            model: "gpt-4o-mini",
+            temperature: 0,
+            maxTokens: 1000,
+            useJSONMode: true
+        )
+    }
+    
+    func generateOptimized(
+        input: [OpenAIRequest.Message],
+        model: String = "gpt-4o-mini",
+        temperature: Double = 0,
+        maxTokens: Int = 1000,
+        useJSONMode: Bool = true
+    ) async throws -> String {
         return try await withRetry(maxAttempts: maxRetries) { attempt in
-            try await performGeneration(input: input, attempt: attempt)
+            try await performGenerationOptimized(
+                input: input,
+                model: model,
+                temperature: temperature,
+                maxTokens: maxTokens,
+                useJSONMode: useJSONMode,
+                attempt: attempt
+            )
         }
     }
     
-    private func performGeneration(input: [OpenAIRequest.Message], attempt: Int) async throws -> String {
+    private func performGenerationOptimized(
+        input: [OpenAIRequest.Message],
+        model: String,
+        temperature: Double,
+        maxTokens: Int,
+        useJSONMode: Bool,
+        attempt: Int
+    ) async throws -> String {
         do {
             let response = try await app.client.post(
                 .init(string: "https://api.openai.com/v1/chat/completions"),
                 headers: headers,
                 content: OpenAIRequest(
-                    model: "gpt-4o-mini",
+                    model: model,
                     messages: input,
-                    temperature: 0,
-                    maxTokens: 1000,
-                    responseFormat: OpenAIRequest.ResponseFormat(type: "json_object")
+                    temperature: temperature,
+                    maxTokens: maxTokens,
+                    responseFormat: useJSONMode ? OpenAIRequest.ResponseFormat(type: "json_object") : nil
                 )
             )
             

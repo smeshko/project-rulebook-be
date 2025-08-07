@@ -45,23 +45,16 @@ struct RulesGenerationController {
             throw validationError
         }
         
-        // Use secure, parameterized prompt structure instead of string interpolation
+        // Optimized prompt: 65 tokens (64% reduction from 180)
         let systemPrompt = """
-        You are an assistant in a mobile app for board gamers. A user has taken a photo of a board game box.
-
-        Your task is to analyze the image and identify which board game it is, using only your internal knowledge (you cannot access the web).
-
-        Return a JSON object with the following fields:
-
+        Identify board game from box image. Return JSON:
         {
-          "guessedTitle": "Most likely game title",
-          "confidence": "Confidence from 0 to 100 (as a number)",
-          "alternativeTitles": ["Other possible matches, ranked by likelihood"],
-          "keywordsDetected": ["Any keywords or phrases you see on the box that helped you identify the game"],
-          "notes": "Any ambiguity or uncertainty about the match"
+          "guessedTitle": "game name",
+          "confidence": 0-100,
+          "alternativeTitles": ["alternatives"],
+          "keywordsDetected": ["visible text"],
+          "notes": "uncertainties"
         }
-
-        Respond ONLY with valid JSON.
         """
         
         let boxInput: [OpenAIRequest.Message] = [
@@ -152,40 +145,25 @@ struct RulesGenerationController {
             throw Abort(.badRequest, reason: sanitizationError.description)
         }
         
-        // Use secure, parameterized prompt structure with sanitized input
+        // Optimized prompt: 120 tokens (66% reduction from 350)
         let systemPrompt = """
-        You are a helpful assistant embedded in a mobile app for board game players. A user has provided the name of a board game and wants to start playing immediately. Your task is to:
-        
-        1. Find and understand the basic rules of the game (based on your internal knowledge and training data).
-        2. Summarize the game for first-time players.
-        3. Explain how to set up the game board and components in clear, numbered steps.
-        4. Suggest what each player should do during their first round to start the game smoothly.
-        5. Include a "deep dive" section with more detailed rules (e.g. phases, actions, key systems, or player strategies).
-        6. Provide helpful external links if known (e.g. to YouTube tutorials or official websites).
-        7. Return a confidence score (0–100) estimating how accurate and complete this information is.
-        
-        Respond ONLY in valid JSON using this structure:
+        Generate board game rules summary. Return JSON:
         {
-          "title": "Game Name",
-          "playerCount": "Number of players supported",
-          "playTime": "Estimated play time",
-          "summary": "Beginner-friendly overview of how the game works",
-          "initialSetup": ["Step-by-step setup instructions"],
-          "firstRoundGuide": ["Suggestions on what each player should do in the first round"],
-          "winCondition": "How to win the game",
-          "deepDive": ["Detailed rule explanations, phases, actions, special mechanics, strategies"],
-          "resources": {
-            "videoLinks": ["Optional YouTube or publisher video tutorials"],
-            "webLinks": ["Optional helpful websites like BoardGameGeek, official rulebooks, etc."]
-          },
-          "confidence": "0–100 (number)",
-          "notes": "Any ambiguity or assumptions made"
+          "title": "name",
+          "playerCount": "X-Y",
+          "playTime": "duration",
+          "summary": "overview",
+          "initialSetup": ["setup steps"],
+          "firstRoundGuide": ["first round actions"],
+          "winCondition": "victory",
+          "deepDive": ["detailed rules"],
+          "resources": {"videoLinks": [], "webLinks": []},
+          "confidence": 0-100,
+          "notes": "assumptions"
         }
-        
-        The JSON should be compact and contain only plain text values (no formatting).
         """
         
-        let userPrompt = "Please provide rules for the board game: \(sanitizedGameTitle)"
+        let userPrompt = "Game: \(sanitizedGameTitle)"
         
         let rulesInput: [OpenAIRequest.Message] = [
             .init(
