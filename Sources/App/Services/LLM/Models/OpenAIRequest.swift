@@ -10,7 +10,7 @@ struct OpenAIRequest: Content {
             let type: String
             let text: String
 
-            init(type: String = "input_text", text: String) {
+            init(type: String = "text", text: String) {
                 self.type = type
                 self.text = text
             }
@@ -18,11 +18,15 @@ struct OpenAIRequest: Content {
 
         struct ImageContent: ContentType {
             let type: String
-            let imageUrl: String
+            let imageUrl: ImageUrl
+            
+            struct ImageUrl: Content {
+                let url: String
+            }
 
-            init(type: String = "input_image", imageUrl: String) {
+            init(type: String = "image_url", imageUrl: String) {
                 self.type = type
-                self.imageUrl = imageUrl
+                self.imageUrl = ImageUrl(url: imageUrl)
             }
 
             enum CodingKeys: String, CodingKey {
@@ -90,6 +94,21 @@ struct OpenAIRequest: Content {
         }
     }
 
+    struct ResponseFormat: Content {
+        let type: String
+    }
+    
     let model: String
-    let input: [Message]
+    let messages: [Message]
+    let temperature: Double?
+    let maxTokens: Int?
+    let responseFormat: ResponseFormat?
+    
+    enum CodingKeys: String, CodingKey {
+        case model
+        case messages
+        case temperature
+        case maxTokens = "max_tokens"
+        case responseFormat = "response_format"
+    }
 }

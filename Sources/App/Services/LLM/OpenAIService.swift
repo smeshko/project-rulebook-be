@@ -38,11 +38,14 @@ struct OpenAIService: LLMService {
     private func performGeneration(input: [OpenAIRequest.Message], attempt: Int) async throws -> String {
         do {
             let response = try await app.client.post(
-                .init(string: "https://api.openai.com/v1/responses"),
+                .init(string: "https://api.openai.com/v1/chat/completions"),
                 headers: headers,
                 content: OpenAIRequest(
-                    model: "gpt-4.1",
-                    input: input
+                    model: "gpt-4o-mini",
+                    messages: input,
+                    temperature: 0,
+                    maxTokens: 1000,
+                    responseFormat: OpenAIRequest.ResponseFormat(type: "json_object")
                 )
             )
             
@@ -81,14 +84,14 @@ struct OpenAIService: LLMService {
             let decodedResponse = try response.content.decode(OpenAIResponse.self, using: decoder)
             
             if let error = decodedResponse.error {
-                throw OpenAIError.apiError(error)
+                throw OpenAIError.apiError(error.message)
             }
             
-            guard let text = decodedResponse.output.first?.content.first?.text else {
+            guard let content = decodedResponse.choices.first?.message.content else {
                 throw OpenAIError.emptyResponse
             }
             
-            return text
+            return content
             
         } catch let decodingError as DecodingError {
             app.logger.error("Failed to decode OpenAI response: \(decodingError)")

@@ -3,6 +3,13 @@ import Vapor
 struct RulesGenerationController {
 
     func analyzeBoxPhoto(_ req: Request) async throws -> GameboxRecognition.Response {
+        // Security logging: Log AI image analysis request
+        req.logger.info("AI image analysis request initiated", metadata: [
+            "endpoint": "analyzeBoxPhoto",
+            "client_ip": .string(extractClientIP(from: req)),
+            "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
+        ])
+        
         var data: Data?
         for try await part in req.body {
             if data == nil {
@@ -13,18 +20,55 @@ struct RulesGenerationController {
         }
 
         guard let data else {
+            req.logger.warning("Empty request body received for image analysis")
             throw ContentError.externalServiceFailedToRespond
         }
-        let request = try JSONDecoder().decode(GameboxRecognition.Request.self, from: data)
+        
+        let request: GameboxRecognition.Request
+        do {
+            request = try JSONDecoder().decode(GameboxRecognition.Request.self, from: data)
+        } catch {
+            req.logger.warning("Invalid JSON in image analysis request", metadata: ["error": .string(error.localizedDescription)])
+            throw Abort(.badRequest, reason: "Invalid request format")
+        }
+        
         let encoded = request.image.base64EncodedString()
+        
+        // CRITICAL SECURITY FIX: Validate image data before AI processing
+        do {
+            try AIInputValidator.validateImageData(encoded)
+        } catch let validationError as AIValidationError {
+            req.logger.warning("Image validation failed", metadata: [
+                "error": .string(validationError.description),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw validationError
+        }
+        
+        // Use secure, parameterized prompt structure instead of string interpolation
+        let systemPrompt = """
+        You are an assistant in a mobile app for board gamers. A user has taken a photo of a board game box.
+
+        Your task is to analyze the image and identify which board game it is, using only your internal knowledge (you cannot access the web).
+
+        Return a JSON object with the following fields:
+
+        {
+          "guessedTitle": "Most likely game title",
+          "confidence": "Confidence from 0 to 100 (as a number)",
+          "alternativeTitles": ["Other possible matches, ranked by likelihood"],
+          "keywordsDetected": ["Any keywords or phrases you see on the box that helped you identify the game"],
+          "notes": "Any ambiguity or uncertainty about the match"
+        }
+
+        Respond ONLY with valid JSON.
+        """
+        
         let boxInput: [OpenAIRequest.Message] = [
             .init(
                 role: "system",
                 content: [
-                    OpenAIRequest.Message.TextContent(
-                        text:
-                            "You are an assistant in a mobile app for board gamers. A user has taken a photo of a board game box.\n\nYour task is to analyze the image and identify which board game it is, using only your internal knowledge (you cannot access the web).\n\nReturn a JSON object with the following fields:\n\n{\n  \"guessedTitle\": \"Most likely game title\",\n  \"confidence\": \"Confidence from 0 to 100 (as a number)\",\n  \"alternativeTitles\": [\"Other possible matches, ranked by likelihood\"],\n  \"keywordsDetected\": [\"Any keywords or phrases you see on the box that helped you identify the game\"],\n  \"notes\": \"Any ambiguity or uncertainty about the match\"\n}\n\nRespond ONLY with valid JSON."
-                    )
+                    OpenAIRequest.Message.TextContent(text: systemPrompt)
                 ]
             ),
             .init(
@@ -37,26 +81,286 @@ struct RulesGenerationController {
                 ]
             ),
         ]
-        let boxResponse = try await req.services.llm.generate(input: boxInput)
-        let boxBuffer = ByteBuffer(string: boxResponse)
-        return try JSONDecoder().decode(GameboxRecognition.Response.self, from: boxBuffer)
+        
+        let boxResponse: String
+        do {
+            boxResponse = try await req.services.llm.generate(input: boxInput)
+        } catch {
+            req.logger.error("LLM service error during image analysis", metadata: [
+                "error": .string(error.localizedDescription),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw ContentError.externalServiceFailedToRespond
+        }
+        
+        // SECURITY FIX: Validate AI response before returning
+        do {
+            let validatedResponse = try validateAIResponse(boxResponse, expectedType: "GameboxRecognition")
+            let boxBuffer = ByteBuffer(string: validatedResponse)
+            let result = try JSONDecoder().decode(GameboxRecognition.Response.self, from: boxBuffer)
+            
+            // Log successful analysis
+            req.logger.info("AI image analysis completed successfully", metadata: [
+                "confidence": .string("\(result.confidence)"),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            
+            return result
+        } catch {
+            req.logger.error("AI response validation failed", metadata: [
+                "error": .string(error.localizedDescription),
+                "response_length": .string("\(boxResponse.count)"),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw ContentError.externalServiceFailedToRespond
+        }
     }
 
     func generateRulesSummary(_ req: Request) async throws -> RulesSummary.Response {
-        let input = try req.content.decode(RulesSummary.Request.self)
+        // Security logging: Log AI rules generation request
+        req.logger.info("AI rules generation request initiated", metadata: [
+            "endpoint": "generateRulesSummary",
+            "client_ip": .string(extractClientIP(from: req)),
+            "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
+        ])
+        
+        let input: RulesSummary.Request
+        do {
+            input = try req.content.decode(RulesSummary.Request.self)
+        } catch {
+            req.logger.warning("Invalid JSON in rules generation request", metadata: ["error": .string(error.localizedDescription)])
+            throw Abort(.badRequest, reason: "Invalid request format")
+        }
+        
+        // CRITICAL SECURITY FIX: Validate and sanitize game title before AI processing
+        let sanitizedGameTitle: String
+        do {
+            sanitizedGameTitle = try AIInputValidator.validateAndSanitizeGameTitle(input.gameTitle)
+        } catch let validationError as AIValidationError {
+            req.logger.warning("Game title validation failed", metadata: [
+                "error": .string(validationError.description),
+                "raw_title": .string(input.gameTitle),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw validationError
+        } catch let sanitizationError as ValidationError {
+            req.logger.warning("Game title sanitization failed", metadata: [
+                "error": .string(sanitizationError.description),
+                "raw_title": .string(input.gameTitle),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw Abort(.badRequest, reason: sanitizationError.description)
+        }
+        
+        // Use secure, parameterized prompt structure with sanitized input
+        let systemPrompt = """
+        You are a helpful assistant embedded in a mobile app for board game players. A user has provided the name of a board game and wants to start playing immediately. Your task is to:
+        
+        1. Find and understand the basic rules of the game (based on your internal knowledge and training data).
+        2. Summarize the game for first-time players.
+        3. Explain how to set up the game board and components in clear, numbered steps.
+        4. Suggest what each player should do during their first round to start the game smoothly.
+        5. Include a "deep dive" section with more detailed rules (e.g. phases, actions, key systems, or player strategies).
+        6. Provide helpful external links if known (e.g. to YouTube tutorials or official websites).
+        7. Return a confidence score (0–100) estimating how accurate and complete this information is.
+        
+        Respond ONLY in valid JSON using this structure:
+        {
+          "title": "Game Name",
+          "playerCount": "Number of players supported",
+          "playTime": "Estimated play time",
+          "summary": "Beginner-friendly overview of how the game works",
+          "initialSetup": ["Step-by-step setup instructions"],
+          "firstRoundGuide": ["Suggestions on what each player should do in the first round"],
+          "winCondition": "How to win the game",
+          "deepDive": ["Detailed rule explanations, phases, actions, special mechanics, strategies"],
+          "resources": {
+            "videoLinks": ["Optional YouTube or publisher video tutorials"],
+            "webLinks": ["Optional helpful websites like BoardGameGeek, official rulebooks, etc."]
+          },
+          "confidence": "0–100 (number)",
+          "notes": "Any ambiguity or assumptions made"
+        }
+        
+        The JSON should be compact and contain only plain text values (no formatting).
+        """
+        
+        let userPrompt = "Please provide rules for the board game: \(sanitizedGameTitle)"
+        
         let rulesInput: [OpenAIRequest.Message] = [
             .init(
                 role: "system",
                 content: [
-                    OpenAIRequest.Message.TextContent(
-                        text:
-                            "You are a helpful assistant embedded in a mobile app for board game players. A user has provided the name of a board game and wants to start playing immediately. Your task is to: 1. Find and understand the basic rules of the game (based on your internal knowledge and training data). 2. Summarize the game for first-time players. 3. Explain how to set up the game board and components in clear, numbered steps. 4. Suggest what each player should do during their first round to start the game smoothly. 5. Include a \\\"deep dive\\\" section with more detailed rules (e.g. phases, actions, key systems, or player strategies). 6. Provide helpful external links if known (e.g. to YouTube tutorials or official websites). 7. Return a confidence score (0–100) estimating how accurate and complete this information is. Respond ONLY in valid JSON using this structure: { \\\"title\\\": \\\"Game Name\\\", \\\"playerCount\\\": \\\"Number of players supported\\\", \\\"playTime\\\": \\\"Estimated play time\\\", \\\"summary\\\": \\\"Beginner-friendly overview of how the game works\\\", \\\"initialSetup\\\": [\\\"Step-by-step setup instructions\\\"], \\\"firstRoundGuide\\\": [\\\"Suggestions on what each player should do in the first round\\\"], \\\"winCondition\\\": \\\"How to win the game\\\", \\\"deepDive\\\": [\\\"Detailed rule explanations, phases, actions, special mechanics, strategies\\\"], \\\"resources\\\": { \\\"videoLinks\\\": [\\\"Optional YouTube or publisher video tutorials\\\"], \\\"webLinks\\\": [\\\"Optional helpful websites like BoardGameGeek, official rulebooks, etc.\\\"] }, \\\"confidence\\\": 0–100 (number), \\\"notes\\\": \\\"Any ambiguity or assumptions made\\\" } The JSON should be compact and contain only plain text values (no formatting). The game to summarize is: \(input.gameTitle)"
-                    )
+                    OpenAIRequest.Message.TextContent(text: systemPrompt)
+                ]
+            ),
+            .init(
+                role: "user",
+                content: [
+                    OpenAIRequest.Message.TextContent(text: userPrompt)
                 ]
             )
         ]
-        let rulesResponse = try await req.services.llm.generate(input: rulesInput)
-        let rulesBuffer = ByteBuffer(string: rulesResponse)
-        return try JSONDecoder().decode(RulesSummary.Response.self, from: rulesBuffer)
+        
+        let rulesResponse: String
+        do {
+            rulesResponse = try await req.services.llm.generate(input: rulesInput)
+        } catch {
+            req.logger.error("LLM service error during rules generation", metadata: [
+                "error": .string(error.localizedDescription),
+                "game_title": .string(sanitizedGameTitle),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw ContentError.externalServiceFailedToRespond
+        }
+        
+        // SECURITY FIX: Validate AI response before returning
+        do {
+            let validatedResponse = try validateAIResponse(rulesResponse, expectedType: "RulesSummary")
+            let rulesBuffer = ByteBuffer(string: validatedResponse)
+            let result = try JSONDecoder().decode(RulesSummary.Response.self, from: rulesBuffer)
+            
+            // Log successful generation
+            req.logger.info("AI rules generation completed successfully", metadata: [
+                "game_title": .string(sanitizedGameTitle),
+                "confidence": .string("\(result.confidence)"),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            
+            return result
+        } catch {
+            req.logger.error("AI response validation failed for rules generation", metadata: [
+                "error": .string(error.localizedDescription),
+                "game_title": .string(sanitizedGameTitle),
+                "response_length": .string("\(rulesResponse.count)"),
+                "client_ip": .string(extractClientIP(from: req))
+            ])
+            throw ContentError.externalServiceFailedToRespond
+        }
+    }
+    
+    // MARK: - Security Helper Methods
+    
+    /// Extracts the real client IP address from the request, checking proxy headers first
+    private func extractClientIP(from request: Request) -> String {
+        // Check X-Forwarded-For header (may contain multiple IPs, client is first)
+        if let forwardedFor = request.headers.first(name: "X-Forwarded-For") {
+            let trimmed = forwardedFor.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                // Take the first IP address (the original client)
+                let firstIP = String(trimmed.split(separator: ",").first ?? "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if isValidIPAddress(firstIP) {
+                    return firstIP
+                }
+            }
+        }
+        
+        // Check X-Real-IP header (single IP)
+        if let realIP = request.headers.first(name: "X-Real-IP") {
+            let trimmed = realIP.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty && isValidIPAddress(trimmed) {
+                return trimmed
+            }
+        }
+        
+        // Check CF-Connecting-IP header (Cloudflare specific)
+        if let cfIP = request.headers.first(name: "CF-Connecting-IP") {
+            let trimmed = cfIP.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty && isValidIPAddress(trimmed) {
+                return trimmed
+            }
+        }
+        
+        // Fallback to remote address
+        return request.remoteAddress?.hostname ?? "unknown"
+    }
+    
+    /// Validates if a string is a valid IP address (IPv4 or IPv6)
+    private func isValidIPAddress(_ ip: String) -> Bool {
+        guard !ip.isEmpty, ip != "unknown", ip != "localhost" else { return false }
+        
+        // Check for IPv4 format
+        if ip.contains(".") {
+            let components = ip.split(separator: ".")
+            guard components.count == 4 else { return false }
+            return components.allSatisfy { component in
+                guard let num = Int(component), num >= 0, num <= 255 else { return false }
+                return true
+            }
+        }
+        
+        // Basic IPv6 validation
+        if ip.contains(":") {
+            let components = ip.split(separator: ":")
+            guard components.count >= 2, components.count <= 8 else { return false }
+            return components.allSatisfy { component in
+                return component.allSatisfy { char in
+                    char.isHexDigit
+                }
+            }
+        }
+        
+        return false
+    }
+    
+    /// Validates AI response content before returning to clients
+    /// - Parameters:
+    ///   - response: Raw AI response string
+    ///   - expectedType: Expected response type for logging
+    /// - Returns: Validated response string
+    /// - Throws: Error if validation fails
+    internal func validateAIResponse(_ response: String, expectedType: String) throws -> String {
+        // Check response size limits (prevent DoS)
+        let maxResponseSize = 50_000 // 50KB max response
+        guard response.count <= maxResponseSize else {
+            throw Abort(.payloadTooLarge, reason: "AI response too large")
+        }
+        
+        // Check for minimum response size
+        guard response.count >= 10 else {
+            throw Abort(.unprocessableEntity, reason: "AI response too short")
+        }
+        
+        // Basic JSON structure validation
+        guard response.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") &&
+              response.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("}") else {
+            throw Abort(.unprocessableEntity, reason: "AI response is not valid JSON")
+        }
+        
+        // Check for potential injection in AI response
+        let suspiciousPatterns = [
+            "<script",
+            "javascript:",
+            "data:text/html",
+            "eval(",
+            "function(",
+            "onclick=",
+            "onerror=",
+            "onload="
+        ]
+        
+        let lowercasedResponse = response.lowercased()
+        for pattern in suspiciousPatterns {
+            if lowercasedResponse.contains(pattern) {
+                throw Abort(.unprocessableEntity, reason: "AI response contains suspicious content")
+            }
+        }
+        
+        // Validate that response contains expected JSON structure based on type
+        switch expectedType {
+        case "GameboxRecognition":
+            guard response.contains("\"guessedTitle\"") && response.contains("\"confidence\"") else {
+                throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
+            }
+        case "RulesSummary":
+            guard response.contains("\"title\"") && response.contains("\"summary\"") else {
+                throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
+            }
+        default:
+            break
+        }
+        
+        return response
     }
 }

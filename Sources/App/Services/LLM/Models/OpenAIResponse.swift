@@ -1,46 +1,47 @@
 import Vapor
 
 struct OpenAIResponse: Content {
-    enum Status: String, Content {
-        case completed
-        case failed
-        case inProgress
-        case cancelled
-        case queued
-        case incomplete
-    }
-
-    struct OutputMessage: Content {
-        struct OutputContent: Content {
-            let text: String
+    struct Choice: Content {
+        struct Message: Content {
+            let role: String
+            let content: String
         }
-        let id: String
-        let status: Status
-        let content: [OutputContent]
+        
+        let index: Int
+        let message: Message
+        let finishReason: String?
+        
+        enum CodingKeys: String, CodingKey {
+            case index
+            case message
+            case finishReason = "finish_reason"
+        }
     }
-
+    
     struct Usage: Content {
-        struct InputTokensDetails: Content {
-            let cachedTokens: Int
-        }
-
-        struct OutputTokensDetails: Content {
-            let reasoningTokens: Int
-        }
-        let inputTokens: Int
-        let inputTokensDetails: InputTokensDetails
-        let outputTokens: Int
-        let outputTokensDetails: OutputTokensDetails
+        let promptTokens: Int
+        let completionTokens: Int
         let totalTokens: Int
+        
+        enum CodingKeys: String, CodingKey {
+            case promptTokens = "prompt_tokens"
+            case completionTokens = "completion_tokens"
+            case totalTokens = "total_tokens"
+        }
     }
-
+    
+    struct Error: Content {
+        let message: String
+        let type: String
+        let param: String?
+        let code: String?
+    }
+    
     let id: String
     let object: String
-    let createdAt: Int
-    let status: Status
-    let error: String?
+    let created: Int
     let model: String
-    let output: [OutputMessage]
-    let temperature: Double
-    let usage: Usage
+    let choices: [Choice]
+    let usage: Usage?
+    let error: Error?
 }

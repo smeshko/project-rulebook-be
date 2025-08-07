@@ -8,12 +8,16 @@ struct RulesGenerationRouter: RouteCollection {
             .grouped("api")
             .grouped("rules-generation")
         
-        api.on(
+        // Image analysis endpoint with stricter rate limiting (5/hour)
+        let imageAnalysisAPI = api.grouped(AIRateLimitMiddleware(operationType: .imageAnalysis))
+        imageAnalysisAPI.on(
             .POST, "game-box-analysis",
             body: .stream,
             use: controller.analyzeBoxPhoto
         )
         
-        api.post("rules-summary", use: controller.generateRulesSummary)
+        // Rules generation endpoint with moderate rate limiting (10/hour)
+        let rulesGenerationAPI = api.grouped(AIRateLimitMiddleware(operationType: .rulesGeneration))
+        rulesGenerationAPI.post("rules-summary", use: controller.generateRulesSummary)
     }
 }
