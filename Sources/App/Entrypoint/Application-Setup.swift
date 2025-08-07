@@ -23,13 +23,48 @@ extension Application {
         logger.info("Services configured: Brevo, OpenAI")
     }
     
-    func setupMiddleware() {
+    func setupMiddleware() throws {
         middleware = .init()
-        let file = FileMiddleware(publicDirectory: directory.publicDirectory)
-        middleware.use(file)
-        routes.defaultMaxBodySize = "10mb"
-        middleware.use(ErrorMiddleware.custom(environment: environment))
+        
+        // Security middleware first
+        let security = try configuration.security
+        
+        // CORS Configuration
+        let corsConfiguration = CORSMiddleware.Configuration(
+            allowedOrigin: .any(security.corsAllowedOrigins),
+            allowedMethods: [.GET, .POST, .PUT, .DELETE, .PATCH, .OPTIONS],
+            allowedHeaders: [
+                .accept,
+                .authorization,
+                .contentType,
+                .origin,
+                .xRequestedWith,
+                .userAgent,
+                .accessControlRequestMethod,
+                .accessControlRequestHeaders
+            ]
+        )
+        middleware.use(CORSMiddleware(configuration: corsConfiguration))
+        
+        // Rate Limiting
+        middleware.use(RateLimitMiddleware(
+            maxRequests: security.rateLimitMaxRequests,
+            windowMinutes: security.rateLimitWindowMinutes
+        ))
+        
+        // Security Headers
+        middleware.use(SecurityHeadersMiddleware())
+        
+        // File serving (single instance)
         middleware.use(FileMiddleware(publicDirectory: directory.publicDirectory))
+        
+        // Body size limit
+        routes.defaultMaxBodySize = "10mb"
+        
+        // Error handling
+        middleware.use(ErrorMiddleware.custom(environment: environment))
+        
+        // Authentication
         middleware.use(UserPayloadAuthenticator())
     }
     

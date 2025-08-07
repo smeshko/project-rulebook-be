@@ -18,6 +18,9 @@ struct SecurityConfig: Sendable {
     let baseURL: String
     let appIdentifier: String
     let jwtKey: String
+    let corsAllowedOrigins: [String]
+    let rateLimitMaxRequests: Int
+    let rateLimitWindowMinutes: Int
 }
 
 struct AWSConfig: Sendable {

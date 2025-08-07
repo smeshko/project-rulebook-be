@@ -27,10 +27,13 @@ struct TestingConfiguration: ConfigurationService {
     
     var security: SecurityConfig {
         get throws {
-            SecurityConfig(
+            return SecurityConfig(
                 baseURL: "http://localhost:8080",
                 appIdentifier: "com.test.app",
-                jwtKey: "test_jwt_key_32_characters_long!"
+                jwtKey: "test_jwt_key_32_characters_long!",
+                corsAllowedOrigins: ["http://localhost:3000", "http://localhost:8080"],
+                rateLimitMaxRequests: 1000, // Higher limit for testing
+                rateLimitWindowMinutes: 1
             )
         }
     }

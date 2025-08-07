@@ -20,7 +20,7 @@ extension Application {
         if let token = accessToken {
             headers.add(name: "Authorization", value: "Bearer \(token)")
         } else if let user = user {
-            let payload = try Payload(with: user)
+            let payload = try TokenPayload(with: user)
             let accessToken = try self.jwt.signers.sign(payload)
             
             headers.add(name: "Authorization", value: "Bearer \(accessToken)")
@@ -41,7 +41,7 @@ extension Application {
         file: StaticString = #file,
         line: UInt = #line
     ) async throws -> XCTApplicationTester {
-        let payload = try Payload(with: user)
+        let payload = try TokenPayload(with: user)
         let accessToken = try self.jwt.signers.sign(payload)
         var headers = headers
         headers.add(name: "Authorization", value: "Bearer \(accessToken)")
