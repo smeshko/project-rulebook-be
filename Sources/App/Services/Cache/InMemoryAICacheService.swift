@@ -1,6 +1,72 @@
 import Foundation
 import Vapor
 
+extension Application.Service.Provider where ServiceType == AICacheServiceInterface {
+    static var inMemory: Self {
+        .init {
+            $0.services.aiCache.use { app in
+                do {
+                    let cacheConfig = try app.configuration.cache
+                    
+                    // Convert CacheConfig to CacheConfiguration
+                    let configuration = CacheConfiguration(
+                        maxEntries: cacheConfig.maxEntries,
+                        rulesGenerationTTL: cacheConfig.rulesGenerationTTL,
+                        imageAnalysisTTL: cacheConfig.imageAnalysisTTL,
+                        cleanupInterval: cacheConfig.cleanupInterval,
+                        enableLogging: cacheConfig.enableLogging
+                    )
+                    
+                    // Create the cache service
+                    let cacheService = InMemoryAICacheService(
+                        configuration: configuration,
+                        logger: app.logger
+                    )
+                    
+                    // Start the cleanup task asynchronously
+                    Task {
+                        await cacheService.setupCleanupTask()
+                    }
+                    
+                    app.logger.info("AI Cache Service configured", metadata: [
+                        "max_entries": .string("\(configuration.maxEntries)"),
+                        "rules_ttl": .string("\(configuration.rulesGenerationTTL)s"),
+                        "image_ttl": .string("\(configuration.imageAnalysisTTL)s"),
+                        "cleanup_interval": .string("\(configuration.cleanupInterval)s"),
+                        "logging_enabled": .string("\(configuration.enableLogging)")
+                    ])
+                    
+                    return cacheService
+                    
+                } catch {
+                    app.logger.error("Failed to load cache configuration: \(error)")
+                    
+                    // Fallback configuration
+                    let fallbackConfiguration = CacheConfiguration(
+                        maxEntries: 1000,
+                        rulesGenerationTTL: 3600,
+                        imageAnalysisTTL: 1800,
+                        cleanupInterval: 600,
+                        enableLogging: true
+                    )
+                    
+                    app.logger.warning("Using fallback cache configuration", metadata: [
+                        "max_entries": .string("\(fallbackConfiguration.maxEntries)"),
+                        "rules_ttl": .string("\(fallbackConfiguration.rulesGenerationTTL)s"),
+                        "image_ttl": .string("\(fallbackConfiguration.imageAnalysisTTL)s"),
+                        "cleanup_interval": .string("\(fallbackConfiguration.cleanupInterval)s")
+                    ])
+                    
+                    return InMemoryAICacheService(
+                        configuration: fallbackConfiguration,
+                        logger: app.logger
+                    )
+                }
+            }
+        }
+    }
+}
+
 /// Thread-safe in-memory cache implementation with TTL and LRU eviction
 /// This actor ensures all cache operations are thread-safe while providing high performance
 actor InMemoryAICacheService: AICacheServiceInterface {
@@ -67,6 +133,10 @@ actor InMemoryAICacheService: AICacheServiceInterface {
     }
     
     // MARK: - AICacheServiceInterface Implementation
+    
+    nonisolated func `for`(_ request: Request) -> AICacheServiceInterface {
+        Self(configuration: configuration, logger: request.logger)
+    }
     
     func get(key: String) async -> String? {
         // Check if entry exists and is not expired

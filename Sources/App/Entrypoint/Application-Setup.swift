@@ -74,6 +74,7 @@ extension Application {
             AuthModule(),
             FrontendModule(),
             RulesGenerationModule(),
+            CacheAdminModule(),
         ]
         
         for module in modules {
@@ -133,8 +134,7 @@ extension Application {
         services.randomGenerator.use(.random)
         services.uuidGenerator.use(.random)
         services.llm.use(.openAI)
-        
-        // Setup AI cache service
-        try setupAICache()
+        services.ipExtractor.use(.default)
+        services.aiCache.use(.inMemory)
     }
 }

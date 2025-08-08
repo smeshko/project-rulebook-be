@@ -4,6 +4,11 @@ import Vapor
 /// This interface allows for future migration from in-memory cache to Redis
 public protocol AICacheServiceInterface: Sendable {
     
+    // MARK: - Service Pattern Method
+    
+    /// Returns a service instance for the given request
+    func `for`(_ request: Request) -> AICacheServiceInterface
+    
     // MARK: - Cache Operations
     
     /// Retrieves a cached value for the given key
@@ -73,5 +78,19 @@ public struct CacheStatistics: Codable, Sendable {
     /// Cache utilization as a percentage
     public var utilization: Double {
         return maxEntries > 0 ? Double(entryCount) / Double(maxEntries) * 100.0 : 0.0
+    }
+}
+
+// MARK: - Service Registration Extensions
+
+extension Application.Services {
+    var aiCache: Application.Service<AICacheServiceInterface> {
+        .init(application: application)
+    }
+}
+
+extension Request.Services {
+    var aiCache: AICacheServiceInterface {
+        self.request.application.services.aiCache.service.for(request)
     }
 }

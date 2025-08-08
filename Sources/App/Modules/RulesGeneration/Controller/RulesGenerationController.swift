@@ -6,7 +6,7 @@ struct RulesGenerationController {
         // Security logging: Log AI image analysis request
         req.logger.info("AI image analysis request initiated", metadata: [
             "endpoint": "analyzeBoxPhoto",
-            "client_ip": .string(extractClientIP(from: req)),
+            "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req)),
             "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
         ])
         
@@ -40,7 +40,7 @@ struct RulesGenerationController {
         } catch let validationError as AIValidationError {
             req.logger.warning("Image validation failed", metadata: [
                 "error": .string(validationError.description),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw validationError
         }
@@ -48,10 +48,10 @@ struct RulesGenerationController {
         // PERFORMANCE OPTIMIZATION: Check cache first
         let cacheKey = CacheKeyGenerator.generateBoxPhotoKey(for: request.image)
         
-        if let cachedResponse = await req.aiCache.get(key: cacheKey) {
+        if let cachedResponse = await req.services.aiCache.get(key: cacheKey) {
             req.logger.info("Cache hit for image analysis", metadata: [
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             
             // Parse and return cached response
@@ -100,7 +100,7 @@ struct RulesGenerationController {
         } catch {
             req.logger.error("LLM service error during image analysis", metadata: [
                 "error": .string(error.localizedDescription),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw ContentError.externalServiceFailedToRespond
         }
@@ -113,7 +113,7 @@ struct RulesGenerationController {
             
             // PERFORMANCE OPTIMIZATION: Cache successful response
             let cacheConfig = try req.application.configuration.cache
-            await req.aiCache.set(
+            await req.services.aiCache.set(
                 key: cacheKey,
                 value: validatedResponse,
                 ttl: cacheConfig.imageAnalysisTTL
@@ -124,7 +124,7 @@ struct RulesGenerationController {
                 "confidence": .string("\(result.confidence)"),
                 "cached": .string("true"),
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             
             return result
@@ -132,7 +132,7 @@ struct RulesGenerationController {
             req.logger.error("AI response validation failed", metadata: [
                 "error": .string(error.localizedDescription),
                 "response_length": .string("\(boxResponse.count)"),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw ContentError.externalServiceFailedToRespond
         }
@@ -142,7 +142,7 @@ struct RulesGenerationController {
         // Security logging: Log AI rules generation request
         req.logger.info("AI rules generation request initiated", metadata: [
             "endpoint": "generateRulesSummary",
-            "client_ip": .string(extractClientIP(from: req)),
+            "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req)),
             "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
         ])
         
@@ -162,14 +162,14 @@ struct RulesGenerationController {
             req.logger.warning("Game title validation failed", metadata: [
                 "error": .string(validationError.description),
                 "raw_title": .string(input.gameTitle),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw validationError
         } catch let sanitizationError as ValidationError {
             req.logger.warning("Game title sanitization failed", metadata: [
                 "error": .string(sanitizationError.description),
                 "raw_title": .string(input.gameTitle),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw Abort(.badRequest, reason: sanitizationError.description)
         }
@@ -177,11 +177,11 @@ struct RulesGenerationController {
         // PERFORMANCE OPTIMIZATION: Check cache first
         let cacheKey = CacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
         
-        if let cachedResponse = await req.aiCache.get(key: cacheKey) {
+        if let cachedResponse = await req.services.aiCache.get(key: cacheKey) {
             req.logger.info("Cache hit for rules generation", metadata: [
                 "game_title": .string(sanitizedGameTitle),
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             
             // Parse and return cached response
@@ -237,7 +237,7 @@ struct RulesGenerationController {
             req.logger.error("LLM service error during rules generation", metadata: [
                 "error": .string(error.localizedDescription),
                 "game_title": .string(sanitizedGameTitle),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw ContentError.externalServiceFailedToRespond
         }
@@ -250,7 +250,7 @@ struct RulesGenerationController {
             
             // PERFORMANCE OPTIMIZATION: Cache successful response
             let cacheConfig = try req.application.configuration.cache
-            await req.aiCache.set(
+            await req.services.aiCache.set(
                 key: cacheKey,
                 value: validatedResponse,
                 ttl: cacheConfig.rulesGenerationTTL
@@ -262,7 +262,7 @@ struct RulesGenerationController {
                 "confidence": .string("\(result.confidence)"),
                 "cached": .string("true"),
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             
             return result
@@ -271,76 +271,13 @@ struct RulesGenerationController {
                 "error": .string(error.localizedDescription),
                 "game_title": .string(sanitizedGameTitle),
                 "response_length": .string("\(rulesResponse.count)"),
-                "client_ip": .string(extractClientIP(from: req))
+                "client_ip": .string(req.services.ipExtractor.extractClientIP(from: req))
             ])
             throw ContentError.externalServiceFailedToRespond
         }
     }
     
     // MARK: - Security Helper Methods
-    
-    /// Extracts the real client IP address from the request, checking proxy headers first
-    private func extractClientIP(from request: Request) -> String {
-        // Check X-Forwarded-For header (may contain multiple IPs, client is first)
-        if let forwardedFor = request.headers.first(name: "X-Forwarded-For") {
-            let trimmed = forwardedFor.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty {
-                // Take the first IP address (the original client)
-                let firstIP = String(trimmed.split(separator: ",").first ?? "")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if isValidIPAddress(firstIP) {
-                    return firstIP
-                }
-            }
-        }
-        
-        // Check X-Real-IP header (single IP)
-        if let realIP = request.headers.first(name: "X-Real-IP") {
-            let trimmed = realIP.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && isValidIPAddress(trimmed) {
-                return trimmed
-            }
-        }
-        
-        // Check CF-Connecting-IP header (Cloudflare specific)
-        if let cfIP = request.headers.first(name: "CF-Connecting-IP") {
-            let trimmed = cfIP.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty && isValidIPAddress(trimmed) {
-                return trimmed
-            }
-        }
-        
-        // Fallback to remote address
-        return request.remoteAddress?.hostname ?? "unknown"
-    }
-    
-    /// Validates if a string is a valid IP address (IPv4 or IPv6)
-    private func isValidIPAddress(_ ip: String) -> Bool {
-        guard !ip.isEmpty, ip != "unknown", ip != "localhost" else { return false }
-        
-        // Check for IPv4 format
-        if ip.contains(".") {
-            let components = ip.split(separator: ".")
-            guard components.count == 4 else { return false }
-            return components.allSatisfy { component in
-                guard let num = Int(component), num >= 0, num <= 255 else { return false }
-                return true
-            }
-        }
-        
-        // Basic IPv6 validation
-        if ip.contains(":") {
-            let components = ip.split(separator: ":")
-            guard components.count >= 2, components.count <= 8 else { return false }
-            return components.allSatisfy { component in
-                return component.allSatisfy { char in
-                    char.isHexDigit
-                }
-            }
-        }
-        
-        return false
-    }
     
     /// Validates AI response content before returning to clients
     /// - Parameters:
