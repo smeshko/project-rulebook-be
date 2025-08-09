@@ -16,7 +16,7 @@ struct CacheAdminController {
         ])
         
         let statistics = await req.services.aiCache.getStatistics()
-        let entriesByType = await (req.services.aiCache as? InMemoryAICacheService)?.getEntriesByType() ?? [:]
+        let entriesByType = await req.services.aiCache.getEntriesByType()
         
         // Convert enum keys to strings for JSON serialization
         let stringKeysEntriesByType = Dictionary(uniqueKeysWithValues: 
@@ -71,11 +71,7 @@ struct CacheAdminController {
             "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
         ])
         
-        guard let memoryCache = req.services.aiCache as? InMemoryAICacheService else {
-            throw Abort(.internalServerError, reason: "Cache service type not supported")
-        }
-        
-        let entriesByType = await memoryCache.getEntriesByType()
+        let entriesByType = await req.services.aiCache.getEntriesByType()
         
         // For now, return empty entries array to avoid non-sendable type issues
         // This can be improved later with a proper sendable detailed info method

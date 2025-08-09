@@ -136,5 +136,7 @@ extension Application {
         services.llm.use(.openAI)
         services.ipExtractor.use(.default)
         services.aiCache.use(.inMemory)
+        services.promptSanitizer.use(.default)
+        services.aiInputValidator.use(.default)
     }
 }

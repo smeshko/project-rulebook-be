@@ -48,6 +48,10 @@ public protocol AICacheServiceInterface: Sendable {
     /// Returns the current number of entries in the cache
     /// - Returns: The count of active cache entries
     func count() async -> Int
+    
+    /// Returns cache entries grouped by type
+    /// - Returns: Dictionary mapping cache types to arrays of cache keys
+    func getEntriesByType() async -> [AICacheType: [String]]
 }
 
 /// Cache statistics for monitoring and optimization

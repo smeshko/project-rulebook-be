@@ -105,7 +105,7 @@ struct CacheConfiguration: Sendable {
 }
 
 /// Types of AI operations that can be cached
-enum AICacheType: String, CaseIterable, Sendable {
+public enum AICacheType: String, CaseIterable, Sendable {
     case rulesGeneration = "rules_generation"
     case imageAnalysis = "image_analysis"
     

@@ -36,7 +36,7 @@ struct RulesGenerationController {
         
         // CRITICAL SECURITY FIX: Validate image data before AI processing
         do {
-            try AIInputValidator.validateImageData(encoded)
+            try req.services.aiInputValidator.validateImageData(encoded)
         } catch let validationError as AIValidationError {
             req.logger.warning("Image validation failed", metadata: [
                 "error": .string(validationError.description),
@@ -64,16 +64,32 @@ struct RulesGenerationController {
             "cache_key": .string(cacheKey)
         ])
         
-        // Optimized prompt: 65 tokens (64% reduction from 180)
+        // Enhanced prompt for consistent, high-quality results
         let systemPrompt = """
-        Identify board game from box image. Return JSON:
+        You are an expert board game identification assistant. Analyze the game box image carefully.
+        
+        Follow this process:
+        1. Examine all visible text on the box (title, publisher, descriptions)
+        2. Note visual indicators (artwork style, component images, age ratings)
+        3. Consider franchise/series if applicable
+        4. Assess your confidence based on text clarity and distinctive features
+        
+        Return a JSON response with this exact structure:
         {
-          "guessedTitle": "game name",
+          "guessedTitle": "exact game title as shown on box",
           "confidence": 0-100,
-          "alternativeTitles": ["alternatives"],
-          "keywordsDetected": ["visible text"],
-          "notes": "uncertainties"
+          "alternativeTitles": ["list any subtitle variations or international names"],
+          "keywordsDetected": ["all visible text elements", "publisher name", "player count", "age range"],
+          "notes": "mention any uncertainties, image quality issues, or special observations"
         }
+        
+        Confidence guidelines:
+        - 90-100: Title clearly visible and readable
+        - 70-89: Title partially visible or slightly unclear
+        - 50-69: Making educated guess based on artwork/components
+        - Below 50: Very uncertain, image quality poor
+        
+        If text is unclear, mention it in notes. For franchise games, include the specific edition.
         """
         
         let boxInput: [OpenAIRequest.Message] = [
@@ -157,7 +173,7 @@ struct RulesGenerationController {
         // CRITICAL SECURITY FIX: Validate and sanitize game title before AI processing
         let sanitizedGameTitle: String
         do {
-            sanitizedGameTitle = try AIInputValidator.validateAndSanitizeGameTitle(input.gameTitle)
+            sanitizedGameTitle = try req.services.aiInputValidator.validateAndSanitizeGameTitle(input.gameTitle)
         } catch let validationError as AIValidationError {
             req.logger.warning("Game title validation failed", metadata: [
                 "error": .string(validationError.description),
@@ -195,22 +211,48 @@ struct RulesGenerationController {
             "cache_key": .string(cacheKey)
         ])
         
-        // Optimized prompt: 120 tokens (66% reduction from 350)
+        // Enhanced prompt for comprehensive, consistent rule generation
         let systemPrompt = """
-        Generate board game rules summary. Return JSON:
+        You are an expert board game rules instructor. Generate a comprehensive rules guide for the specified game.
+        
+        Follow this content framework:
+        1. Overview: Core concept and objective in 2-3 sentences
+        2. Setup: Clear, numbered steps for game preparation
+        3. First Round: Step-by-step guide for new players
+        4. Victory: Win conditions and end game triggers
+        5. Deep Dive: Advanced rules, special cases, strategy tips
+        6. Resources: Helpful links for learning
+        
+        Return JSON with this exact structure:
         {
-          "title": "name",
-          "playerCount": "X-Y",
-          "playTime": "duration",
-          "summary": "overview",
-          "initialSetup": ["setup steps"],
-          "firstRoundGuide": ["first round actions"],
-          "winCondition": "victory",
-          "deepDive": ["detailed rules"],
-          "resources": {"videoLinks": [], "webLinks": []},
+          "title": "exact game name",
+          "playerCount": "X-Y players",
+          "playTime": "X-Y minutes",
+          "summary": "engaging 2-3 sentence overview explaining theme and main objective",
+          "initialSetup": ["numbered setup steps", "be specific about component placement"],
+          "firstRoundGuide": ["step-by-step first turn", "explain decision points", "show example moves"],
+          "winCondition": "clear victory conditions and game end triggers",
+          "deepDive": ["advanced strategies", "common rule clarifications", "variant rules if applicable"],
+          "resources": {
+            "videoLinks": ["up to 3 tutorial video suggestions"],
+            "webLinks": ["official rules", "BGG page", "strategy guides"]
+          },
           "confidence": 0-100,
-          "notes": "assumptions"
+          "notes": "mention any assumptions or uncertainties about specific rules"
         }
+        
+        Quality standards:
+        - Use clear, friendly language appropriate for ages 10+
+        - Number all setup steps and procedures
+        - Include specific examples where helpful
+        - Mention component names consistently
+        - If unsure about exact rules, note assumptions
+        
+        Confidence scoring:
+        - 90-100: Well-known game with established rules
+        - 70-89: Familiar with game type, some details estimated
+        - 50-69: Making educated guesses based on genre
+        - Below 50: Unfamiliar game, using board game conventions
         """
         
         let userPrompt = "Game: \(sanitizedGameTitle)"
