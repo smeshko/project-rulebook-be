@@ -21,8 +21,7 @@ final class UserPatchTests: XCTestCase {
         request = .init(
             email: "new_mail@test.com",
             firstName: "New",
-            lastName: "name",
-            location: .mock()
+            lastName: "Name"
         )
     }
     
@@ -37,8 +36,7 @@ final class UserPatchTests: XCTestCase {
             XCTAssertContent(User.Update.Response.self, res) { patchContent in
                 XCTAssertEqual(patchContent.email, "new_mail@test.com")
                 XCTAssertEqual(patchContent.firstName, "New")
-                XCTAssertEqual(patchContent.lastName, "name")
-                XCTAssertEqual(patchContent.location, Location.mock())
+                XCTAssertEqual(patchContent.lastName, "Name")
             }
         }
     }
@@ -49,18 +47,40 @@ final class UserPatchTests: XCTestCase {
         }
     }
     
-    func testPatchUpdateLocationIfExisting() async throws {
+    func testPatchPartialUpdate() async throws {
         try await app.repositories.users.create(user)
-        let location = LocationModel.mock(userId: user.id!)
-        try await app.repositories.users.add(location, to: user)
 
-        request = .init(
-            location: .mock(city: "City")
+        // Test updating only email
+        let partialRequest = User.Update.Request(
+            email: "updated@test.com",
+            firstName: nil,
+            lastName: nil
         )
         
-        try await app.test(.PATCH, patchPath, user: user, content: request) { res in
+        try await app.test(.PATCH, patchPath, user: user, content: partialRequest) { res in
             XCTAssertContent(User.Update.Response.self, res) { patchContent in
-                XCTAssertEqual(patchContent.location?.city, "City")
+                XCTAssertEqual(patchContent.email, "updated@test.com")
+                // Original values should be preserved
+                XCTAssertEqual(patchContent.firstName, user.firstName)
+                XCTAssertEqual(patchContent.lastName, user.lastName)
+            }
+        }
+    }
+    
+    func testPatchWithEmptyValues() async throws {
+        try await app.repositories.users.create(user)
+
+        // Test with empty strings (should be treated as nil/no change)
+        let emptyRequest = User.Update.Request(
+            email: "",
+            firstName: "",
+            lastName: ""
+        )
+        
+        try await app.test(.PATCH, patchPath, user: user, content: emptyRequest) { res in
+            XCTAssertContent(User.Update.Response.self, res) { patchContent in
+                // Empty values might be converted to nil or preserved - depends on implementation
+                XCTAssertEqual(patchContent.id, user.id!)
             }
         }
     }

@@ -87,37 +87,44 @@ final class UserRepositoryTests: XCTestCase {
         XCTAssertEqual(updatedUser!.isEmailVerified, true)
     }
     
-    func testSetLocation() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
-        try await user.create(on: app.db)
+    func testUserEmailLookup() async throws {
+        let user1 = UserAccountModel(email: "user1@test.com", password: "123")
+        let user2 = UserAccountModel(email: "user2@test.com", password: "123")
         
-        let location = LocationModel.mock(userId: user.id!)
-        try await repository.add(location, to: user)
-        try await repository.loadLocation(for: user)
+        try await user1.create(on: app.db)
+        try await user2.create(on: app.db)
         
-        XCTAssertNotNil(user.location)
+        let foundUser1 = try await repository.find(email: "user1@test.com")
+        let foundUser2 = try await repository.find(email: "user2@test.com")
+        let notFound = try await repository.find(email: "nonexistent@test.com")
+        
+        XCTAssertNotNil(foundUser1)
+        XCTAssertNotNil(foundUser2)
+        XCTAssertNil(notFound)
+        
+        XCTAssertEqual(foundUser1?.email, "user1@test.com")
+        XCTAssertEqual(foundUser2?.email, "user2@test.com")
     }
     
-    func testUpdateLocation() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+    func testUserUpdate() async throws {
+        let user = UserAccountModel(
+            email: "original@test.com", 
+            password: "123",
+            firstName: "Original",
+            lastName: "Name"
+        )
         try await user.create(on: app.db)
         
-        let location = LocationModel.mock(userId: user.id!)
-        try await repository.add(location, to: user)
-        location.address = "New address"
+        // Update user fields
+        user.firstName = "Updated"
+        user.lastName = "UpdatedName"
+        user.email = "updated@test.com"
         
-        try await repository.update(location)
-        try await repository.loadLocation(for: user)
-
-        XCTAssertEqual(user.location?.address, "New address")
-    }
-    
-    func testGetLocation() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
-        try await user.create(on: app.db)
+        try await repository.update(user)
         
-        let location = LocationModel.mock(userId: user.id!)
-        try await repository.add(location, to: user)
-        try await XCTAssertNotNilAsync(try await repository.getLocation(for: user))
+        let updatedUser = try await UserAccountModel.find(user.id!, on: app.db)
+        XCTAssertEqual(updatedUser?.firstName, "Updated")
+        XCTAssertEqual(updatedUser?.lastName, "UpdatedName")
+        XCTAssertEqual(updatedUser?.email, "updated@test.com")
     }
 }
