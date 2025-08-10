@@ -8,7 +8,7 @@ struct UserPayloadAuthenticator: AsyncJWTAuthenticator {
         do {
             let payload = try request.jwt.verify(as: Payload.self)
             guard let user = try await request.repositories.users.find(id: payload.userID) else {
-                throw UserError.userNotFound
+                throw AuthenticationError.userNotAuthorized
             }
 
             request.auth.login(user)

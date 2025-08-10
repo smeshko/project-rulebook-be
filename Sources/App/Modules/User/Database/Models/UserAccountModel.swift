@@ -85,6 +85,6 @@ extension UserAccountModel {
 
 extension UserAccountModel {
     static func `guard`() -> Middleware {
-        UserAccountModel.guardMiddleware(throwing: UserError.userNotFound)
+        UserAccountModel.guardMiddleware(throwing: AuthenticationError.userNotAuthorized)
     }
 }
