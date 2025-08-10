@@ -1,5 +1,6 @@
 @testable import App
 import XCTVapor
+import Vapor
 
 final class OpenAIServiceTests: XCTestCase {
     var app: Application!
@@ -24,40 +25,39 @@ final class OpenAIServiceTests: XCTestCase {
             id: "test-id",
             object: "response",
             createdAt: 1234567890,
-            status: .completed,
-            error: nil,
-            model: "gpt-4.1",
+            status: "completed",
+            model: "gpt-4o-mini",
             output: [
-                OpenAIResponse.OutputMessage(
+                OpenAIResponse.OutputItem(
                     id: "msg-1",
-                    status: .completed,
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
                     content: [
-                        OpenAIResponse.OutputMessage.OutputContent(text: "Test game rules")
+                        OpenAIResponse.OutputItem.OutputContent(
+                            type: "output_text",
+                            text: "Test game rules"
+                        )
                     ]
                 )
             ],
-            temperature: 0.7,
             usage: OpenAIResponse.Usage(
-                inputTokens: 10,
-                inputTokensDetails: OpenAIResponse.Usage.InputTokensDetails(cachedTokens: 0),
-                outputTokens: 5,
-                outputTokensDetails: OpenAIResponse.Usage.OutputTokensDetails(reasoningTokens: 0),
+                promptTokens: 10,
+                completionTokens: 5,
                 totalTokens: 15
-            )
+            ),
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
         )
         
         mockClient.mockResponse = MockHTTPResponse.success(expectedResponse)
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Generate rules")]
-            )
-        ]
         
         // Act
-        let result = try await service.generate(input: input)
+        let result = try await service.generate(input: "Generate rules")
         
         // Assert
         XCTAssertEqual(result, "Test game rules")
@@ -69,46 +69,44 @@ final class OpenAIServiceTests: XCTestCase {
         let mockClient = MockHTTPClient()
         app.http.client.use { _ in mockClient }
         
-        let rateLimitResponse = MockHTTPResponse.rateLimited
         let successResponse = OpenAIResponse(
             id: "test-id",
             object: "response",
             createdAt: 1234567890,
-            status: .completed,
-            error: nil,
-            model: "gpt-4.1",
+            status: "completed",
+            model: "gpt-4o-mini",
             output: [
-                OpenAIResponse.OutputMessage(
+                OpenAIResponse.OutputItem(
                     id: "msg-1",
-                    status: .completed,
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
                     content: [
-                        OpenAIResponse.OutputMessage.OutputContent(text: "Success after retry")
+                        OpenAIResponse.OutputItem.OutputContent(
+                            type: "output_text",
+                            text: "Success after retry"
+                        )
                     ]
                 )
             ],
-            temperature: 0.7,
             usage: OpenAIResponse.Usage(
-                inputTokens: 10,
-                inputTokensDetails: OpenAIResponse.Usage.InputTokensDetails(cachedTokens: 0),
-                outputTokens: 5,
-                outputTokensDetails: OpenAIResponse.Usage.OutputTokensDetails(reasoningTokens: 0),
+                promptTokens: 10,
+                completionTokens: 5,
                 totalTokens: 15
-            )
+            ),
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
         )
         
         // First call returns rate limit, second call succeeds
         mockClient.responses = [MockHTTPResponse.rateLimited, MockHTTPResponse.success(successResponse)]
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Test")]
-            )
-        ]
         
         // Act
-        let result = try await service.generate(input: input)
+        let result = try await service.generate(input: "Test")
         
         // Assert
         XCTAssertEqual(result, "Success after retry")
@@ -123,16 +121,10 @@ final class OpenAIServiceTests: XCTestCase {
         mockClient.mockResponse = MockHTTPResponse.serverError
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Test")]
-            )
-        ]
         
         // Act & Assert
         do {
-            _ = try await service.generate(input: input)
+            _ = try await service.generate(input: "Test")
             XCTFail("Expected error to be thrown")
         } catch let error as OpenAIError {
             switch error {
@@ -154,16 +146,10 @@ final class OpenAIServiceTests: XCTestCase {
         mockClient.mockResponse = MockHTTPResponse.unauthorized
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Test")]
-            )
-        ]
         
         // Act & Assert
         do {
-            _ = try await service.generate(input: input)
+            _ = try await service.generate(input: "Test")
             XCTFail("Expected error to be thrown")
         } catch let error as OpenAIError {
             switch error {
@@ -186,33 +172,27 @@ final class OpenAIServiceTests: XCTestCase {
             id: "test-id",
             object: "response",
             createdAt: 1234567890,
-            status: .completed,
-            error: nil,
-            model: "gpt-4.1",
+            status: "completed",
+            model: "gpt-4o-mini",
             output: [], // Empty output
-            temperature: 0.7,
             usage: OpenAIResponse.Usage(
-                inputTokens: 10,
-                inputTokensDetails: OpenAIResponse.Usage.InputTokensDetails(cachedTokens: 0),
-                outputTokens: 0,
-                outputTokensDetails: OpenAIResponse.Usage.OutputTokensDetails(reasoningTokens: 0),
+                promptTokens: 10,
+                completionTokens: 0,
                 totalTokens: 10
-            )
+            ),
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
         )
         
         mockClient.mockResponse = MockHTTPResponse.success(emptyResponse)
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Test")]
-            )
-        ]
         
         // Act & Assert
         do {
-            _ = try await service.generate(input: input)
+            _ = try await service.generate(input: "Test")
             XCTFail("Expected error to be thrown")
         } catch let error as OpenAIError {
             switch error {
@@ -232,16 +212,10 @@ final class OpenAIServiceTests: XCTestCase {
         mockClient.mockResponse = MockHTTPResponse.invalidJSON
         
         let service = OpenAIService(app: app)
-        let input = [
-            OpenAIRequest.Message(
-                role: "user",
-                content: [OpenAIRequest.Message.TextContent(text: "Test")]
-            )
-        ]
         
         // Act & Assert
         do {
-            _ = try await service.generate(input: input)
+            _ = try await service.generate(input: "Test")
             XCTFail("Expected error to be thrown")
         } catch let error as OpenAIError {
             switch error {
@@ -251,6 +225,141 @@ final class OpenAIServiceTests: XCTestCase {
                 XCTFail("Expected invalidResponse, got \(error)")
             }
         }
+    }
+    
+    func testGenerateOptimizedWithCustomParameters() async throws {
+        // Arrange
+        let mockClient = MockHTTPClient()
+        app.http.client.use { _ in mockClient }
+        
+        let expectedResponse = OpenAIResponse(
+            id: "test-id",
+            object: "response",
+            createdAt: 1234567890,
+            status: "completed",
+            model: "gpt-4",
+            output: [
+                OpenAIResponse.OutputItem(
+                    id: "msg-1",
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
+                    content: [
+                        OpenAIResponse.OutputItem.OutputContent(
+                            type: "output_text",
+                            text: "Custom response"
+                        )
+                    ]
+                )
+            ],
+            usage: OpenAIResponse.Usage(
+                promptTokens: 20,
+                completionTokens: 10,
+                totalTokens: 30
+            ),
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: 2000
+        )
+        
+        mockClient.mockResponse = MockHTTPResponse.success(expectedResponse)
+        
+        let service = OpenAIService(app: app)
+        
+        // Act
+        let result = try await service.generateOptimized(
+            input: "Custom prompt",
+            model: "gpt-4",
+            temperature: 0.7,
+            maxTokens: 2000,
+            useJSONMode: false
+        )
+        
+        // Assert
+        XCTAssertEqual(result, "Custom response")
+        XCTAssertEqual(mockClient.requestCount, 1)
+    }
+    
+    func testResponseTextExtraction() throws {
+        // Test extractText() method with various formats
+        
+        // Test normal response
+        let normalResponse = OpenAIResponse(
+            id: "test",
+            object: "response",
+            createdAt: nil,
+            status: "completed",
+            model: nil,
+            output: [
+                OpenAIResponse.OutputItem(
+                    id: "msg",
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
+                    content: [
+                        OpenAIResponse.OutputItem.OutputContent(
+                            type: "output_text",
+                            text: "Normal text"
+                        )
+                    ]
+                )
+            ],
+            usage: nil,
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
+        )
+        
+        XCTAssertEqual(normalResponse.extractText(), "Normal text")
+        
+        // Test JSON markdown format
+        let jsonResponse = OpenAIResponse(
+            id: "test",
+            object: "response",
+            createdAt: nil,
+            status: "completed",
+            model: nil,
+            output: [
+                OpenAIResponse.OutputItem(
+                    id: "msg",
+                    type: "message",
+                    status: "completed",
+                    role: "assistant",
+                    content: [
+                        OpenAIResponse.OutputItem.OutputContent(
+                            type: "output_text",
+                            text: "```json\n{\"key\":\"value\"}\n```"
+                        )
+                    ]
+                )
+            ],
+            usage: nil,
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
+        )
+        
+        XCTAssertEqual(jsonResponse.extractText(), "{\"key\":\"value\"}")
+        
+        // Test empty response
+        let emptyResponse = OpenAIResponse(
+            id: "test",
+            object: "response",
+            createdAt: nil,
+            status: "completed",
+            model: nil,
+            output: [],
+            usage: nil,
+            error: nil,
+            incompleteDetails: nil,
+            instructions: nil,
+            maxOutputTokens: nil
+        )
+        
+        XCTAssertNil(emptyResponse.extractText())
     }
 }
 
