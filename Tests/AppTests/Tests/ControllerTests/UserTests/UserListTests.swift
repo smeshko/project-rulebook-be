@@ -38,7 +38,7 @@ final class UserListTests: XCTestCase {
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() async throws {
+    func testListUnauthenticatedRequestShouldFail() throws {
         try app.test(.GET, listPath) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

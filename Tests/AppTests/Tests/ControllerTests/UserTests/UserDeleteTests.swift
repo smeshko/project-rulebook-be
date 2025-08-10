@@ -29,7 +29,7 @@ final class UserDeleteTests: XCTestCase {
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() async throws {
+    func testListUnauthenticatedRequestShouldFail() throws {
         try app.test(.DELETE, deletePath) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

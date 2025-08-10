@@ -34,7 +34,7 @@ final class UserGetCurrentUserTests: XCTestCase {
         }
     }
     
-    func testCurrentUserNotLoggedIn() async throws {
+    func testCurrentUserNotLoggedIn() throws {
         try app.test(.GET, path) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

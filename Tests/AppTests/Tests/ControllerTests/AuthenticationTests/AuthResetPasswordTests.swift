@@ -22,7 +22,7 @@ final class AuthResetPasswordTests: XCTestCase {
     }
     
     func testResetPassword() async throws {
-        app.randomGenerators.use(.rigged(value: "passwordtoken"))
+        app.services.randomGenerator.use(.rigged(value: "passwordtoken"))
         
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await app.repositories.users.create(user)
@@ -77,7 +77,7 @@ final class AuthResetPasswordTests: XCTestCase {
         })
     }
     
-    func testRecoverAccountWithInvalidTokenFails() async throws {
+    func testRecoverAccountWithInvalidTokenFails() throws {
         try app.test(.GET, "reset-password?token=blah", afterResponse: { res in
             let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
             XCTAssertTrue(html.contains("Token not found"))

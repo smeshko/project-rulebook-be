@@ -26,9 +26,7 @@ final class AuthSigninTests: XCTestCase {
         try await app.repositories.users.create(user)
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
         
-        try app.test(.POST, loginPath, beforeRequest: { req in
-            try req.content.encode(loginRequest)
-        }, afterResponse: { res in
+        try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
             XCTAssertContent(Auth.Login.Response.self, res) { login in
                 XCTAssertEqual(login.user.email, "test@test.com")
@@ -43,9 +41,7 @@ final class AuthSigninTests: XCTestCase {
     func testLoginWithNonExistingUserFails() async throws {
         let loginRequest = Auth.Login.Request(email: "none@login.com", password: "123")
         
-        try app.test(.POST, loginPath, beforeRequest: { req in
-            try req.content.encode(loginRequest)
-        }, afterResponse: { res in
+        try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             XCTAssertResponseError(res, AuthenticationError.invalidEmailOrPassword)
         })
     }
@@ -59,9 +55,7 @@ final class AuthSigninTests: XCTestCase {
         
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "wrongpassword")
         
-        try app.test(.POST, loginPath, beforeRequest: { req in
-            try req.content.encode(loginRequest)
-        }, afterResponse: { res in
+        try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             XCTAssertResponseError(res, AuthenticationError.invalidEmailOrPassword)
         })
     }
@@ -75,9 +69,7 @@ final class AuthSigninTests: XCTestCase {
         
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
         
-        try app.test(.POST, loginPath, beforeRequest: { req in
-            try req.content.encode(loginRequest)
-        }, afterResponse: { res in
+        try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             XCTAssertResponseError(res, AuthenticationError.emailIsNotVerified)
         })
     }
@@ -90,14 +82,12 @@ final class AuthSigninTests: XCTestCase {
         try await app.repositories.users.create(user)
         
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
-        let token = app.random.generate(bits: 256)
+        let token = app.services.randomGenerator.service.generate(bits: 256)
         
         let refreshToken = try RefreshTokenModel(value: SHA256.hash(token), userID: user.requireID())
         try await app.repositories.refreshTokens.create(refreshToken)
         
-        try app.test(.POST, loginPath, beforeRequest: { req in
-            try req.content.encode(loginRequest)
-        }, afterResponse: { res in
+        try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
             let tokenCount = try await app.repositories.refreshTokens.count()
             XCTAssertEqual(tokenCount, 1)

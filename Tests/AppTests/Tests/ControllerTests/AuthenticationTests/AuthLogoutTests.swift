@@ -30,7 +30,7 @@ final class AuthLogoutTests: XCTestCase {
         }
     }
     
-    func testLogoutNotLoggedIn() async throws {
+    func testLogoutNotLoggedIn() throws {
         try app.test(.POST, logoutPath) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

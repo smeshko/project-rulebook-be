@@ -32,37 +32,45 @@ final class AuthSignupTests: XCTestCase {
         
         try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
-        }, afterResponse: { res in
+        }, afterResponse: { res async throws in
             XCTAssertEqual(res.status, .ok)
-            try XCTAssertContent(Auth.SignUp.Response.self, res) { signup in
+            XCTAssertContent(Auth.SignUp.Response.self, res) { signup in
                 XCTAssertEqual(signup.user.email, "test@test.com")
                 XCTAssertEqual(signup.user.firstName, "Test")
                 XCTAssertEqual(signup.user.lastName, "User")
                 XCTAssertEqual(signup.user.isAdmin, false)
                 XCTAssertEqual(signup.user.isEmailVerified, false)
                 
-                // Verify user was created in database
-                let model = try await app.repositories.users.find(id: signup.user.id)
-                XCTAssertNotNil(model)
-                XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
-                
-                // Verify email token was created
-                let emailToken = try await app.repositories.emailTokens.find(token: SHA256.hash("token"))
-                XCTAssertEqual(emailToken?.$user.id, signup.user.id)
-                XCTAssertNotNil(emailToken)
-                
                 // Verify tokens are not empty
                 XCTAssertFalse(signup.token.refreshToken.isEmpty)
                 XCTAssertFalse(signup.token.accessToken.isEmpty)
             }
+            
+            // Extract signup response to perform async database checks
+            let content = try res.content.decode(Auth.SignUp.Response.self)
+            
+            // Verify user was created in database
+            let model = try await app.repositories.users.find(id: content.user.id)
+            XCTAssertNotNil(model)
+            XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
+            
+            // Verify email token was created
+            let emailToken = try await app.repositories.emailTokens.find(token: SHA256.hash("token"))
+            XCTAssertEqual(emailToken?.$user.id, content.user.id)
+            XCTAssertNotNil(emailToken)
         })
     }
     
     func testRegisterFailsWithExistingEmail() async throws {
         try await app.autoMigrate()
-        defer { try! app.autoRevert().wait() }
+        
+        do {
 
-        app.repositories.use(.database)
+        // Use database repositories instead of test repositories
+        app.repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
+        app.repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db) }
+        app.repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
+        app.repositories.passwordTokensService.use { app in DatabasePasswordTokenRepository(database: app.db) }
         
         let user = UserAccountModel(
             email: "test@test.com",
@@ -80,14 +88,20 @@ final class AuthSignupTests: XCTestCase {
         
         try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(registerRequest)
-        }, afterResponse: { res in
+        }, afterResponse: { res async throws in
             XCTAssertResponseError(res, AuthenticationError.emailAlreadyExists)
             let users = try await UserAccountModel.query(on: app.db).all()
             XCTAssertEqual(users.count, 1)
         })
+        } catch {
+            try await app.autoRevert()
+            throw error
+        }
+        
+        try await app.autoRevert()
     }
     
-    func testRegisterValidations() async throws {
+    func testRegisterValidations() throws {
         app.services.randomGenerator.use(.rigged(value: "token"))
 
         let data = Auth.SignUp.Request(
@@ -97,7 +111,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: "User"
         )
 
-        try await app.test(.POST, registerPath, beforeRequest: { req in
+        try app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .badRequest)
@@ -107,7 +121,7 @@ final class AuthSignupTests: XCTestCase {
         })
     }
     
-    func testRegisterLowercaseEmail() async throws {
+    func testRegisterLowercaseEmail() throws {
         app.services.randomGenerator.use(.rigged(value: "token"))
 
         let data = Auth.SignUp.Request(
@@ -117,7 +131,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: "User"
         )
 
-        try await app.test(.POST, registerPath, beforeRequest: { req in
+        try app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
@@ -127,7 +141,7 @@ final class AuthSignupTests: XCTestCase {
         })
     }
     
-    func testRegisterWithOptionalFields() async throws {
+    func testRegisterWithOptionalFields() throws {
         app.services.randomGenerator.use(.rigged(value: "token"))
 
         // Test with no first/last name
@@ -138,7 +152,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: nil
         )
 
-        try await app.test(.POST, registerPath, beforeRequest: { req in
+        try app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
@@ -150,7 +164,7 @@ final class AuthSignupTests: XCTestCase {
         })
     }
     
-    func testRegisterWithEmptyOptionalFields() async throws {
+    func testRegisterWithEmptyOptionalFields() throws {
         app.services.randomGenerator.use(.rigged(value: "token"))
 
         // Test with empty strings (should be converted to nil)
@@ -161,7 +175,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: "  " // whitespace should be treated as empty
         )
 
-        try await app.test(.POST, registerPath, beforeRequest: { req in
+        try app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)

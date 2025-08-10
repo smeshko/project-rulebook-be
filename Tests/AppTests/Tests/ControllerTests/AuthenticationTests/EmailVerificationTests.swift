@@ -28,7 +28,7 @@ final class EmailVerificationTests: XCTestCase {
         emailToken.$user.value = user
         try await app.repositories.emailTokens.create(emailToken)
         
-        try app.test(.GET, verifyURL, beforeRequest: { req in
+        try await app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": expectedHash])
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
@@ -39,7 +39,7 @@ final class EmailVerificationTests: XCTestCase {
         })
     }
     
-    func testVerifyingEmailWithInvalidTokenFails() async throws {
+    func testVerifyingEmailWithInvalidTokenFails() throws {
         try app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": "blabla"])
         }, afterResponse: { res in
@@ -57,9 +57,7 @@ final class EmailVerificationTests: XCTestCase {
 
         try await app.repositories.emailTokens.create(emailToken)
         
-        try app.test(.GET, verifyURL, beforeRequest: { req in
-            try req.query.encode(["token": expectedHash])
-        }, afterResponse: { res in
+        try app.test(.GET, "\(verifyURL)?token=\(expectedHash)", afterResponse: { res in
             let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
             XCTAssertTrue(html.contains("Token expired"))
         })
