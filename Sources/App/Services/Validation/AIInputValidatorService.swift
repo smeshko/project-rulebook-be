@@ -3,24 +3,104 @@ import Foundation
 
 // MARK: - Service Protocol
 
-/// Protocol for validating AI-related user inputs
+/// Protocol defining the interface for AI input validation and security screening.
+///
+/// This service provides comprehensive validation of user inputs before they are sent
+/// to AI services, protecting against various attack vectors including prompt injection,
+/// malicious content, and data validation failures.
+///
+/// ## Security Features
+/// - **Prompt Injection Prevention**: Detects and blocks attempts to manipulate AI behavior
+/// - **Content Sanitization**: Cleanses inputs of potentially harmful content
+/// - **Format Validation**: Ensures inputs meet expected format requirements
+/// - **Size Limitations**: Enforces reasonable limits on input size and complexity
+/// - **Pattern Detection**: Uses advanced heuristics to identify suspicious patterns
+///
+/// ## Validation Categories
+/// - **Game Titles**: Validates and sanitizes board game names for rules generation
+/// - **Image Data**: Validates image format, size, and content for analysis
+/// - **General Content**: Provides validation for arbitrary text inputs
+///
+/// ## Integration Points
+/// Used by:
+/// - ``RulesGenerationController`` for game title and image validation
+/// - All AI-powered endpoints before external service calls
+/// - Input sanitization middleware for security hardening
 protocol AIInputValidatorServiceInterface: Sendable {
-    /// Returns a service instance for the given request
+    /// Returns a service instance configured for the specific request context.
+    ///
+    /// - Parameter request: The current HTTP request context
+    /// - Returns: A validation service instance with request-specific logging
     func `for`(_ request: Request) -> AIInputValidatorServiceInterface
     
-    /// Validates a game title input for AI processing
+    /// Validates a game title input for AI processing without modification.
+    ///
+    /// Performs comprehensive validation of game title inputs including:
+    /// - Basic sanitization through ``PromptSanitizerService``
+    /// - Advanced prompt injection detection
+    /// - Format and structure validation
+    /// - Character composition analysis
+    ///
+    /// - Parameter gameTitle: The raw game title input to validate
+    /// - Throws: ``AIValidationError`` if validation fails
     func validateGameTitle(_ gameTitle: String) throws
     
-    /// Validates and sanitizes a game title, returning the safe version
+    /// Validates and sanitizes a game title, returning the safe version.
+    ///
+    /// This method combines validation and sanitization in a single operation:
+    /// 1. Sanitizes the input through ``PromptSanitizerService``
+    /// 2. Validates the sanitized result for security threats
+    /// 3. Returns the safe, cleaned version for AI processing
+    ///
+    /// - Parameter gameTitle: The raw game title input
+    /// - Returns: The sanitized and validated game title
+    /// - Throws: ``AIValidationError`` for validation failures, ``ValidationError`` for sanitization failures
     func validateAndSanitizeGameTitle(_ gameTitle: String) throws -> String
     
-    /// Validates image data for AI analysis
+    /// Validates image data for AI analysis and processing.
+    ///
+    /// Performs comprehensive image data validation including:
+    /// - Format validation (JPEG, PNG, GIF, WebP)
+    /// - Size limits (maximum 10MB)
+    /// - Base64 encoding verification
+    /// - Data URL prefix validation
+    /// - Content security screening
+    ///
+    /// ## Supported Formats
+    /// - JPEG (data:image/jpeg;base64,...)
+    /// - PNG (data:image/png;base64,...)
+    /// - GIF (data:image/gif;base64,...)
+    /// - WebP (data:image/webp;base64,...)
+    ///
+    /// - Parameter imageData: Base64-encoded image data with data URL prefix
+    /// - Throws: ``AIValidationError`` for invalid image data or security violations
     func validateImageData(_ imageData: String) throws
 }
 
 // MARK: - Default Implementation
 
-/// Default implementation of AI input validation service
+/// Default implementation of AI input validation with comprehensive security screening.
+///
+/// This implementation provides robust protection against various AI-related security
+/// threats while maintaining good performance for legitimate use cases.
+///
+/// ## Security Architecture
+/// - **Multi-layer Validation**: Combines sanitization with advanced pattern detection
+/// - **Heuristic Analysis**: Uses pattern matching and statistical analysis
+/// - **Configurable Strictness**: Balances security with usability
+/// - **Comprehensive Logging**: Detailed security event logging for monitoring
+///
+/// ## Attack Vectors Addressed
+/// - **Prompt Injection**: Role manipulation, command injection, output manipulation
+/// - **Context Escape**: Attempts to break out of intended AI context
+/// - **Data Exfiltration**: Hidden instructions for data extraction
+/// - **Denial of Service**: Excessive repetition, large inputs, resource exhaustion
+/// - **Encoding Attacks**: Base64, hex, or binary content masquerading as text
+///
+/// ## Performance Characteristics
+/// - **Validation Speed**: Optimized for sub-millisecond validation of typical inputs
+/// - **Memory Usage**: Minimal memory footprint with efficient pattern matching
+/// - **Scalability**: Designed for high-throughput validation in production
 struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     
     private let app: Application?
@@ -29,6 +109,11 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     
     // MARK: - Initialization
     
+    /// Initializes the validator with application context and dependencies.
+    ///
+    /// - Parameters:
+    ///   - app: Vapor application instance for configuration and logging
+    ///   - promptSanitizer: Sanitization service for cleaning inputs
     init(app: Application? = nil, promptSanitizer: PromptSanitizerServiceInterface? = nil) {
         self.app = app
         self.logger = app?.logger
@@ -118,7 +203,29 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         }
     }
     
-    /// Advanced prompt injection detection using patterns and heuristics
+    /// Advanced prompt injection detection using patterns and heuristics.
+    ///
+    /// This method implements sophisticated detection algorithms to identify
+    /// various types of prompt injection attacks that could manipulate AI behavior.
+    ///
+    /// ## Detection Categories
+    /// - **Role Manipulation**: Attempts to change AI persona or instructions
+    /// - **Command Injection**: System-level commands or administrative actions
+    /// - **Output Manipulation**: Instructions to control response format or content
+    /// - **Context Escape**: Attempts to break out of intended conversation context
+    /// - **Hidden Instructions**: Covert commands embedded in legitimate text
+    /// - **Encoding Attacks**: Base64, hex, or other encoded malicious content
+    ///
+    /// ## Detection Techniques
+    /// - **Pattern Matching**: Known attack phrase detection
+    /// - **Statistical Analysis**: Unusual character distributions and patterns
+    /// - **Repetition Detection**: Excessive character/word repetition (DoS prevention)
+    /// - **Encoding Detection**: Identification of suspicious encoded content
+    ///
+    /// - Parameters:
+    ///   - input: The sanitized input text to analyze
+    ///   - context: The context for logging and error reporting
+    /// - Throws: ``AIValidationError`` with specific attack pattern and category
     private func validateAgainstPromptInjection(_ input: String, context: String) throws {
         let lowercased = input.lowercased()
         
@@ -180,7 +287,28 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         try validateAgainstEncodedContent(input, context: context)
     }
     
-    /// Detects excessive character repetition
+    /// Detects excessive character repetition patterns that could indicate DoS attacks.
+    ///
+    /// This method identifies patterns of repeated characters that could be used to:
+    /// - Exhaust AI processing resources
+    /// - Cause buffer overflows in processing systems
+    /// - Create unusually large response tokens
+    /// - Bypass other validation mechanisms through noise
+    ///
+    /// ## Detection Logic
+    /// - Identifies any character repeated more than 5 times consecutively
+    /// - Uses regex pattern matching for efficient detection
+    /// - Logs suspicious patterns for security monitoring
+    ///
+    /// ## Performance Impact
+    /// - **Time Complexity**: O(n) where n is input length
+    /// - **Pattern Matching**: Optimized regex for fast detection
+    /// - **False Positives**: Minimal for legitimate text content
+    ///
+    /// - Parameters:
+    ///   - input: The text to analyze for repetition patterns
+    ///   - context: Context for logging and error reporting
+    /// - Throws: ``AIValidationError.excessiveRepetition`` if patterns detected
     private func validateAgainstRepetition(_ input: String, context: String) throws {
         // Check for any character repeated more than 5 times consecutively
         let repetitionPattern = "(.)\\1{5,}"
@@ -217,7 +345,30 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         }
     }
     
-    /// Validates that image data doesn't contain injection attempts
+    /// Validates image data format and detects potential injection attempts.
+    ///
+    /// This method ensures that image data is properly formatted and doesn't
+    /// contain suspicious patterns that could indicate security threats.
+    ///
+    /// ## Validation Steps
+    /// 1. **Format Validation**: Verifies proper data URL format
+    /// 2. **MIME Type Check**: Ensures supported image format
+    /// 3. **Prefix Validation**: Validates data URL prefix structure
+    /// 4. **Content Analysis**: Basic checks for suspicious patterns
+    ///
+    /// ## Supported Formats
+    /// - `data:image/jpeg;base64,...` - JPEG images
+    /// - `data:image/png;base64,...` - PNG images
+    /// - `data:image/gif;base64,...` - GIF images
+    /// - `data:image/webp;base64,...` - WebP images
+    ///
+    /// ## Security Considerations
+    /// - Prevents non-image data from being processed
+    /// - Blocks malformed data URLs
+    /// - Validates against injection through image metadata
+    ///
+    /// - Parameter imageData: Base64-encoded image data with data URL prefix
+    /// - Throws: ``AIValidationError.invalidImageFormat`` for invalid image data
     private func validateAgainstSuspiciousImageData(_ imageData: String) throws {
         // Check if the data starts with a valid image data URL prefix (optional)
         let validPrefixes = [

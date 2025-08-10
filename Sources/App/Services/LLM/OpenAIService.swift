@@ -1,6 +1,11 @@
 import Vapor
 
+/// Service provider extension for registering OpenAI as the LLM service implementation.
 extension Application.Service.Provider where ServiceType == LLMService {
+  /// Registers OpenAI as the LLM service provider.
+  ///
+  /// This provider configures the application to use OpenAI's API for all
+  /// LLM operations including text generation and image analysis.
   static var openAI: Self {
     .init {
       $0.services.llm.use { OpenAIService(app: $0) }
@@ -8,11 +13,56 @@ extension Application.Service.Provider where ServiceType == LLMService {
   }
 }
 
+/// OpenAI implementation of the LLM service protocol.
+///
+/// This service provides AI text generation and image analysis capabilities using
+/// OpenAI's `/v1/responses` API endpoint. It includes comprehensive error handling,
+/// retry logic, and security validations.
+///
+/// ## Key Features
+/// - **Retry Logic**: Automatic retry with exponential backoff for transient failures
+/// - **Error Handling**: Comprehensive error mapping and logging
+/// - **Security**: Input validation and response sanitization
+/// - **Performance**: Optimized for cost efficiency using gpt-4o-mini model
+/// - **Rate Limiting**: Respects OpenAI rate limits with proper backoff
+///
+/// ## API Integration Details
+/// Uses OpenAI's `/v1/responses` endpoint (not the deprecated Chat Completions API)
+/// with proper request/response format handling and authentication.
+///
+/// ## Security Considerations
+/// - All inputs are validated before sending to OpenAI
+/// - Responses are scanned for potential security threats
+/// - API keys are managed securely through configuration service
+/// - Comprehensive logging for security auditing
 struct OpenAIService: LLMService {
+  /// The Vapor application instance for accessing configuration and logging.
   let app: Application
+  
+  /// Maximum number of retry attempts for failed requests.
+  ///
+  /// Requests are retried up to 3 times with exponential backoff for:
+  /// - Rate limit errors (429)
+  /// - Server errors (5xx)
+  /// - Network timeouts
   private let maxRetries: Int = 3
+  
+  /// Base delay in seconds for exponential backoff calculations.
+  ///
+  /// The actual delay is calculated as: baseDelay * (2 ^ attempt) for server errors,
+  /// or uses the Retry-After header value for rate limit errors.
   private let baseDelay: TimeInterval = 1.0
 
+  /// HTTP headers for OpenAI API requests.
+  ///
+  /// Constructs the required headers for authentication and content type.
+  /// Falls back to environment variable if configuration service fails.
+  ///
+  /// ## Headers Included
+  /// - `Content-Type`: application/json
+  /// - `Authorization`: Bearer token with OpenAI API key
+  ///
+  /// - Returns: HTTP headers required for OpenAI API requests
   private var headers: HTTPHeaders {
     do {
       let services = try app.configuration.services
@@ -29,6 +79,20 @@ struct OpenAIService: LLMService {
     }
   }
 
+  /// Generates text using default optimized parameters for cost efficiency.
+  ///
+  /// This convenience method uses the most cost-effective settings optimized
+  /// for the application's typical use cases (game rules generation).
+  ///
+  /// ## Default Parameters
+  /// - Model: gpt-4o-mini (most cost-effective)
+  /// - Temperature: 0 (deterministic responses)
+  /// - Max tokens: 1000 (sufficient for most responses)
+  /// - JSON mode: enabled (structured responses)
+  ///
+  /// - Parameter input: The text prompt for generation
+  /// - Returns: Generated text response
+  /// - Throws: ``OpenAIError`` for API failures
   func generate(input: String) async throws -> String {
     return try await generateOptimized(
       input: input,
@@ -39,6 +103,25 @@ struct OpenAIService: LLMService {
     )
   }
 
+  /// Generates text with full parameter control and retry logic.
+  ///
+  /// This method provides comprehensive text generation with configurable parameters
+  /// and built-in retry logic for handling transient failures.
+  ///
+  /// ## Retry Behavior
+  /// - Rate limit errors: Respects Retry-After headers
+  /// - Server errors: Exponential backoff (1s, 2s, 4s)
+  /// - Network errors: Linear backoff (1s, 2s, 3s)
+  /// - Authentication/validation errors: No retry (immediate failure)
+  ///
+  /// - Parameters:
+  ///   - input: The text prompt for generation
+  ///   - model: OpenAI model to use (default: "gpt-4o-mini")
+  ///   - temperature: Randomness in generation (0.0-2.0)
+  ///   - maxTokens: Maximum tokens in response
+  ///   - useJSONMode: Whether to enforce JSON format
+  /// - Returns: Generated text response
+  /// - Throws: ``OpenAIError`` for API failures after all retries exhausted
   func generateOptimized(
     input: String,
     model: String = "gpt-4o-mini",
@@ -58,6 +141,32 @@ struct OpenAIService: LLMService {
     }
   }
 
+  /// Analyzes images using OpenAI's vision capabilities with retry logic.
+  ///
+  /// This method processes images and generates structured analysis responses.
+  /// Commonly used for board game box recognition and component identification.
+  ///
+  /// ## Image Processing
+  /// - Supports JPEG, PNG, GIF, WebP formats
+  /// - Maximum size: 10MB (validated before processing)
+  /// - Requires data URL format with proper MIME type
+  /// - Input validation prevents malicious image data
+  ///
+  /// ## Vision Analysis Features
+  /// - Text recognition from game boxes
+  /// - Component identification and counting  
+  /// - Artwork and theme analysis
+  /// - Confidence scoring for recognition accuracy
+  ///
+  /// - Parameters:
+  ///   - imageData: Base64-encoded image with data URL prefix
+  ///   - prompt: Analysis instructions and expected response format
+  ///   - model: Vision-capable model (default: "gpt-4o-mini")
+  ///   - temperature: Randomness in analysis (typically 0 for consistency)
+  ///   - maxTokens: Maximum response length
+  ///   - useJSONMode: Whether to enforce structured JSON response
+  /// - Returns: Structured analysis response as JSON string
+  /// - Throws: ``OpenAIError`` for API failures, ``AIValidationError`` for invalid images
   func analyzeImage(
     imageData: String,
     prompt: String,
@@ -79,6 +188,30 @@ struct OpenAIService: LLMService {
     }
   }
 
+  /// Performs a single text generation request to OpenAI's API.
+  ///
+  /// This is the core method that handles the actual HTTP request to OpenAI,
+  /// including error handling and response processing. It's called by the retry logic.
+  ///
+  /// ## API Endpoint
+  /// Uses OpenAI's `/v1/responses` endpoint with the new request format,
+  /// not the deprecated Chat Completions API.
+  ///
+  /// ## Error Handling
+  /// - 429 (Rate Limited): Extracts Retry-After header for backoff
+  /// - 401 (Unauthorized): Authentication failure (no retry)
+  /// - 5xx (Server Error): Server-side issue (retry with backoff)
+  /// - 200 (Success): Processes response and validates content
+  ///
+  /// - Parameters:
+  ///   - input: The text prompt for generation
+  ///   - model: OpenAI model identifier
+  ///   - temperature: Generation randomness
+  ///   - maxTokens: Response length limit
+  ///   - useJSONMode: JSON format enforcement
+  ///   - attempt: Current attempt number (for logging)
+  /// - Returns: Generated text response
+  /// - Throws: ``OpenAIError`` for various API failures
   private func performGenerationOptimized(
     input: String,
     model: String,
@@ -197,6 +330,25 @@ struct OpenAIService: LLMService {
     }
   }
 
+  /// Processes and validates OpenAI API responses.
+  ///
+  /// This method handles the parsing and validation of responses from OpenAI's API,
+  /// including error detection and content extraction.
+  ///
+  /// ## Response Processing Steps
+  /// 1. Decode JSON response using snake_case conversion
+  /// 2. Check for API error messages in response
+  /// 3. Extract text content from response structure
+  /// 4. Validate that response is not empty
+  ///
+  /// ## Error Handling
+  /// - API errors: Throws ``OpenAIError.apiError`` with error message
+  /// - Empty responses: Throws ``OpenAIError.emptyResponse``
+  /// - Invalid JSON: Throws ``OpenAIError.invalidResponse`` with decoding error
+  ///
+  /// - Parameter response: Raw HTTP response from OpenAI API
+  /// - Returns: Extracted text content from the response
+  /// - Throws: ``OpenAIError`` for various response processing failures
   private func processResponse(_ response: ClientResponse) async throws -> String {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -220,6 +372,27 @@ struct OpenAIService: LLMService {
     }
   }
 
+  /// Generic retry mechanism with configurable backoff strategies.
+  ///
+  /// This method implements a sophisticated retry mechanism that handles different
+  /// types of failures with appropriate backoff strategies.
+  ///
+  /// ## Retry Logic
+  /// - **Rate Limits**: Uses Retry-After header or exponential backoff
+  /// - **Server Errors**: Exponential backoff (1s, 2s, 4s, 8s...)
+  /// - **Other Errors**: Linear backoff (1s, 2s, 3s, 4s...)
+  /// - **Non-retryable**: Authentication, validation errors fail immediately
+  ///
+  /// ## Backoff Calculation
+  /// - Rate limit: `retryAfter ?? baseDelay * (2^attempt)`
+  /// - Server error: `baseDelay * (2^(attempt-1))`
+  /// - Default: `baseDelay * attempt`
+  ///
+  /// - Parameters:
+  ///   - maxAttempts: Maximum number of attempts before giving up
+  ///   - operation: The operation to retry, receives attempt number
+  /// - Returns: Result of the operation if successful
+  /// - Throws: The last error encountered after all retries exhausted
   private func withRetry<T>(maxAttempts: Int, operation: (Int) async throws -> T) async throws -> T
   {
     var lastError: Error?
@@ -278,6 +451,14 @@ struct OpenAIService: LLMService {
     return TimeInterval(retryAfterHeader)
   }
 
+  /// Returns a service instance configured for the specific request context.
+  ///
+  /// This method implements the service pattern used throughout the application,
+  /// ensuring each request gets a properly configured service instance with
+  /// access to request-specific logging and context.
+  ///
+  /// - Parameter request: The current HTTP request context
+  /// - Returns: An OpenAI service instance configured for the request
   func `for`(_ request: Request) -> LLMService {
     Self(app: request.application)
   }
