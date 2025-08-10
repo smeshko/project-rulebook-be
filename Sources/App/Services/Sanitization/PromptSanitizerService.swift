@@ -443,7 +443,10 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         let lowercased = input.lowercased()
         
         for pattern in injectionPatterns {
-            if lowercased.contains(pattern) {
+            // Use word boundary matching to avoid false positives
+            // e.g., "end" in "Legend" shouldn't match, but standalone "end" should
+            let wordBoundaryPattern = "\\b\(NSRegularExpression.escapedPattern(for: pattern))\\b"
+            if lowercased.range(of: wordBoundaryPattern, options: .regularExpression) != nil {
                 return (true, pattern)
             }
         }
