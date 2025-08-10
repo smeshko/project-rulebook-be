@@ -26,7 +26,6 @@ final class AuthSignupTests: XCTestCase {
         let data = Auth.SignUp.Request(
             email: "test@test.com",
             password: "password123",
-            location: .mock(),
             firstName: "Test",
             lastName: "User"
         )
@@ -35,21 +34,24 @@ final class AuthSignupTests: XCTestCase {
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
-            try await XCTAssertContentAsync(Auth.SignUp.Response.self, res) { signup in
+            try XCTAssertContent(Auth.SignUp.Response.self, res) { signup in
                 XCTAssertEqual(signup.user.email, "test@test.com")
                 XCTAssertEqual(signup.user.firstName, "Test")
                 XCTAssertEqual(signup.user.lastName, "User")
                 XCTAssertEqual(signup.user.isAdmin, false)
                 XCTAssertEqual(signup.user.isEmailVerified, false)
-                XCTAssertEqual(signup.user.location, Location.mock())
                 
-                let model = try await app.repositories.users.find(id: signup.user.id)!
-                XCTAssertTrue(try BCryptDigest().verify("password123", created: model.password!))
+                // Verify user was created in database
+                let model = try await app.repositories.users.find(id: signup.user.id)
+                XCTAssertNotNil(model)
+                XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
                 
+                // Verify email token was created
                 let emailToken = try await app.repositories.emailTokens.find(token: SHA256.hash("token"))
                 XCTAssertEqual(emailToken?.$user.id, signup.user.id)
                 XCTAssertNotNil(emailToken)
-                                
+                
+                // Verify tokens are not empty
                 XCTAssertFalse(signup.token.refreshToken.isEmpty)
                 XCTAssertFalse(signup.token.accessToken.isEmpty)
             }
@@ -72,7 +74,8 @@ final class AuthSignupTests: XCTestCase {
         let registerRequest = Auth.SignUp.Request(
             email: "test@test.com",
             password: "password123",
-            location: nil
+            firstName: "Test",
+            lastName: "User"
         )
         
         try await app.test(.POST, registerPath, beforeRequest: { req in
@@ -88,9 +91,8 @@ final class AuthSignupTests: XCTestCase {
         app.services.randomGenerator.use(.rigged(value: "token"))
 
         let data = Auth.SignUp.Request(
-            email: "TEStest.com",
-            password: "pass",
-            location: .mock(),
+            email: "TEStest.com",  // Invalid email
+            password: "pass",       // Too short password
             firstName: "Test",
             lastName: "User"
         )
@@ -111,7 +113,6 @@ final class AuthSignupTests: XCTestCase {
         let data = Auth.SignUp.Request(
             email: "TEST@test.com",
             password: "password123",
-            location: .mock(),
             firstName: "Test",
             lastName: "User"
         )
@@ -125,5 +126,50 @@ final class AuthSignupTests: XCTestCase {
             }
         })
     }
-}
+    
+    func testRegisterWithOptionalFields() async throws {
+        app.services.randomGenerator.use(.rigged(value: "token"))
 
+        // Test with no first/last name
+        let data = Auth.SignUp.Request(
+            email: "test@test.com",
+            password: "password123",
+            firstName: nil,
+            lastName: nil
+        )
+
+        try await app.test(.POST, registerPath, beforeRequest: { req in
+            try req.content.encode(data)
+        }, afterResponse: { res in
+            XCTAssertEqual(res.status, .ok)
+            XCTAssertContent(Auth.SignUp.Response.self, res) { signup in
+                XCTAssertEqual(signup.user.email, "test@test.com")
+                XCTAssertNil(signup.user.firstName)
+                XCTAssertNil(signup.user.lastName)
+            }
+        })
+    }
+    
+    func testRegisterWithEmptyOptionalFields() async throws {
+        app.services.randomGenerator.use(.rigged(value: "token"))
+
+        // Test with empty strings (should be converted to nil)
+        let data = Auth.SignUp.Request(
+            email: "test@test.com",
+            password: "password123",
+            firstName: "",
+            lastName: "  " // whitespace should be treated as empty
+        )
+
+        try await app.test(.POST, registerPath, beforeRequest: { req in
+            try req.content.encode(data)
+        }, afterResponse: { res in
+            XCTAssertEqual(res.status, .ok)
+            XCTAssertContent(Auth.SignUp.Response.self, res) { signup in
+                XCTAssertEqual(signup.user.email, "test@test.com")
+                XCTAssertNil(signup.user.firstName) // Empty string should become nil
+                XCTAssertNil(signup.user.lastName)  // Whitespace should become nil
+            }
+        })
+    }
+}
