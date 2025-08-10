@@ -10,33 +10,56 @@ struct RulesGenerationController {
             "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
         ])
         
-        var data: Data?
-        for try await part in req.body {
-            if data == nil {
-                data = Data(buffer: part)
-            } else {
-                data?.append(Data(buffer: part))
-            }
-        }
-
-        guard let data else {
-            req.logger.warning("Empty request body received for image analysis")
-            throw ContentError.externalServiceFailedToRespond
-        }
-        
-        let request: GameboxRecognition.Request
+        // Collect raw binary image data from request body
+        let imageData: Data
         do {
-            request = try JSONDecoder().decode(GameboxRecognition.Request.self, from: data)
+            var collectedData: Data?
+            for try await part in req.body {
+                if collectedData == nil {
+                    collectedData = Data(buffer: part)
+                } else {
+                    collectedData?.append(Data(buffer: part))
+                }
+            }
+            
+            guard let data = collectedData, !data.isEmpty else {
+                req.logger.warning("Empty request body received for image analysis")
+                throw Abort(.badRequest, reason: "No image data provided")
+            }
+            imageData = data
         } catch {
-            req.logger.warning("Invalid JSON in image analysis request", metadata: ["error": .string(error.localizedDescription)])
-            throw Abort(.badRequest, reason: "Invalid request format")
+            req.logger.warning("Failed to read image data from request body", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+            throw Abort(.badRequest, reason: "Failed to read image data")
         }
         
-        let encoded = request.image.base64EncodedString()
+        // Convert binary image data to base64 with data URL prefix for validation
+        let base64String = imageData.base64EncodedString()
+        
+        // Determine MIME type from image data (default to PNG)
+        let mimeType: String
+        if imageData.count >= 4 {
+            let header = imageData.prefix(4)
+            if header.starts(with: [0xFF, 0xD8, 0xFF]) {
+                mimeType = "image/jpeg"
+            } else if header.starts(with: [0x89, 0x50, 0x4E, 0x47]) {
+                mimeType = "image/png"
+            } else if header.starts(with: [0x47, 0x49, 0x46]) {
+                mimeType = "image/gif"
+            } else {
+                mimeType = "image/png" // Default fallback
+            }
+        } else {
+            mimeType = "image/png"
+        }
+        
+        // Create data URL format for validation
+        let dataURL = "data:\(mimeType);base64,\(base64String)"
         
         // CRITICAL SECURITY FIX: Validate image data before AI processing
         do {
-            try req.services.aiInputValidator.validateImageData(encoded)
+            try req.services.aiInputValidator.validateImageData(dataURL)
         } catch let validationError as AIValidationError {
             req.logger.warning("Image validation failed", metadata: [
                 "error": .string(validationError.description),
@@ -46,7 +69,7 @@ struct RulesGenerationController {
         }
         
         // PERFORMANCE OPTIMIZATION: Check cache first
-        let cacheKey = req.services.cacheKeyGenerator.generateBoxPhotoKey(for: request.image, context: "box")
+        let cacheKey = req.services.cacheKeyGenerator.generateBoxPhotoKey(for: imageData, context: "box")
         
         if let cachedResponse = await req.services.aiCache.get(key: cacheKey) {
             req.logger.info("Cache hit for image analysis", metadata: [
@@ -94,15 +117,9 @@ struct RulesGenerationController {
         
         let boxResponse: String
         do {
-            // Create a comprehensive prompt that includes the system instructions
-            let fullPrompt = """
-            \(systemPrompt)
-            
-            Please analyze the game box image that I will provide and return a JSON response following the specified structure.
-            """
-            
-            boxResponse = try await req.services.llm.generateOptimized(
-                input: fullPrompt,
+            boxResponse = try await req.services.llm.analyzeImage(
+                imageData: dataURL,
+                prompt: systemPrompt,
                 model: "gpt-4o-mini", 
                 temperature: 0,
                 maxTokens: 1000,

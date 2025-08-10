@@ -10,6 +10,15 @@ protocol LLMService {
         maxTokens: Int,
         useJSONMode: Bool
     ) async throws -> String
+    
+    func analyzeImage(
+        imageData: String,
+        prompt: String,
+        model: String,
+        temperature: Double,
+        maxTokens: Int,
+        useJSONMode: Bool
+    ) async throws -> String
 
     func `for`(_ request: Request) -> LLMService
 }
