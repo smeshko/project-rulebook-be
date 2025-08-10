@@ -19,7 +19,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testSuccessfulGeneration() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         let expectedResponse = OpenAIResponse(
             id: "test-id",
@@ -67,7 +67,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testRateLimitWithRetry() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         let successResponse = OpenAIResponse(
             id: "test-id",
@@ -116,7 +116,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testMaxRetriesExceeded() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         mockClient.mockResponse = MockHTTPResponse.serverError
         
@@ -141,7 +141,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testAuthenticationFailure() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         mockClient.mockResponse = MockHTTPResponse.unauthorized
         
@@ -166,7 +166,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testEmptyResponse() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         let emptyResponse = OpenAIResponse(
             id: "test-id",
@@ -207,7 +207,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testInvalidJSONResponse() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         mockClient.mockResponse = MockHTTPResponse.invalidJSON
         
@@ -230,7 +230,7 @@ final class OpenAIServiceTests: XCTestCase {
     func testGenerateOptimizedWithCustomParameters() async throws {
         // Arrange
         let mockClient = MockHTTPClient()
-        app.http.client.use { _ in mockClient }
+        app.clients.use { _ in mockClient }
         
         let expectedResponse = OpenAIResponse(
             id: "test-id",
@@ -406,7 +406,7 @@ enum MockHTTPResponse {
     var clientResponse: ClientResponse {
         switch self {
         case .success(let openAIResponse):
-            let response = ClientResponse(status: .ok)
+            var response = ClientResponse(status: .ok)
             let encoder = JSONEncoder()
             encoder.keyEncodingStrategy = .convertToSnakeCase
             let data = try! encoder.encode(openAIResponse)
@@ -414,19 +414,19 @@ enum MockHTTPResponse {
             response.headers.add(name: "Content-Type", value: "application/json")
             return response
             
-        case .rateLimited():
-            let response = ClientResponse(status: .tooManyRequests)
+        case .rateLimited:
+            var response = ClientResponse(status: .tooManyRequests)
             response.headers.add(name: "Retry-After", value: "60")
             return response
             
-        case .serverError():
+        case .serverError:
             return ClientResponse(status: .internalServerError)
             
-        case .unauthorized():
+        case .unauthorized:
             return ClientResponse(status: .unauthorized)
             
-        case .invalidJSON():
-            let response = ClientResponse(status: .ok)
+        case .invalidJSON:
+            var response = ClientResponse(status: .ok)
             response.body = ByteBuffer(string: "invalid json {")
             response.headers.add(name: "Content-Type", value: "application/json")
             return response
