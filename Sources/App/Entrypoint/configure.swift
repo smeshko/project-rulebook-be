@@ -14,7 +14,7 @@ public func configure(_ app: Application) throws {
     try app.setupDB()
     try app.setupJWT()
     try app.setupModules()
-    app.setupServices()
+    try app.setupServices()
 
     try app.autoMigrate().wait()
 }

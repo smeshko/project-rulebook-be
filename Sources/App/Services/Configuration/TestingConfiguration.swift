@@ -59,6 +59,18 @@ struct TestingConfiguration: ConfigurationService {
         }
     }
     
+    var cache: CacheConfig {
+        get throws {
+            CacheConfig(
+                maxEntries: 100,
+                rulesGenerationTTL: 300,  // 5 minutes
+                imageAnalysisTTL: 300,    // 5 minutes
+                cleanupInterval: 60,      // 1 minute
+                enableLogging: false      // Disabled for tests
+            )
+        }
+    }
+    
     func validate() throws {
         // Minimal validation for tests - all values are hardcoded and valid
     }

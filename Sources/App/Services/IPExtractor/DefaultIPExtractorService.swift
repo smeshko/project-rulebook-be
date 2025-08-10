@@ -1,50 +1,17 @@
 import Vapor
 
-struct RateLimitMiddleware: AsyncMiddleware {
-    private let maxRequests: Int
-    private let windowMinutes: Int
-    private let storage: RateLimitStorage
-    
-    init(maxRequests: Int, windowMinutes: Int) {
-        self.maxRequests = maxRequests
-        self.windowMinutes = windowMinutes
-        self.storage = RateLimitStorage()
-    }
-    
-    func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
-        let clientIP = extractClientIP(from: request)
-        let currentTime = Date()
-        
-        // Clean up old entries
-        await storage.cleanup(olderThan: currentTime.addingTimeInterval(-Double(windowMinutes * 60)))
-        
-        // Check current rate limit
-        let currentCount = await storage.getCount(for: clientIP, since: currentTime.addingTimeInterval(-Double(windowMinutes * 60)))
-        
-        if currentCount >= maxRequests {
-            let response = Response(status: .tooManyRequests)
-            response.headers.add(name: "Retry-After", value: "\(windowMinutes * 60)")
-            response.headers.add(name: "X-RateLimit-Limit", value: "\(maxRequests)")
-            response.headers.add(name: "X-RateLimit-Remaining", value: "0")
-            return response
+extension Application.Service.Provider where ServiceType == IPExtractorService {
+    static var `default`: Self {
+        .init {
+            $0.services.ipExtractor.use { DefaultIPExtractorService(app: $0) }
         }
-        
-        // Record this request
-        await storage.record(clientIP: clientIP, at: currentTime)
-        
-        // Continue to next middleware
-        let response = try await next.respond(to: request)
-        
-        // Add rate limit headers
-        let remaining = maxRequests - currentCount - 1
-        response.headers.add(name: "X-RateLimit-Limit", value: "\(maxRequests)")
-        response.headers.add(name: "X-RateLimit-Remaining", value: "\(max(0, remaining))")
-        
-        return response
     }
+}
+
+struct DefaultIPExtractorService: IPExtractorService {
+    let app: Application
     
-    /// Extracts the real client IP address from the request, checking proxy headers first
-    private func extractClientIP(from request: Request) -> String {
+    func extractClientIP(from request: Request) -> String {
         // Check X-Forwarded-For header (may contain multiple IPs, client is first)
         if let forwardedFor = request.headers.first(name: "X-Forwarded-For") {
             let trimmed = forwardedFor.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -86,6 +53,10 @@ struct RateLimitMiddleware: AsyncMiddleware {
         return request.remoteAddress?.hostname ?? "unknown"
     }
     
+    func `for`(_ request: Request) -> IPExtractorService {
+        Self(app: request.application)
+    }
+    
     /// Validates if a string is a valid IP address (IPv4 or IPv6)
     private func isValidIPAddress(_ ip: String) -> Bool {
         // Basic validation to avoid obviously malformed IPs
@@ -118,26 +89,13 @@ struct RateLimitMiddleware: AsyncMiddleware {
     }
 }
 
-actor RateLimitStorage {
-    private var requests: [String: [Date]] = [:]
-    
-    func record(clientIP: String, at time: Date) {
-        if requests[clientIP] == nil {
-            requests[clientIP] = []
-        }
-        requests[clientIP]?.append(time)
-    }
-    
-    func getCount(for clientIP: String, since time: Date) -> Int {
-        return requests[clientIP]?.filter { $0 >= time }.count ?? 0
-    }
-    
-    func cleanup(olderThan time: Date) {
-        for (clientIP, dates) in requests {
-            requests[clientIP] = dates.filter { $0 >= time }
-            if requests[clientIP]?.isEmpty == true {
-                requests.removeValue(forKey: clientIP)
-            }
-        }
+private extension Character {
+    /// Checks if the character is a valid hexadecimal digit
+    var isHexDigit: Bool {
+        return self.isASCII && (
+            (self >= "0" && self <= "9") ||
+            (self >= "a" && self <= "f") ||
+            (self >= "A" && self <= "F")
+        )
     }
 }

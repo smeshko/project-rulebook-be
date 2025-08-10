@@ -1,0 +1,522 @@
+{
+	"info": {
+		"_postman_id": "project-rulebook-api-testing",
+		"name": "Project Rulebook API Testing Collection",
+		"description": "Comprehensive API testing collection for the Project Rulebook Vapor backend.\n\n## Quick Start\n1. Import this collection into Postman or RapidAPI\n2. Set environment variables: `base_url`, `admin_email`, `admin_password`\n3. Run the \"Authentication → Admin Login\" request first\n4. Test other endpoints with the stored JWT tokens\n\n## Admin Credentials (Seeded)\n- Email: root@localhost.com\n- Password: ChangeMe1\n\n## Available Endpoints\n- Authentication (login, signup, refresh)\n- Rules Generation (image analysis, rules summary)\n- Cache Administration (stats, health, management)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store tokens from login response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    // Tokens are nested in response.token",
+									"    pm.environment.set('access_token', response.token.accessToken);",
+									"    pm.environment.set('refresh_token', response.token.refreshToken);",
+									"    console.log('✅ Login successful - tokens stored');",
+									"    console.log('👤 User:', response.user.email, '(Admin:', response.user.isAdmin, ')');",
+									"} else {",
+									"    console.log('❌ Login failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/sign-in",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "sign-in"]
+						},
+						"description": "Login with admin credentials to get JWT tokens for protected endpoints."
+					},
+					"response": []
+				},
+				{
+					"name": "User Signup",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"TestPassword123\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/sign-up",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "sign-up"]
+						},
+						"description": "Register a new user account."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Update access token from refresh response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    // Update both tokens from response",
+									"    pm.environment.set('access_token', response.accessToken);",
+									"    pm.environment.set('refresh_token', response.refreshToken);",
+									"    console.log('✅ Token refreshed successfully');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/refresh",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "refresh"]
+						},
+						"description": "Refresh access token using the refresh token."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, signup, and token management."
+		},
+		{
+			"name": "Rules Generation",
+			"item": [
+				{
+					"name": "Analyze Game Box Image",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Note: This endpoint now accepts raw binary image data",
+									"// You can directly upload image files",
+									"console.log('📸 Ready to accept image files directly');",
+									"console.log('🖼️ Supported formats: PNG, JPG, JPEG, GIF');"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate response structure",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Response has guessed title', () => {",
+									"        pm.expect(response).to.have.property('guessedTitle');",
+									"    });",
+									"    pm.test('Response has confidence score', () => {",
+									"        pm.expect(response).to.have.property('confidence');",
+									"        pm.expect(response.confidence).to.be.a('number');",
+									"    });",
+									"    console.log('🎲 Game detected:', response.guessedTitle, '(confidence:', response.confidence + '%)');",
+									"} else {",
+									"    console.log('❌ Error:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/octet-stream"
+							}
+						],
+						"body": {
+							"mode": "file",
+							"file": {
+								"src": ""
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rules-generation/game-box-analysis",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rules-generation", "game-box-analysis"]
+						},
+						"description": "Analyze a game box image to identify the board game using AI.\n\n**IMPORTANT**: This endpoint now accepts raw binary image data directly.\n\n**Request Format**:\n- Body: Binary image data\n- Content-Type: `application/octet-stream`\n- Method: POST\n\n**How to use**:\n1. **Postman**: Select Body → binary → Choose File\n2. **cURL**: `curl -X POST -H \"Content-Type: application/octet-stream\" --data-binary @your-image.png {url}`\n3. **Code**: Send raw image bytes in request body\n\n**Supported Formats**: PNG, JPG, JPEG, GIF\n\n**Rate Limited**: 50 requests/hour (dev), 3 requests/hour (prod)\n\n**Expected Response**:\n```json\n{\n  \"guessedTitle\": \"Monopoly\",\n  \"confidence\": 95,\n  \"alternativeTitles\": [\"Monopoly Classic\"],\n  \"keywordsDetected\": [\"Parker Brothers\", \"Real Estate Game\"],\n  \"notes\": \"Clear title visibility, high confidence match\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Generate Rules Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate response structure",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Response has game title', () => {",
+									"        pm.expect(response).to.have.property('title');",
+									"    });",
+									"    pm.test('Response has setup instructions', () => {",
+									"        pm.expect(response).to.have.property('initialSetup');",
+									"        pm.expect(response.initialSetup).to.be.an('array');",
+									"    });",
+									"    pm.test('Response has win condition', () => {",
+									"        pm.expect(response).to.have.property('winCondition');",
+									"    });",
+									"    console.log('📋 Rules generated for:', response.title);",
+									"    console.log('👥 Players:', response.playerCount);",
+									"    console.log('⏱️ Play time:', response.playTime);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"gameTitle\": \"Monopoly\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rules-generation/rules-summary",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rules-generation", "rules-summary"]
+						},
+						"description": "Generate comprehensive rules summary for a board game.\n\n**Rate Limited**: 10 requests per hour (development), 5 requests per hour (production)\n\n**Expected Response**:\n```json\n{\n  \"title\": \"Monopoly\",\n  \"playerCount\": \"2-8 players\",\n  \"playTime\": \"60-180 minutes\",\n  \"summary\": \"Real estate trading game...\",\n  \"initialSetup\": [\"Place board in center\", \"Each player chooses token\"],\n  \"firstRoundGuide\": [\"Roll dice to move\", \"Buy properties you land on\"],\n  \"winCondition\": \"Be the last player with money when others go bankrupt\",\n  \"deepDive\": [\"Advanced strategy tips...\"],\n  \"resources\": {\n    \"videoLinks\": [\"https://youtube.com/watch?v=example\"],\n    \"webLinks\": [\"https://boardgamegeek.com/boardgame/1406/monopoly\"]\n  },\n  \"confidence\": 90,\n  \"notes\": \"Classic game with well-documented rules\"\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "AI-powered game rules generation endpoints for image analysis and rules summary."
+		},
+		{
+			"name": "Cache Administration",
+			"item": [
+				{
+					"name": "Cache Statistics",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate cache stats response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Has cache statistics', () => {",
+									"        pm.expect(response).to.have.property('hits');",
+									"        pm.expect(response).to.have.property('misses');",
+									"        pm.expect(response).to.have.property('entryCount');",
+									"    });",
+									"    console.log('📊 Cache Stats:');",
+									"    console.log('   Hits:', response.hits);",
+									"    console.log('   Misses:', response.misses);",
+									"    console.log('   Hit Ratio:', response.hitRatio + '%');",
+									"    console.log('   Entries:', response.entryCount + '/' + response.maxEntries);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache/stats",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache", "stats"]
+						},
+						"description": "Get comprehensive cache statistics including hits, misses, entry count, and performance metrics.\n\n**Requires**: Admin authentication\n\n**Expected Response**:\n```json\n{\n  \"hits\": 150,\n  \"misses\": 25,\n  \"entryCount\": 45,\n  \"maxEntries\": 1000,\n  \"hitRatio\": 85.7,\n  \"utilization\": 4.5\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Cache Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Check cache health status",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Cache is healthy', () => {",
+									"        pm.expect(response).to.have.property('status');",
+									"    });",
+									"    console.log('🏥 Cache Health:', response.status);",
+									"    if (response.issues) {",
+									"        console.log('⚠️ Issues:', response.issues);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache", "health"]
+						},
+						"description": "Check cache service health status and identify any issues.\n\n**Requires**: Admin authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "List Cache Entries",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate cache entries response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (Array.isArray(response)) {",
+									"        console.log('📝 Cache entries found:', response.length);",
+									"        response.forEach((entry, index) => {",
+									"            console.log(`   ${index + 1}. ${entry.key || 'Unknown key'} (type: ${entry.type || 'unknown'})`);",
+									"        });",
+									"    } else {",
+									"        console.log('📋 Cache entries by type:', Object.keys(response));",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache/entries",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache", "entries"]
+						},
+						"description": "List all cached entries grouped by type (rules generation, image analysis).\n\n**Requires**: Admin authentication\n\n**Expected Response**:\n```json\n{\n  \"rules_generation\": [\"rules_abc123\", \"rules_def456\"],\n  \"image_analysis\": [\"image_ghi789\", \"image_jkl012\"]\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Manual Cache Cleanup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate cleanup response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('🧹 Cleanup completed');",
+									"    if (response.removedCount !== undefined) {",
+									"        console.log('   Removed entries:', response.removedCount);",
+									"    }",
+									"    if (response.remainingCount !== undefined) {",
+									"        console.log('   Remaining entries:', response.remainingCount);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache/cleanup",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache", "cleanup"]
+						},
+						"description": "Manually trigger cache cleanup to remove expired entries.\n\n**Requires**: Admin authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Clear Entire Cache",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate clear cache response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('🗑️ Cache cleared successfully');",
+									"    if (response.message) {",
+									"        console.log('   Message:', response.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Confirm destructive action",
+									"console.log('⚠️ WARNING: This will clear ALL cached data!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache"]
+						},
+						"description": "⚠️ **DESTRUCTIVE ACTION** ⚠️\n\nClears all cached data including rules generation and image analysis cache.\n\n**Requires**: Admin authentication\n\n**Use with caution** - this will remove all performance optimizations until cache is rebuilt."
+					},
+					"response": []
+				}
+			],
+			"description": "Administrative endpoints for cache management. Requires admin authentication."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Auto-set default environment variables if not set",
+					"if (!pm.environment.get('base_url')) {",
+					"    pm.environment.set('base_url', 'http://localhost:8080');",
+					"    console.log('🔧 Set default base_url to http://localhost:8080');",
+					"}",
+					"if (!pm.environment.get('admin_email')) {",
+					"    pm.environment.set('admin_email', 'root@localhost.com');",
+					"    console.log('🔧 Set default admin_email to root@localhost.com');",
+					"}",
+					"if (!pm.environment.get('admin_password')) {",
+					"    pm.environment.set('admin_password', 'ChangeMe1');",
+					"    console.log('🔧 Set default admin_password');",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global response validation",
+					"pm.test('Response time is acceptable', () => {",
+					"    pm.expect(pm.response.responseTime).to.be.below(10000); // 10 second timeout",
+					"});",
+					"",
+					"// Log rate limit headers if present",
+					"const rateLimitRemaining = pm.response.headers.get('X-RateLimit-Remaining');",
+					"const rateLimitType = pm.response.headers.get('X-RateLimit-Type');",
+					"if (rateLimitRemaining && rateLimitType) {",
+					"    console.log(`🚦 Rate limit (${rateLimitType}): ${rateLimitRemaining} requests remaining`);",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"description": "Base URL for the API server"
+		},
+		{
+			"key": "admin_email",
+			"value": "root@localhost.com",
+			"description": "Admin user email (seeded)"
+		},
+		{
+			"key": "admin_password", 
+			"value": "ChangeMe1",
+			"description": "Admin user password (seeded)"
+		}
+	]
+}

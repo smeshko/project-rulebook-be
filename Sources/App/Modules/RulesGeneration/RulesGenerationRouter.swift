@@ -8,12 +8,14 @@ struct RulesGenerationRouter: RouteCollection {
             .grouped("api")
             .grouped("rules-generation")
         
+        // Image analysis endpoint - rate limiting handled by RateLimitMiddleware
         api.on(
-            .POST, "game-box-analysis",
+            .POST, "game-box-analysis", 
             body: .stream,
             use: controller.analyzeBoxPhoto
         )
         
+        // Rules generation endpoint - rate limiting handled by RateLimitMiddleware
         api.post("rules-summary", use: controller.generateRulesSummary)
     }
 }

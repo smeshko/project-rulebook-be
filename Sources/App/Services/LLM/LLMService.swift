@@ -1,7 +1,24 @@
 import Vapor
 
 protocol LLMService {
-    func generate(input: [OpenAIRequest.Message]) async throws -> String
+    func generate(input: String) async throws -> String
+    
+    func generateOptimized(
+        input: String,
+        model: String,
+        temperature: Double,
+        maxTokens: Int,
+        useJSONMode: Bool
+    ) async throws -> String
+    
+    func analyzeImage(
+        imageData: String,
+        prompt: String,
+        model: String,
+        temperature: Double,
+        maxTokens: Int,
+        useJSONMode: Bool
+    ) async throws -> String
 
     func `for`(_ request: Request) -> LLMService
 }

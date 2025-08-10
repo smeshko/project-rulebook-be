@@ -6,6 +6,7 @@ protocol ConfigurationService: Sendable {
     var security: SecurityConfig { get throws }
     var aws: AWSConfig { get throws }
     var apns: APNSConfig { get throws }
+    var cache: CacheConfig { get throws }
     var environment: Environment { get }
     
     func validate() throws

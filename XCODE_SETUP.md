@@ -4,39 +4,24 @@ This guide helps you run the Vapor application directly from Xcode without runti
 
 ## Environment Variables Setup
 
-Xcode doesn't automatically load `.env` files, so you need to configure environment variables manually:
+The application now automatically loads environment variables from the `.env` file, so no manual configuration is needed in Xcode.
 
-### Step 1: Open Scheme Editor
-1. In Xcode, go to **Product** → **Scheme** → **Edit Scheme...**
-2. Select **Run** in the left sidebar
-3. Go to **Arguments** tab
-4. Select **Environment Variables** section
+### Automatic Loading
+The application will automatically load your `.env` file when it starts, whether you run from:
+- Xcode
+- Command line (`swift run`)
+- VS Code
+- Docker
 
-### Step 2: Add Required Variables
-Copy these environment variables from `.xcode.env` file:
+### Step 1: Create Your .env File
+Copy the example file and add your actual API keys:
 
-```
-JWT_KEY = development_jwt_secret_key_minimum_32_characters_required_for_security
-DATABASE_HOST = localhost
-DATABASE_NAME = project_rulebook_dev
-DATABASE_USERNAME = vapor
-DATABASE_PASSWORD = password
-DATABASE_PORT = 5432
-BASE_URL = http://localhost:8080
-APPLICATION_IDENTIFIER = com.dev.app
-BREVO_API_KEY = dev_brevo_key
-BREVO_URL = https://api.brevo.com
-OPENAI_KEY = dev_openai_key
-AWS_ACCESS_KEY = dev_access_key
-AWS_SECRET_ACCESS_KEY = dev_secret_key
-AWS_REGION = us-west-2
-AWS_S3_BUCKET_NAME = dev-bucket
-APNS_KEY = dev_apns_key
-APNS_PRIVATE_KEY = dev_private_key
-APNS_TEAM_ID = DEV_TEAM_ID
+```bash
+cp .env.example .env
+# Edit .env and add your actual API keys
 ```
 
-### Step 3: Set Working Directory (Optional)
+### Step 2: Set Working Directory (Optional)
 1. In **Edit Scheme** → **Run** → **Options**
 2. Check **Use custom working directory**
 3. Set it to your project root directory (where Package.swift is located)
