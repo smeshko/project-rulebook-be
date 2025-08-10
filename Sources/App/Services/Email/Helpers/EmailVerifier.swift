@@ -27,7 +27,7 @@ struct EmailVerifier {
                 email: user.email
             )],
             subject: "Verify your account",
-            htmlContent: Templates.verifyEmail(token: emailToken.value)
+            htmlContent: Templates.verifyEmail(token: emailToken.value, baseURL: try application.configuration.security.baseURL)
         )
         
         try await application.services.email.service.send(content)
