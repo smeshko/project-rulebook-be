@@ -95,7 +95,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: "User"
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .badRequest)
@@ -116,7 +116,7 @@ final class AuthSignupTests: XCTestCase {
             lastName: "User"
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)

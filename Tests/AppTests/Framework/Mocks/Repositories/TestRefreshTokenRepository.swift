@@ -42,4 +42,8 @@ class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
     func count() async throws -> Int {
         tokens.count
     }
+    
+    func reset() async {
+        tokens.removeAll()
+    }
 }

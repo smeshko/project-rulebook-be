@@ -28,7 +28,7 @@ final class EmailVerificationTests: XCTestCase {
         emailToken.$user.value = user
         try await app.repositories.emailTokens.create(emailToken)
         
-        try await app.test(.GET, verifyURL, beforeRequest: { req in
+        try app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": expectedHash])
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)

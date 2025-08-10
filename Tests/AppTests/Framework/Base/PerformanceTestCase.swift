@@ -1,0 +1,143 @@
+@testable import App
+import Testing
+import Vapor
+
+/// Base test case for performance and benchmarking tests.
+/// 
+/// This class provides functionality for measuring performance of services,
+/// endpoints, and business logic. Use this for tests that need to verify
+/// performance characteristics and identify bottlenecks.
+final class PerformanceTestCase {
+    private let app: Application
+    
+    /// Initializes a new performance test case.
+    ///
+    /// - Throws: Configuration or setup errors
+    init() throws {
+        self.app = Application(.testing)
+        try setupPerformanceConfiguration()
+    }
+    
+    /// Cleans up resources when the test case is deallocated.
+    deinit {
+        app.shutdown()
+    }
+    
+    /// Access to the application instance.
+    var application: Application {
+        app
+    }
+    
+    /// Measures the execution time of a given operation.
+    ///
+    /// - Parameters:
+    ///   - name: Description of the operation being measured
+    ///   - iterations: Number of times to run the operation (default: 100)
+    ///   - operation: The async operation to measure
+    /// - Returns: Performance metrics
+    /// - Throws: Any errors from the operation
+    func measure(
+        _ name: String,
+        iterations: Int = 100,
+        operation: () async throws -> Void
+    ) async rethrows -> PerformanceMetrics {
+        var times: [TimeInterval] = []
+        
+        for _ in 0..<iterations {
+            let startTime = Date()
+            try await operation()
+            let endTime = Date()
+            times.append(endTime.timeIntervalSince(startTime))
+        }
+        
+        return PerformanceMetrics(
+            name: name,
+            iterations: iterations,
+            times: times
+        )
+    }
+    
+    /// Measures the execution time of a synchronous operation.
+    ///
+    /// - Parameters:
+    ///   - name: Description of the operation being measured
+    ///   - iterations: Number of times to run the operation (default: 100)
+    ///   - operation: The synchronous operation to measure
+    /// - Returns: Performance metrics
+    /// - Throws: Any errors from the operation
+    func measureSync<T>(
+        _ name: String,
+        iterations: Int = 100,
+        operation: () throws -> T
+    ) rethrows -> PerformanceMetrics {
+        var times: [TimeInterval] = []
+        
+        for _ in 0..<iterations {
+            let startTime = Date()
+            _ = try operation()
+            let endTime = Date()
+            times.append(endTime.timeIntervalSince(startTime))
+        }
+        
+        return PerformanceMetrics(
+            name: name,
+            iterations: iterations,
+            times: times
+        )
+    }
+    
+    /// Sets up configuration optimized for performance testing.
+    private func setupPerformanceConfiguration() throws {
+        // Use in-memory database for consistent performance
+        app.databases.use(.sqlite(.memory), as: .sqlite)
+        
+        // Minimal service setup for performance testing
+        app.services.randomGenerator.use(.random)
+        app.services.uuidGenerator.use(.random)
+        app.services.email.use(.fake)
+        
+        // Configure JWT
+        try app.jwt.signers.use(.es256(key: .generate()))
+    }
+}
+
+/// Performance metrics collected from test runs.
+struct PerformanceMetrics {
+    let name: String
+    let iterations: Int
+    let times: [TimeInterval]
+    
+    /// Average execution time across all iterations.
+    var averageTime: TimeInterval {
+        times.reduce(0, +) / Double(times.count)
+    }
+    
+    /// Minimum execution time recorded.
+    var minimumTime: TimeInterval {
+        times.min() ?? 0
+    }
+    
+    /// Maximum execution time recorded.
+    var maximumTime: TimeInterval {
+        times.max() ?? 0
+    }
+    
+    /// Standard deviation of execution times.
+    var standardDeviation: TimeInterval {
+        let avg = averageTime
+        let variance = times.reduce(0) { $0 + pow($1 - avg, 2) } / Double(times.count)
+        return sqrt(variance)
+    }
+    
+    /// Returns a formatted string representation of the metrics.
+    var summary: String {
+        """
+        Performance Metrics: \(name)
+        Iterations: \(iterations)
+        Average: \(String(format: "%.4f", averageTime))s
+        Min: \(String(format: "%.4f", minimumTime))s
+        Max: \(String(format: "%.4f", maximumTime))s
+        Std Dev: \(String(format: "%.4f", standardDeviation))s
+        """
+    }
+}

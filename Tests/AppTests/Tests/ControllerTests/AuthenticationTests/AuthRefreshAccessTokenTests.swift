@@ -24,7 +24,7 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
     }
     
     func testRefreshAccessToken() async throws {
-        app.randomGenerators.use(.rigged(value: "secondrefreshtoken"))
+        app.services.randomGenerator.use(.rigged(value: "secondrefreshtoken"))
         
         try await app.repositories.users.create(user)
         

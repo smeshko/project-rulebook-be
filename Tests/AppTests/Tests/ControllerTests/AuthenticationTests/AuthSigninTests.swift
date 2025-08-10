@@ -40,7 +40,7 @@ final class AuthSigninTests: XCTestCase {
         })
     }
     
-    func testLoginWithNonExistingUserFails() throws {
+    func testLoginWithNonExistingUserFails() async throws {
         let loginRequest = Auth.Login.Request(email: "none@login.com", password: "123")
         
         try app.test(.POST, loginPath, beforeRequest: { req in
@@ -95,7 +95,7 @@ final class AuthSigninTests: XCTestCase {
         let refreshToken = try RefreshTokenModel(value: SHA256.hash(token), userID: user.requireID())
         try await app.repositories.refreshTokens.create(refreshToken)
         
-        try await app.test(.POST, loginPath, beforeRequest: { req in
+        try app.test(.POST, loginPath, beforeRequest: { req in
             try req.content.encode(loginRequest)
         }, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
