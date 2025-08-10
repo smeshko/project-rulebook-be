@@ -18,9 +18,11 @@ extension Application.Service.Provider where ServiceType == AICacheServiceInterf
                     )
                     
                     // Create the cache service
+                    let keyGenerator = DefaultCacheKeyGeneratorService(app: app)
                     let cacheService = InMemoryAICacheService(
                         configuration: configuration,
-                        logger: app.logger
+                        logger: app.logger,
+                        keyGenerator: keyGenerator
                     )
                     
                     // Start the cleanup task asynchronously
@@ -57,9 +59,11 @@ extension Application.Service.Provider where ServiceType == AICacheServiceInterf
                         "cleanup_interval": .string("\(fallbackConfiguration.cleanupInterval)s")
                     ])
                     
+                    let keyGenerator = DefaultCacheKeyGeneratorService(app: app)
                     return InMemoryAICacheService(
                         configuration: fallbackConfiguration,
-                        logger: app.logger
+                        logger: app.logger,
+                        keyGenerator: keyGenerator
                     )
                 }
             }
@@ -82,6 +86,9 @@ actor InMemoryAICacheService: AICacheServiceInterface {
     /// Cache configuration
     private let configuration: CacheConfiguration
     
+    /// Key generator service for cache operations
+    private let keyGenerator: CacheKeyGeneratorServiceInterface
+    
     /// Statistics tracking
     private var hitCount: Int = 0
     private var missCount: Int = 0
@@ -98,9 +105,10 @@ actor InMemoryAICacheService: AICacheServiceInterface {
     /// - Parameters:
     ///   - configuration: Cache configuration settings
     ///   - logger: Logger for cache operations
-    init(configuration: CacheConfiguration, logger: Logger) {
+    init(configuration: CacheConfiguration, logger: Logger, keyGenerator: CacheKeyGeneratorServiceInterface) {
         self.configuration = configuration
         self.logger = logger
+        self.keyGenerator = keyGenerator
         
         if configuration.enableLogging {
             logger.info("AI Cache Service initialized", metadata: [
@@ -135,7 +143,8 @@ actor InMemoryAICacheService: AICacheServiceInterface {
     // MARK: - AICacheServiceInterface Implementation
     
     nonisolated func `for`(_ request: Request) -> AICacheServiceInterface {
-        Self(configuration: configuration, logger: request.logger)
+        let keyGenerator = request.application.services.cacheKeyGenerator.service
+        return Self(configuration: configuration, logger: request.logger, keyGenerator: keyGenerator)
     }
     
     func get(key: String) async -> String? {
@@ -355,7 +364,7 @@ actor InMemoryAICacheService: AICacheServiceInterface {
         var result: [AICacheType: [String]] = [:]
         
         for key in entries.keys {
-            if let type = CacheKeyGenerator.extractCacheType(from: key) {
+            if let type = keyGenerator.extractCacheType(from: key) {
                 if result[type] == nil {
                     result[type] = []
                 }

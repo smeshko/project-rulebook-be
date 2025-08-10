@@ -227,12 +227,10 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
             "data:image/webp;base64,"
         ]
         
-        var actualData = imageData
-        for prefix in validPrefixes {
-            if imageData.hasPrefix(prefix) {
-                actualData = String(imageData.dropFirst(prefix.count))
-                break
-            }
+        // Check if the image data has a valid prefix
+        let hasValidPrefix = validPrefixes.contains { imageData.hasPrefix($0) }
+        if !hasValidPrefix {
+            throw AIValidationError.invalidImageFormat
         }
         
         // Additional validation could be added here

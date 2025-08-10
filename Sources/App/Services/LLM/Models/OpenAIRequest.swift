@@ -1,7 +1,34 @@
 import Vapor
 
 struct OpenAIRequest: Content {
-    struct Message: Content {
+    // Input can be either string or array of InputContent
+    enum Input: Content {
+        case text(String)
+        case content([InputContent])
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case .text(let text):
+                try container.encode(text)
+            case .content(let content):
+                try container.encode(content)
+            }
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let text = try? container.decode(String.self) {
+                self = .text(text)
+            } else if let content = try? container.decode([InputContent].self) {
+                self = .content(content)
+            } else {
+                throw DecodingError.typeMismatch(Input.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected String or [InputContent]"))
+            }
+        }
+    }
+    
+    struct InputContent: Content {
         protocol ContentType: Content, Codable {
             var type: String { get }
         }
@@ -10,8 +37,8 @@ struct OpenAIRequest: Content {
             let type: String
             let text: String
 
-            init(type: String = "text", text: String) {
-                self.type = type
+            init(text: String) {
+                self.type = "input_text"
                 self.text = text
             }
         }
@@ -24,8 +51,8 @@ struct OpenAIRequest: Content {
                 let url: String
             }
 
-            init(type: String = "image_url", imageUrl: String) {
-                self.type = type
+            init(imageUrl: String) {
+                self.type = "input_image"
                 self.imageUrl = ImageUrl(url: imageUrl)
             }
 
@@ -34,81 +61,65 @@ struct OpenAIRequest: Content {
                 case imageUrl = "image_url"
             }
         }
-        let role: String
-        let content: [any ContentType]
+        
+        let content: any ContentType
 
         enum CodingKeys: String, CodingKey {
-            case role, content
+            case type
         }
 
         enum ContentTypeCodingError: Error {
             case unknownType(String)
         }
 
-        enum ContentCodingKeys: String, CodingKey {
-            case type
-        }
-
-        init(role: String, content: [any ContentType]) {
-            self.role = role
+        init(content: any ContentType) {
             self.content = content
         }
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            role = try container.decode(String.self, forKey: .role)
+            let type = try container.decode(String.self, forKey: .type)
 
-            var contentContainer = try container.nestedUnkeyedContainer(forKey: .content)
-            var tempContent = [any ContentType]()
-
-            var tempContainer = contentContainer
-            while !tempContainer.isAtEnd {
-                let typeContainer = try tempContainer.nestedContainer(
-                    keyedBy: ContentCodingKeys.self)
-                let type = try typeContainer.decode(String.self, forKey: .type)
-
-                switch type {
-                case "text":
-                    tempContent.append(try contentContainer.decode(TextContent.self))
-                case "image_url":
-                    tempContent.append(try contentContainer.decode(ImageContent.self))
-                default:
-                    throw ContentTypeCodingError.unknownType(type)
-                }
+            switch type {
+            case "input_text":
+                content = try TextContent(from: decoder)
+            case "input_image":
+                content = try ImageContent(from: decoder)
+            default:
+                throw ContentTypeCodingError.unknownType(type)
             }
-            content = tempContent
         }
 
         func encode(to encoder: Encoder) throws {
-            var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(role, forKey: .role)
-            var contentContainer = container.nestedUnkeyedContainer(forKey: .content)
-
-            for contentItem in content {
-                if let textContent = contentItem as? TextContent {
-                    try contentContainer.encode(textContent)
-                } else if let imageContent = contentItem as? ImageContent {
-                    try contentContainer.encode(imageContent)
-                }
+            if let textContent = content as? TextContent {
+                try textContent.encode(to: encoder)
+            } else if let imageContent = content as? ImageContent {
+                try imageContent.encode(to: encoder)
             }
         }
     }
 
-    struct ResponseFormat: Content {
+    struct TextFormat: Content {
         let type: String
+        
+        static let json = TextFormat(type: "json_object")
+        static let text = TextFormat(type: "text")
     }
     
     let model: String
-    let messages: [Message]
+    let input: Input?
+    let instructions: String?
     let temperature: Double?
-    let maxTokens: Int?
-    let responseFormat: ResponseFormat?
+    let maxOutputTokens: Int?
+    let text: TextFormat?
     
     enum CodingKeys: String, CodingKey {
         case model
-        case messages
+        case input
+        case instructions
         case temperature
-        case maxTokens = "max_tokens"
-        case responseFormat = "response_format"
+        case maxOutputTokens = "max_output_tokens"
+        case text
     }
 }
+

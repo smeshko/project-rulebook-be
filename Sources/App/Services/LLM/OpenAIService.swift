@@ -29,7 +29,7 @@ struct OpenAIService: LLMService {
         }
     }
     
-    func generate(input: [OpenAIRequest.Message]) async throws -> String {
+    func generate(input: String) async throws -> String {
         return try await generateOptimized(
             input: input,
             model: "gpt-4o-mini",
@@ -40,7 +40,7 @@ struct OpenAIService: LLMService {
     }
     
     func generateOptimized(
-        input: [OpenAIRequest.Message],
+        input: String,
         model: String = "gpt-4o-mini",
         temperature: Double = 0,
         maxTokens: Int = 1000,
@@ -59,7 +59,7 @@ struct OpenAIService: LLMService {
     }
     
     private func performGenerationOptimized(
-        input: [OpenAIRequest.Message],
+        input: String,
         model: String,
         temperature: Double,
         maxTokens: Int,
@@ -68,14 +68,15 @@ struct OpenAIService: LLMService {
     ) async throws -> String {
         do {
             let response = try await app.client.post(
-                .init(string: "https://api.openai.com/v1/chat/completions"),
+                .init(string: "https://api.openai.com/v1/responses"),
                 headers: headers,
                 content: OpenAIRequest(
                     model: model,
-                    messages: input,
+                    input: .text(input),
+                    instructions: nil,
                     temperature: temperature,
-                    maxTokens: maxTokens,
-                    responseFormat: useJSONMode ? OpenAIRequest.ResponseFormat(type: "json_object") : nil
+                    maxOutputTokens: maxTokens,
+                    text: useJSONMode ? .json : .text
                 )
             )
             
@@ -117,7 +118,7 @@ struct OpenAIService: LLMService {
                 throw OpenAIError.apiError(error.message)
             }
             
-            guard let content = decodedResponse.choices.first?.message.content else {
+            guard let content = decodedResponse.extractText() else {
                 throw OpenAIError.emptyResponse
             }
             

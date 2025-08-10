@@ -46,7 +46,7 @@ struct RulesGenerationController {
         }
         
         // PERFORMANCE OPTIMIZATION: Check cache first
-        let cacheKey = CacheKeyGenerator.generateBoxPhotoKey(for: request.image)
+        let cacheKey = req.services.cacheKeyGenerator.generateBoxPhotoKey(for: request.image, context: "box")
         
         if let cachedResponse = await req.services.aiCache.get(key: cacheKey) {
             req.logger.info("Cache hit for image analysis", metadata: [
@@ -92,27 +92,22 @@ struct RulesGenerationController {
         If text is unclear, mention it in notes. For franchise games, include the specific edition.
         """
         
-        let boxInput: [OpenAIRequest.Message] = [
-            .init(
-                role: "system",
-                content: [
-                    OpenAIRequest.Message.TextContent(text: systemPrompt)
-                ]
-            ),
-            .init(
-                role: "user",
-                content: [
-                    OpenAIRequest.Message.ImageContent(
-                        imageUrl: "data:image/png;base64,\(encoded)"
-                    ),
-                    OpenAIRequest.Message.TextContent(text: "Here is the image to analyze"),
-                ]
-            ),
-        ]
-        
         let boxResponse: String
         do {
-            boxResponse = try await req.services.llm.generate(input: boxInput)
+            // Create a comprehensive prompt that includes the system instructions
+            let fullPrompt = """
+            \(systemPrompt)
+            
+            Please analyze the game box image that I will provide and return a JSON response following the specified structure.
+            """
+            
+            boxResponse = try await req.services.llm.generateOptimized(
+                input: fullPrompt,
+                model: "gpt-4o-mini", 
+                temperature: 0,
+                maxTokens: 1000,
+                useJSONMode: true
+            )
         } catch {
             req.logger.error("LLM service error during image analysis", metadata: [
                 "error": .string(error.localizedDescription),
@@ -191,7 +186,7 @@ struct RulesGenerationController {
         }
         
         // PERFORMANCE OPTIMIZATION: Check cache first
-        let cacheKey = CacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
+        let cacheKey = req.services.cacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
         
         if let cachedResponse = await req.services.aiCache.get(key: cacheKey) {
             req.logger.info("Cache hit for rules generation", metadata: [
@@ -257,24 +252,22 @@ struct RulesGenerationController {
         
         let userPrompt = "Game: \(sanitizedGameTitle)"
         
-        let rulesInput: [OpenAIRequest.Message] = [
-            .init(
-                role: "system",
-                content: [
-                    OpenAIRequest.Message.TextContent(text: systemPrompt)
-                ]
-            ),
-            .init(
-                role: "user",
-                content: [
-                    OpenAIRequest.Message.TextContent(text: userPrompt)
-                ]
-            )
-        ]
+        // Create combined input with system instructions and user prompt
+        let combinedPrompt = """
+        \(systemPrompt)
+
+        \(userPrompt)
+        """
         
         let rulesResponse: String
         do {
-            rulesResponse = try await req.services.llm.generate(input: rulesInput)
+            rulesResponse = try await req.services.llm.generateOptimized(
+                input: combinedPrompt,
+                model: "gpt-4o-mini",
+                temperature: 0,
+                maxTokens: 1000,
+                useJSONMode: true
+            )
         } catch {
             req.logger.error("LLM service error during rules generation", metadata: [
                 "error": .string(error.localizedDescription),

@@ -46,11 +46,11 @@ extension Application {
         )
         middleware.use(CORSMiddleware(configuration: corsConfiguration))
         
-        // Rate Limiting
-        middleware.use(RateLimitMiddleware(
-            maxRequests: security.rateLimitMaxRequests,
-            windowMinutes: security.rateLimitWindowMinutes
-        ))
+        // Unified Rate Limiting with operation-specific limits
+        let rateLimitConfig = environment == .production ? 
+            RateLimitConfiguration.production() : 
+            RateLimitConfiguration.development()
+        middleware.use(RateLimitMiddleware(configuration: rateLimitConfig))
         
         // Security Headers
         middleware.use(SecurityHeadersMiddleware())
@@ -138,5 +138,6 @@ extension Application {
         services.aiCache.use(.inMemory)
         services.promptSanitizer.use(.default)
         services.aiInputValidator.use(.default)
+        services.cacheKeyGenerator.use(.default)
     }
 }
