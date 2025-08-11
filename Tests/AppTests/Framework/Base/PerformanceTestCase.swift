@@ -1,5 +1,5 @@
 @testable import App
-import Testing
+import XCTest
 import Vapor
 
 /// Base test case for performance and benchmarking tests.

@@ -190,21 +190,9 @@ class TestWorld: @unchecked Sendable {
     /// - Returns: Configured test application
     /// - Throws: Configuration errors
     static func makeTestAppSync() throws -> Application {
-        let semaphore = DispatchSemaphore(value: 0)
-        var result: Result<Application, Error>!
-        
-        Task {
-            do {
-                let app = try await makeTestApp()
-                result = .success(app)
-            } catch {
-                result = .failure(error)
-            }
-            semaphore.signal()
-        }
-        
-        semaphore.wait()
-        return try result.get()
+        let app = Application(.testing)
+        try configure(app)
+        return app
     }
     
     /// Creates a TestWorld with a new async application.
