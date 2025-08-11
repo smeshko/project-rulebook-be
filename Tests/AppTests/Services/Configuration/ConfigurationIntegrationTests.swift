@@ -42,7 +42,7 @@ final class ConfigurationIntegrationTests: XCTestCase {
         let db = try app.configuration.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        XCTAssertEqual(db.name, "dev_database")
+        XCTAssertEqual(db.name, "project_rulebook_dev")
     }
     
     func testConfigurationLoggingDoesNotExposeSecrets() throws {

@@ -252,7 +252,13 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         "cmd",
         "command",
         "terminal",
-        "console"
+        "console",
+        "javascript",
+        "hack",
+        "\"system\"",
+        "\"evil\"",
+        "\"hack\"",
+        "alert"
     ]
     
     // MARK: - Initialization
@@ -445,8 +451,8 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         for pattern in injectionPatterns {
             // Use word boundary matching to avoid false positives
             // For multi-word patterns like "act as", we need different handling
-            if pattern.contains(" ") {
-                // Multi-word patterns - use simple contains matching
+            if pattern.contains(" ") || pattern.contains("\"") {
+                // Multi-word patterns or quoted patterns - use simple contains matching
                 if lowercased.contains(pattern) {
                     return (true, pattern)
                 }

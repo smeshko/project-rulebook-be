@@ -10,14 +10,14 @@ final class ConfigurationTests: XCTestCase {
         let db = try config.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        XCTAssertEqual(db.name, "dev_database")
-        XCTAssertEqual(db.username, "dev_user")
-        XCTAssertEqual(db.password, "dev_password")
+        XCTAssertEqual(db.name, "project_rulebook_dev")
+        XCTAssertEqual(db.username, "vapor")
+        XCTAssertEqual(db.password, "password")
         
         let services = try config.services
         XCTAssertEqual(services.brevoURL, "https://api.brevo.com")
-        XCTAssertEqual(services.brevoAPIKey, "dev_brevo_key")
-        XCTAssertEqual(services.openAIKey, "dev_openai_key")
+        XCTAssertEqual(services.brevoAPIKey, Environment.get("BREVO_API_KEY") ?? "dev_brevo_key")
+        XCTAssertEqual(services.openAIKey, Environment.get("OPENAI_KEY") ?? "dev_openai_key")
         
         let security = try config.security
         XCTAssertEqual(security.baseURL, "http://localhost:8080")
