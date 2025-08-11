@@ -47,4 +47,8 @@ actor TestUserRepository: UserRepository, TestRepository {
     func count() async throws -> Int {
         users.count
     }
+    
+    func reset() async {
+        users.removeAll()
+    }
 }

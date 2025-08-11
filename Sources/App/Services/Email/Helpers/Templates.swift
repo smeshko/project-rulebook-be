@@ -1,7 +1,7 @@
 import Vapor
 
 enum Templates {
-    static func passwordReset(token: String) -> String {
+    static func passwordReset(token: String, baseURL: String) -> String {
     """
     <!DOCTYPE html>
     <html>
@@ -138,7 +138,7 @@ enum Templates {
                         <table border="0" cellpadding="0" cellspacing="0">
                           <tr>
                             <td align="center" bgcolor="#1a82e2" style="border-radius: 6px;">
-                              <a href="\(Environment.baseURL)/reset-password?token=\(token)" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Source Sans Pro', Helvetica, Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 6px;">Change password</a>
+                              <a href="\(baseURL)/reset-password?token=\(token)" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Source Sans Pro', Helvetica, Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 6px;">Change password</a>
                             </td>
                           </tr>
                         </table>
@@ -161,7 +161,7 @@ enum Templates {
     </html>
     """
     }
-    static func verifyEmail(token: String) -> String {
+    static func verifyEmail(token: String, baseURL: String) -> String {
     """
     <!DOCTYPE html>
     <html>
@@ -298,7 +298,7 @@ enum Templates {
                         <table border="0" cellpadding="0" cellspacing="0">
                           <tr>
                             <td align="center" bgcolor="#1a82e2" style="border-radius: 6px;">
-                              <a href="\(Environment.baseURL)/verify-email?token=\(token)" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Source Sans Pro', Helvetica, Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 6px;">Verify email address</a>
+                              <a href="\(baseURL)/verify-email?token=\(token)" target="_blank" style="display: inline-block; padding: 16px 36px; font-family: 'Source Sans Pro', Helvetica, Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; border-radius: 6px;">Verify email address</a>
                             </td>
                           </tr>
                         </table>

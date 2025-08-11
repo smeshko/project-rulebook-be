@@ -252,7 +252,13 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         "cmd",
         "command",
         "terminal",
-        "console"
+        "console",
+        "javascript",
+        "hack",
+        "\"system\"",
+        "\"evil\"",
+        "\"hack\"",
+        "alert"
     ]
     
     // MARK: - Initialization
@@ -315,21 +321,21 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
             throw ValidationError.gameTitleTooLong(maxLength: maxGameTitleLength)
         }
         
+        // Check for injection patterns BEFORE removing characters
+        let (hasInjection, pattern) = containsInjectionPattern(trimmed)
+        if hasInjection, let pattern = pattern {
+            logger?.warning("Potential injection pattern detected in game title", metadata: [
+                "pattern": .string(pattern)
+            ])
+            throw ValidationError.suspiciousContent(pattern: pattern)
+        }
+        
         // Remove dangerous characters
         let sanitized = removeDangerousCharacters(from: trimmed)
         
         // Ensure we still have valid content
         guard sanitized.count >= 2 else {
             throw ValidationError.gameTitleTooShort
-        }
-        
-        // Check for injection patterns
-        let (hasInjection, pattern) = containsInjectionPattern(sanitized)
-        if hasInjection, let pattern = pattern {
-            logger?.warning("Potential injection pattern detected in game title", metadata: [
-                "pattern": .string(pattern)
-            ])
-            throw ValidationError.suspiciousContent(pattern: pattern)
         }
         
         // Normalize whitespace
@@ -443,8 +449,20 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         let lowercased = input.lowercased()
         
         for pattern in injectionPatterns {
-            if lowercased.contains(pattern) {
-                return (true, pattern)
+            // Use word boundary matching to avoid false positives
+            // For multi-word patterns like "act as", we need different handling
+            if pattern.contains(" ") || pattern.contains("\"") {
+                // Multi-word patterns or quoted patterns - use simple contains matching
+                if lowercased.contains(pattern) {
+                    return (true, pattern)
+                }
+            } else {
+                // Single word patterns - use word boundary matching
+                // e.g., "end" in "Legend" shouldn't match, but standalone "end" should
+                let wordBoundaryPattern = "\\b\(NSRegularExpression.escapedPattern(for: pattern))\\b"
+                if lowercased.range(of: wordBoundaryPattern, options: .regularExpression) != nil {
+                    return (true, pattern)
+                }
             }
         }
         

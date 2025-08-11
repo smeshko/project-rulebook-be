@@ -22,7 +22,7 @@ struct PasswordResetter {
                 email: user.email
             )],
             subject: "Password reset request",
-            htmlContent: Templates.passwordReset(token: resetPasswordToken.value)
+            htmlContent: Templates.passwordReset(token: resetPasswordToken.value, baseURL: try application.configuration.security.baseURL)
         )
         
         try await application.services.email.service.send(content)

@@ -9,8 +9,7 @@ final class UserListTests: XCTestCase {
     let listPath = "api/user/list"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: app)
         
         user = try UserAccountModel.mock(app: app, isAdmin: true)
@@ -38,7 +37,7 @@ final class UserListTests: XCTestCase {
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() async throws {
+    func testListUnauthenticatedRequestShouldFail() throws {
         try app.test(.GET, listPath) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

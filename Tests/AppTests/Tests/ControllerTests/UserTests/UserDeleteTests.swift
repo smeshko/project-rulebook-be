@@ -9,8 +9,7 @@ final class UserDeleteTests: XCTestCase {
     let deletePath = "api/user/delete"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: app)
         
         user = try UserAccountModel.mock(app: app)
@@ -29,7 +28,7 @@ final class UserDeleteTests: XCTestCase {
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() async throws {
+    func testListUnauthenticatedRequestShouldFail() throws {
         try app.test(.DELETE, deletePath) { response in
             XCTAssertEqual(response.status, .unauthorized)
         }

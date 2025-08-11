@@ -284,6 +284,7 @@ struct AuthController {
 private extension Optional where Wrapped == String {
     var nilOrNonEmptyValue: String? {
         guard let self else { return nil }
-        return self.isEmpty ? nil : self
+        let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

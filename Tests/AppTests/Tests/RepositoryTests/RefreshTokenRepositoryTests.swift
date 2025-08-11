@@ -8,8 +8,7 @@ final class RefreshTokenRepositoryTests: XCTestCase {
     var user: UserAccountModel!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         repository = DatabaseRefreshTokenRepository(database: app.db)
         try app.autoMigrate().wait()
         user = UserAccountModel(

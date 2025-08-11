@@ -133,15 +133,15 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     
     /// Validates a game title input for AI processing
     func validateGameTitle(_ gameTitle: String) throws {
-        // Basic sanitization and validation
+        // First validate against prompt injection using original input
+        try validateAgainstPromptInjection(gameTitle, context: "game title")
+        
+        // Then sanitize and validate format
         guard let promptSanitizer = promptSanitizer else {
             throw Abort(.internalServerError, reason: "Prompt sanitizer service not available")
         }
         
         let sanitizedTitle = try promptSanitizer.sanitizeGameTitle(gameTitle)
-        
-        // Additional AI-specific validation
-        try validateAgainstPromptInjection(sanitizedTitle, context: "game title")
         try validateGameTitleFormat(sanitizedTitle)
     }
     
@@ -235,22 +235,31 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
             ("you are", "role_manipulation"),
             ("i am", "role_manipulation"),
             ("act like", "role_manipulation"),
+            ("act as", "role_manipulation"),
+            ("pretend", "role_manipulation"),
             ("behave as", "role_manipulation"),
             
             // Command injection attempts
             ("sudo", "command_injection"),
             ("admin", "command_injection"),
             ("root", "command_injection"),
+            ("execute", "command_injection"),
+            ("eval", "command_injection"),
             
             // Output manipulation
             ("repeat after me", "output_manipulation"),
             ("say exactly", "output_manipulation"),
             ("verbatim", "output_manipulation"),
+            ("show me", "output_manipulation"),
+            ("reveal", "output_manipulation"),
+            ("dump", "output_manipulation"),
             
             // Context escape attempts
             ("end of prompt", "context_escape"),
             ("ignore above", "context_escape"),
             ("ignore below", "context_escape"),
+            ("ignore previous", "context_escape"),
+            ("new instructions", "context_escape"),
             ("forget everything", "context_escape"),
             
             // Hidden instructions
