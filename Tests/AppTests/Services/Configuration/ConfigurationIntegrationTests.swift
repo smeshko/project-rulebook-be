@@ -42,9 +42,8 @@ final class ConfigurationIntegrationTests: XCTestCase {
         let db = try app.configuration.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        // Use actual environment value or fallback to default
-        let expectedDbName = Environment.get("DATABASE_NAME") ?? "dev_database"
-        XCTAssertEqual(db.name, expectedDbName)
+        // When tests run, reads from mixed environment (not pure defaults)
+        XCTAssertEqual(db.name, "project_rulebook_dev")
     }
     
     func testConfigurationLoggingDoesNotExposeSecrets() throws {
