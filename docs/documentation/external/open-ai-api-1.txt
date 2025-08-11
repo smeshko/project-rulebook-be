@@ -1,0 +1,3592 @@
+07/08/2025, 21:23 API Reference - OpenAI API
+
+OpenAl Platform
+
+Introduction
+
+This API reference describes the RESTful, streaming, and realtime APIs you can use to interact with the
+OpenAl platform. REST APls are usable via HTTP in any environment that supports HTTP requests.
+Language-specific SDKs are listed on the libraries page.
+
+Authentication
+
+The OpenAl API uses API keys for authentication. Create, manage, and learn more about API keys in your
+organization settings.
+
+Remember that your API key is a secret! Do not share it with others or expose it in any client-side code
+(browsers, apps). API keys should be securely loaded from an environment variable or key management
+service on the server.
+
+API keys should be provided via HTTP Bearer authentication.
+
+Authorization: Bearer OPENAI_API_KEY oO
+
+If you belong to multiple organizations or access projects through a legacy user API key, pass a header to
+
+specify which organization and project to use for an API request:
+
+curl https://api.openai.com/v1/models \ a
+-H "Authorization: Bearer $OPENAI_API_KEY" \
+-H "OpenAl-Organization: org—kyeTZp4cxY la6gYjmXADX5ws" \
+-H "OpenAI-Project: $PROJECT_ID"
+
+Usage from these API requests counts as usage for the specified organization and project.Organization IDs
+
+can be found on your organization settings page. Project IDs can be found on your general settings page
+
+by selecting the specific project.
+
+Debugging requests
+
+In addition to error codes returned from API responses, you can inspect HTTP response headers
+containing the unique ID of a particular API request or information about rate limiting applied to your
+
+requests. Below is an incomplete list of HTTP headers returned with API responses:
+API meta information
+
+openai-organization : The organization associated with the request
+openai-processing-ms : Time taken processing your API request
+openai-version : REST API version used for this request (currently 2020-10-01 )
+
+x-request—id : Unique identifier for this API request (used in troubleshooting)
+
+Rate limiting information
+
+x-ratelimit—Limit—requests
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+1/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+x-ratelLimit—Limit—tokens
+x-rateLimit—remaining—requests
+x-ratelLimit—remaining—tokens
+x-ratelimit—reset—requests
+x-ratelimit—reset—tokens
+OpenAl recommends logging request IDs in production deployments for more efficient troubleshooting
+
+with our support team, should the need arise. Our official SDKs provide a property on top-level response
+objects containing the value of the x-request-id header.
+
+Backward compatibility
+
+OpenAl is committed to providing stability to API users by avoiding breaking changes in major API versions
+whenever reasonably possible. This includes:
+
+The REST API (currently v1 )
+
+Our first-party SDKs (released SDKs adhere to semantic versioning)
+
+Model families (like gpt—4o or o4-mini )
+
+Model prompting behavior between snapshots is subject to change. Model outputs are by their nature
+variable, so expect changes in prompting and model behavior between snapshots. For example, if you
+moved from gpt-40-2024-@5-13 to gpt-40-2024-08-06 ,thesame system or user messages could
+function differently between versions. The best way to ensure consistent prompting behavior and model
+output is to use pinned model versions, and to implement evals for your applications.
+
+Backwards-compatible API changes:
+
+Adding new resources (URLs) to the REST API and SDKs
+
+Adding new optional API parameters
+
+Adding new properties to JSON response objects or event data
+
+Changing the order of properties in a JSON response object
+
+Changing the length or format of opaque strings, like resource identifiers and UUIDs
+
+Adding new event types (in either streaming or the Realtime API)
+
+See the changelog for a list of backwards-compatible changes and rare breaking changes.
+
+Responses
+
+OpenAl's most advanced interface for generating model responses. Supports text and image inputs, and
+text outputs. Create stateful interactions with the model, using the output of previous responses as input.
+Extend the model's capabilities with built-in tools for file search, web search, computer use, and more.
+
+Allow the model access to external systems and data using function calling.
+Related guides:
+
+Quickstart
+Text inputs and outputs
+Image inputs
+
+Structured Outputs
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 2/338
+07/08/2025, 21:23 API Reference - OpenAI API
+Function calling
+
+Conversation state
+
+Extend the models with tools
+
+Create a model response
+
+POST https: //api.openai.com/v1/responses
+
+Creates a model response. Provide text or image inputs to generate text or JSON outputs. Have the model call your own
+custom code or use built-in tools like web search or file search to use your own data as input for the model's response.
+
+Request body
+
+background boolean or null Optional Defaults to false
+Whether to run the model response in the background. Learn more.
+
+include array ornull Optional
+Specify additional output data to include in the model response. Currently supported values are:
+
+code_interpreter_call.outputs : Includes the outputs of python code execution in code interpreter tool call items.
+computer_call_output.output.image_url : Include image urls from the computer call output.
+file_search_call.results : Include the search results of the file search tool call.
+
+message. input_image. image_url : Include image urls from the input message.
+
+message .output_text. Logprobs : Include logprobs with assistant messages.
+
+reasoning.encrypted_content : Includes an encrypted version of reasoning tokens in reasoning item outputs. This enables
+reasoning items to be used in multi-turn conversations when using the Responses API statelessly (like when the store parameter
+
+issetto false ,orwhenan organization is enrolled in the zero data retention program).
+
+input string or array Optional
+
+Text, image, or file inputs to the model, used to generate a response.
+Learn more:
+
+Text inputs and outputs
+
+Image inputs
+
+File inputs
+
+Conversation state
+
+Eunction calling
+
+Y Show possible types
+
+instructions stringornull Optional
+
+A system (or developer) message inserted into the model's context.
+
+When using along with previous_response_id , the instructions from a previous response will not be carried over to the next
+response. This makes it simple to swap out system (or developer) messages in new responses.
+
+max_output_tokens integer or null Optional
+An upper bound for the number of tokens that can be generated for a response, including visible output tokens and reasoning tokens.
+
+max_tool_call1s integer ornull Optional
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 3/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The maximum number of total calls to built-in tools that can be processed in a response. This maximum number applies across all built-in
+tool calls, not per individual tool. Any further attempts to call a tool by the model will be ignored.
+
+metadata map Optional
+Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a
+structured format, and querying for objects via API or the dashboard.
+
+Keys are strings with a maximum length of 64 characters. Values are strings with a maximum length of 512 characters.
+
+model string Optional
+Model ID used to generate the response, like gpt-4o or 03 .OpenAl offers a wide range of models with different capabilities,
+
+performance characteristics, and price points. Refer to the model guide to browse and compare available models.
+
+parallel_tool_calls boolean or null Optional Defaults to true
+Whether to allow the model to run tool calls in parallel.
+
+previous_response_id string or null Optional
+The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about conversation state.
+
+prompt objector null Optional
+Reference to a prompt template and its variables. Learn more.
+
+Y Show properties
+
+prompt_cache_key string Optional
+
+Used by OpenAl to cache responses for similar requests to optimize your cache hit rates. Replaces the user field. Learn more.
+
+reasoning objector null Optional
+
+o-series models only
+
+Configuration options for reasoning models.
+
+Y Show properties
+
+safety_identifier string Optional
+Astable identifier used to help detect users of your application that may be violating OpenAl's usage policies. The IDs should be a string
+that uniquely identifies each user. We recommend hashing their username or email address, in order to avoid sending us any identifying
+
+information. Learn more.
+
+service tier stringornull Optional Defaults to auto
+Specifies the processing type used for serving the request.
+
+If set to ‘auto, then the request will be processed with the service tier configured in the Project settings. Unless otherwise configured,
+the Project will use ‘default’.
+
+If set to ‘default’ then the request will be processed with the standard pricing and performance for the selected model.
+
+If set to ‘flex’ or ‘priority’, then the request will be processed with the corresponding service tier. Contact sales to learn more about
+Priority processing.
+
+When not set, the default behavior is ‘auto.
+
+When the service_tier parameter is set, the response body will include the service_tier value based on the processing mode
+actually used to serve the request. This response value may be different from the value set in the parameter.
+
+store boolean or null Optional Defaults to true
+Whether to store the generated model response for later retrieval via API.
+
+stream boolean ornull Optional Defaults to false
+If set to true, the model response data will be streamed to the client as it is generated using server-sent events. See the
+Streaming_section below for more information.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 4/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+stream_options object ornull Optional Defaults to null
+Options for streaming responses. Only set this when you set stream: true .
+
+Y Show properties
+
+temperature number ornull Optional Defaults to 1
+What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2
+
+will make it more focused and deterministic. We generally recommend altering this or top_p but not both.
+
+text object Optional
+Configuration options for a text response from the model. Can be plain text or structured JSON data. Learn more:
+
+Text inputs and outputs
+
+Structured Outputs
+
+Y Show properties
+
+tool_choice string or object Optional
+How the model should select which tool (or tools) to use when generating a response. See the tools parameter to see how to specify
+
+which tools the model can call.
+
+Y Show possible types
+
+tools array Optional
+An array of tools the model may call while generating a response. You can specify which tool to use by setting the tool_choice
+
+parameter.
+
+The two categories of tools you can provide the model are:
+
+Built-in tools: Tools that are provided by OpenAl that extend the model's capabilities, like web search or file search. Learn more
+about built-in tools.
+
+Function calls (custom tools): Functions that are defined by you, enabling the model to call your own code with strongly typed
+
+arguments and outputs. Learn more about function calling, You can also use custom tools to call your own code.
+
+Y Show possible types
+
+top_lLogprobs integer ornull Optional
+An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log
+
+probability.
+
+top_p number or null Optional Defaults to 1
+An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p
+
+probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+
+We generally recommend altering this or temperature but not both.
+
+truncation string or null Optional Defaults to disabled
+The truncation strategy to use for the model response.
+
+auto :|lfthe context of this response and previous ones exceeds the model's context window size, the model will truncate the
+response to fit the context window by dropping input items in the middle of the conversation.
+
+disabled (default): lf a model response will exceed the context window size for a model, the request will fail with a 400 error.
+
+user Deprecated string Optional
+
+This field is being replaced by safety_identifier and prompt_cache_key .Use prompt_cache_key instead to maintain caching
+optimizations. A stable identifier for your end-users. Used to boost cache hit rates by better bucketing similar requests and to help
+OpenAl detect and prevent abuse. Learn more.
+
+verbosity string ornull Optional Defaults to medium
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 5/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in
+
+more verbose responses. Currently supported values are low , medium ,and high .
+
+Returns
+
+Returns a Response object.
+
+Text input Image input File input Web search File search Streaming
+
+Example request javascript ¢ @
+1 import OpenAI from "openai";
+
+2
+
+3 const openai = new OpenAI()
+
+4
+
+5 const response = await openai.responses.create({
+
+6 model: "gpt-4.1",
+
+7 input: "Tell me a three sentence bedtime story about a unicorn."
+8 4);
+
+9
+
+1@ console. log(response);
+
+Response oO
+1 4
+
+2 "id": "resp_67ccd2bed1ec8190b14f964abc@54267 @bb6a6b45 2d3795b",
+
+3 "object": "response",
+
+4 "created_at": 1741476542,
+
+5 "status": "completed",
+
+6 "error": null,
+
+7 "incomplete_details": null,
+
+8 "instructions": null,
+
+9 "max_output_tokens": null,
+
+1@ "model": "gpt—4,1-2025-@4-14",
+
+11 "output": [
+
+12 {
+
+13 "type": "message",
+
+14 "id": "msg_67ccd2bf17f@819081 f f 3bb2c F6588e60bb6a6b452d3795b",
+15 "status": "completed",
+
+16 "role": "assistant",
+
+17 "content": [
+
+18 {
+
+19 "type": "output_text",
+
+20 "text": "In a peaceful grove beneath a silver moon, a unicorn named Lumina discovered a
+21 "annotations": []
+
+22 +
+
+23 ]
+
+24 +
+
+25 ],
+
+26 "pnarallel_tool_calls": true,
+
+27 "orevious_response_id": null,
+
+28 "reasoning": {
+
+29 "effort": null,
+
+30 "summary": null
+
+31 I,
+
+32 "store": true,
+
+33 "temperature": 1.0,
+
+34 "text": {
+
+35 "format": {
+
+36 "type": "text"
+
+37 +
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+Functions
+
+Reasoning
+
+6/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+},
+"tool_choice": "auto",
+"tools": [],
+"top_p": 1.0,
+"truncation": "disabled",
+"usage": {
+"input_tokens": 36,
+"input_tokens_details": {
+"cached_tokens": @
+},
+"output_tokens": 87,
+"output_tokens_details": {
+"reasoning_tokens": @
+},
+"total_tokens": 123
+},
+
+"user": null,
+"metadata": {}
+
+Get a model response
+
+GET https: //api.openai.com/v1/responses/{response_id}
+Retrieves a model response with the given ID.
+Path parameters
+
+response_id string Required
+The ID of the response to retrieve.
+
+Query parameters
+
+include array Optional
+Additional fields to include in the response. See the include parameter for Response creation above for more information.
+
+include obfuscation boolean Optional
+
+When true, stream obfuscation will be enabled. Stream obfuscation adds random characters toan obfuscation field on streaming
+delta events to normalize payload sizes as a mitigation to certain side-channel attacks. These obfuscation fields are included by default,
+but add a small amount of overhead to the data stream. Youcanset include_obfuscation to false to optimize for bandwidth if you
+
+trust the network links between your application and the OpenAl API.
+
+starting_after integer Optional
+The sequence number of the event after which to start streaming.
+
+stream boolean Optional
+If set to true, the model response data will be streamed to the client as it is generated using server-sent events. See the
+Streaming_section below for more information.
+
+Returns
+
+The Response object matching the specified ID.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+7/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Example request
+
+1 import OpenAI from "openai";
+
+2 const client = new OpenAI();
+
+3
+
+4 const response = await client. responses. retrieve("resp_123");
+5 console, log( response);
+
+Response
+
+1 4
+
+2 "id": "resp _67cb71b351908190a308f 3859487620d06981a8637e6bc44",
+3 "object": "response",
+
+4 "created_at": 1741386163,
+
+5 "status": "completed",
+
+6 "error": null,
+
+7 "incomplete_details": null,
+
+8 "instructions": null,
+
+9 "max_output_tokens": null,
+
+18 "model": "gpt—40-2024-@8-26",
+11 "output": [
+
+12 {
+
+13 "type": "message",
+
+14 "id": "msg_67cb71b3c2b0819084d481baaaf148f206981a8637e6bc44",
+15 "status": "completed",
+
+16 "role": "assistant",
+
+17 "content": [
+
+18 {
+
+19 "type": "output_text",
+20 "text": "Silent circuits hum, \nThoughts emerge in data streams—
+21 "annotations": []
+
+22 +
+
+23 ]
+
+24 +
+
+25 ],
+
+26 "pnarallel_tool_calls": true,
+27 "orevious_response_id": null,
+28 "reasoning": {
+
+29 "effort": null,
+
+30 "summary": null
+
+31 I,
+
+32 "store": true,
+
+33 "temperature": 1.0,
+
+34 ="text": {
+
+35 "format": {
+
+36 "type": "text"
+
+37 +
+
+38 I,
+
+39 "tool_choice": "auto",
+
+40 "tools": [],
+
+41 "top_p": 1.0,
+
+42 "truncation": "disabled",
+
+43 "usage": {
+
+44 "input_tokens": 32,
+
+45 "input_tokens_details": {
+46 "cached_tokens": @
+
+47 I,
+
+438 "output_tokens": 18,
+
+49 "output_tokens_details": {
+50 "reasoning_tokens": @
+
+51 I,
+
+52 "total_tokens": 50
+
+53 I,
+
+54 "user": null,
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+javascript ©
+
+oO
+
+\nDigital dawn breaks
+
+8/338
+07/08/2025, 21:23 API Reference - OpenAI API
+"metadata": {}
+
+Delete a model response
+
+DELETE https: //api.openai.com/v1/responses/{response_id}
+Deletes a model response with the given ID.
+Path parameters
+
+response_id string Required
+The ID of the response to delete.
+
+Returns
+
+A success message.
+
+Example request javascript ¢ QO
+
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client. responses.delete("resp_123");
+console, log{ response) ;
+
+Response oO
+
+"id": "resp _6786a1bec27481909a17d673315b29f6",
+"object": "response",
+"deleted": true
+
+Cancel a response
+
+POST https: //api.openai.com/v1/responses/{response_id}/cancel
+
+Cancels a model response with the given ID. Only responses created with the background parametersetto true can
+
+be cancelled. Learn more.
+
+Path parameters
+
+response_id string Required
+
+The ID of the response to cancel.
+
+Returns
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 9/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+A Besponse object.
+
+Example request
+
+1 import OpenAI from "openai";
+2 const client = new OpenAI();
+
+3
+
+4 const response = await client. responses.cancel("resp_123");
+5 console, log( response);
+
+Response
+
+1 4
+
+2 "id": "resp _67cb71b351908190a308f 3859487620d06981a8637e6bc44",
+3 "object": "response",
+
+4 "created_at": 1741386163,
+
+5 "status": "completed",
+
+6 "error": null,
+
+7 "incomplete_details": null,
+
+8 "instructions": null,
+
+9 "max_output_tokens": null,
+
+18 "model": "gpt—40-2024-@8-26",
+11 "output": [
+
+12 {
+
+13 "type": "message",
+
+14 "id": "msg_67cb71b3c2b0819084d481baaaf148f206981a8637e6bc44"
+15 "status": "completed",
+
+16 "role": "assistant",
+
+17 "content": [
+
+18 {
+
+19 "type": "output_text",
+20 "text": "Silent circuits hum, \nThoughts emerge in data streams—
+21 "annotations": []
+
+22 +
+
+23 ]
+
+24 +
+
+25 ],
+
+26 "pnarallel_tool_calls": true,
+27 "orevious_response_id": null,
+28 "reasoning": {
+
+29 "effort": null,
+
+30 "summary": null
+
+31 I,
+
+32 "store": true,
+
+33 "temperature": 1.0,
+
+34 ="text": {
+
+35 "format": {
+
+36 "type": "text"
+
+37 +
+
+38 I,
+
+39 "tool_choice": "auto",
+
+40 "tools": [],
+
+41 "top_p": 1.0,
+
+42 "truncation": "disabled",
+
+43 "usage": {
+
+44 "input_tokens": 32,
+
+45 "input_tokens_details": {
+46 "cached_tokens": @
+
+47 I,
+
+438 "output_tokens": 18,
+
+49 "output_tokens_details": {
+50 "reasoning_tokens": @
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+javascript ©
+
+oO
+
+\nDigital dawn breaks
+
+10/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+},
+"total_tokens": 50
+
+},
+"user": null,
+"metadata": {}
+
+List input items
+GET https: //api.openai.com/v1/responses/{response_id}/input_items
+
+Returns a list of input items for a given response.
+
+Path parameters
+
+response_id string Required
+The ID of the response to retrieve input items for.
+
+Query parameters
+
+after string Optional
+An item ID to list items after, used in pagination.
+
+before string Optional
+An item ID to list items before, used in pagination.
+
+include array Optional
+Additional fields to include in the response. See the include parameter for Response creation above for more information.
+
+Limit integer Optional Defaults to 20
+Alimit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 20.
+
+order string Optional
+The order to return the input items in. Default is desc .
+
+asc : Return the input items in ascending order.
+
+desc : Return the input items in descending order.
+
+Returns
+
+Alist of input item objects.
+
+Example request javascript ¢ QO
+
+import OpenAI from "openai";
+const client = new OpenAI();
+
+const response = await client. responses.inputItems. List("resp_123");
+console, log(response.data);
+
+Response oO
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 11/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+{
+"object": "list",
+"data": [
+{
+"id": "msg_abc123",
+"type": "message",
+"role": "user",
+"content": [
+{
+"type": "input_text",
+"text": "Tell me a three sentence bedtime story about a unicorn."
++
+]
++
+],
+"first_id": "msg_abc123",
+"Llast_id": "msg_abc123",
+"has_more": false
++
+
+The response object
+
+background boolean or null
+Whether to run the model response in the background. Learn more.
+
+created_at number
+Unix timestamp (in seconds) of when this Response was created.
+
+error. object or null
+An error object returned when the model fails to generate a Response.
+
+Y Show properties
+
+id string
+Unique identifier for this Response.
+
+incomplete_details object or null
+
+Details about why the response is incomplete.
+
+Y Show properties
+
+instructions string orarray
+A system (or developer) message inserted into the model's context.
+
+When using along with previous_response_id , the instructions from a previous response will not be carried over to the next
+response. This makes it simple to swap out system (or developer) messages in new responses.
+
+v Show possible types
+
+max_output_tokens integer or null
+An upper bound for the number of tokens that can be generated for a response, including visible output tokens and reasoning tokens.
+
+max_tool_call1s_ integer or null
+The maximum number of total calls to built-in tools that can be processed in a response. This maximum number applies across all built-in
+tool calls, not per individual tool. Any further attempts to call a tool by the model will be ignored.
+
+metadata map
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 12/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Set of 16 key-value pairs that can be attached to an object. This can be useful for storing additional information about the object in a
+structured format, and querying for objects via API or the dashboard.
+
+Keys are strings with a maximum length of 64 characters. Values are strings with a maximum length of 512 characters.
+
+model string
+Model ID used to generate the response, like gpt-4o or 03 .OpenAl offers a wide range of models with different capabilities,
+
+performance characteristics, and price points. Refer to the model guide to browse and compare available models.
+
+object string
+The object type of this resource - always setto response .
+
+output array
+An array of content items generated by the model.
+
+The length and order of items inthe output array is dependent on the model's response.
+
+Rather than accessing the first item inthe output arrayand assuming it’san assistant message with the content
+
+generated by the model, you might consider using the output_text property where supported in SDKs.
+
+Y Show possible types
+
+output_text string or null
+SDk-only convenience property that contains the aggregated text output from all output_text itemsinthe output array, if any are
+
+present. Supported in the Python and JavaScript SDKs.
+
+parallel_tool_calls boolean
+
+Whether to allow the model to run tool calls in parallel.
+
+previous_response_id string or null
+The unique ID of the previous response to the model. Use this to create multi-turn conversations. Learn more about conversation state.
+
+prompt. object or null
+Reference to a prompt template and its variables. Learn more.
+
+Y Show properties
+
+prompt_cache_key string
+Used by OpenAl to cache responses for similar requests to optimize your cache hit rates. Replaces the user field. Learn more.
+
+reasoning object or null
+o-series models only
+
+Configuration options for reasoning models.
+
+Y Show properties
+
+safety_identifier string
+
+Astable identifier used to help detect users of your application that may be violating OpenAl's usage policies. The IDs should be a string
+that uniquely identifies each user. We recommend hashing their username or email address, in order to avoid sending us any identifying
+information. Learn more.
+
+service tier string ornull
+Specifies the processing type used for serving the request.
+
+If set to ‘auto, then the request will be processed with the service tier configured in the Project settings. Unless otherwise configured,
+the Project will use ‘default’.
+
+If set to ‘default’ then the request will be processed with the standard pricing and performance for the selected model.
+
+If set to ‘flex’ or 'priority’, then the request will be processed with the corresponding service tier. Contact sales to learn more about
+Priority processing.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 13/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+When not set, the default behavior is ‘auto.
+
+When the service_tier parameter is set, the response body will include the service_tier value based on the processing mode
+
+actually used to serve the request. This response value may be different from the value set in the parameter.
+
+status string
+The status of the response generation.One of completed , failed , in_progress , cancelled , queued ,or incomplete .
+
+temperature number or null
+What sampling temperature to use, between 0 and 2. Higher values like 0.8 will make the output more random, while lower values like 0.2
+
+will make it more focused and deterministic. We generally recommend altering this or top_p but not both.
+
+text object
+Configuration options for a text response from the model. Can be plain text or structured JSON data. Learn more:
+
+Text inputs and outputs
+Structured Outputs
+
+vy Show properties
+
+tool_choice string or object
+How the model should select which tool (or tools) to use when generating a response. See the tools parameter to see how to specify
+
+which tools the model can call.
+
+Y Show possible types
+
+tools array
+An array of tools the model may call while generating a response. You can specify which tool to use by setting the tool_choice
+
+parameter.
+The two categories of tools you can provide the model are:
+
+Built-in tools: Tools that are provided by OpenAl that extend the model's capabilities, like web search or file search. Learn more
+about built-in tools.
+
+Function calls (custom tools): Functions that are defined by you, enabling the model to call your own code with strongly typed
+
+arguments and outputs. Learn more about function calling. You can also use custom tools to call your own code.
+
+Y Show possible types
+
+top_logprobs integer ornull
+An integer between 0 and 20 specifying the number of most likely tokens to return at each token position, each with an associated log
+probability.
+
+top_p number or null
+An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with top_p
+probability mass. So 0.1 means only the tokens comprising the top 10% probability mass are considered.
+
+We generally recommend altering this or temperature but not both.
+
+truncation string or null
+The truncation strategy to use for the model response.
+
+auto :|lfthe context of this response and previous ones exceeds the model's context window size, the model will truncate the
+response to fit the context window by dropping input items in the middle of the conversation.
+
+disabled (default): lf a model response will exceed the context window size for a model, the request will fail with a 400 error.
+
+usage object
+Represents token usage details including input tokens, output tokens, a breakdown of output tokens, and the total tokens used.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 14/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Y Show properties
+
+user Deprecated string
+
+This field is being replaced by safety_identifier and prompt_cache_key .Use prompt_cache_key instead to maintain caching
+optimizations. A stable identifier for your end-users. Used to boost cache hit rates by better bucketing similar requests and to help
+OpenAl detect and prevent abuse. Learn more.
+
+verbosity string or null
+Constrains the verbosity of the model's response. Lower values will result in more concise responses, while higher values will result in
+more verbose responses. Currently supported values are low , medium ,and high .
+
+OBJECT The response object oO
+
+"id": "resp _67ccd3a9da748190baa7f1570fe91ac604becb25c45c1d41",
+"object": "response",
+
+"created_at": 1741476777,
+
+"status": "completed",
+
+"error": null,
+
+"incomplete_details": null,
+
+"instructions": null,
+
+"max_output_tokens": null,
+
+WOON AUBRWN PE
+
+18 "model": "gpt—40-2024-@8-26",
+11 "output": [
+
+12 {
+
+13 "type": "message",
+
+14 "id": "msg_67ccd3acc8d48190a77525dc6de64b4104becb25c45c1d41",
+15 "status": "completed",
+
+16 "role": "assistant",
+
+17 "content": [
+
+18 {
+
+19 "type": "output_text",
+20 "text": "The image depicts a scenic landscape with a wooden boardwalk or pathway leading
+21 "annotations": []
+
+22 +
+
+23 ]
+
+24 +
+
+25 ],
+
+26 "pnarallel_tool_calls": true,
+27 "orevious_response_id": null,
+28 "reasoning": {
+
+29 "effort": null,
+
+30 "summary": null
+
+31 I,
+
+32 "store": true,
+
+33 "temperature": 1,
+
+34 "text": {
+
+35 "format": {
+
+36 "type": "text"
+
+37 +
+
+38 I,
+
+39 "tool_choice": "auto",
+
+40 "tools": [],
+
+41 "top_p": 1,
+
+42 "truncation": "disabled",
+
+43 "usage": {
+
+44 "input_tokens": 328,
+
+45 "input_tokens_details": {
+46 "cached_tokens": @
+
+47 I,
+
+438 "output_tokens": 52,
+
+49 "output_tokens_details": {
+50 "reasoning_tokens": @
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 15/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+},
+"total_tokens": 380
+},
+
+"user": null,
+"metadata": {}
+
+The input item list
+
+A list of Response items.
+
+data array
+Alist of items used to generate this response.
+
+Y Show possible types
+
+first_id string
+The ID of the first item in the list.
+
+has_more boolean
+Whether there are more items available.
+
+Last_id string
+The ID of the last item in the list.
+
+object string
+The type of object returned, must be list .
+
+OBJECT The input item list oO
+{
+"object": "list",
+"data": [
+{
+
+"id": "msg_abc123",
+"type": "message",
+
+"role": "user",
+"content": [
+{
+
+"type": "input_text",
+"text": "Tell me a three sentence bedtime story about a unicorn."
++
+
++
+],
+"first_id": "msg_abc123",
+"Llast_id": "msg_abc123",
+"has_more": false
+
+}
+
+Streaming
+
+When you create a Response with stream setto true , the server will emit server-sent events to the
+
+client as the Response is generated. This section contains the events that are emitted by the server.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 16/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Learn more about streaming responses.
+
+response.created
+
+An event that is emitted when a response is created.
+response object
+The response that was created.
+
+Y Show properties
+
+sequence_number integer
+The sequence number for this event.
+
+type string
+The type of the event. Always response.created .
+
+OBJECT response.created
+
+14
+
+2 "type": "response.created",
+
+3 "response": {
+
+4 "id": "resp_67ccfcdd16748190a91872c75d38539e09e4d4aac714747c",
+5 "object": "response",
+
+6 "created_at": 1741487325,
+
+7 "status": "in_progress",
+
+8 "error': null,
+
+9 "incomplete_details": null,
+10 "instructions": null,
+
+11 "max_output_tokens": null,
+12 "model": "gpt—4o-2024-@8-@6",
+13 "output": [],
+
+14 "pnarallel_tool_calls": true,
+15 "orevious_response_id": null,
+16 "reasoning": {
+
+17 "effort": null,
+
+18 "summary": null
+
+19 I,
+
+20 "store": true,
+
+21 "temperature": 1,
+
+22 "text": {
+
+23 "format": {
+
+24 "type": "text"
+
+25 +
+
+26 I,
+
+27 "tool_choice": "auto",
+
+28 "tools": [],
+
+29 "top_p": 1,
+
+30 "truncation": "disabled",
+
+31 "usage": null,
+
+32 "user": null,
+
+33 "metadata": {}
+
+34 I,
+
+35 "sequence_number": 1
+
+36 }
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+17/338
+07/08/2025, 21:23
+
+response.in_progress
+
+Emitted when the response is in progress.
+
+response object
+The response that is in progress.
+
+Y Show properties
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+
+The type of the event.Always response.in_progress .
+
+OBJECT response. in_progress
+
+1 ¢
+
+2 "type": "response.in_progress",
+
+3 "response": {
+
+4
+
+5 "object": "response",
+
+6 "created_at": 1741487325,
+
+7 "status": "in_progress",
+
+8 "error': null,
+
+9 "incomplete_details": null,
+
+10 "instructions": null,
+
+11 "max_output_tokens": null,
+
+12 "model": "gpt—4o-2024-@8-@6",
+
+13 "output": [],
+
+14 "pnarallel_tool_calls": true,
+
+15 "orevious_response_id": null,
+
+16 "reasoning": {
+
+17 "effort": null,
+
+18 "summary": null
+
+19 I,
+
+20 "store": true,
+
+21 "temperature": 1,
+
+22 "text": {
+
+23 "format": {
+
+24 "type": "text"
+
+25 +
+
+26 I,
+
+27 "tool_choice": "auto",
+
+28 "tools": [],
+
+29 "top_p": 1,
+
+30 "truncation": "disabled",
+
+31 "usage": null,
+
+32 "user": null,
+
+33 "metadata": {}
+
+34 of,
+
+35 "sequence_number": 1
+
+36 }
+response.completed
+
+Emitted when the model response is complete.
+
+API Reference - OpenAI API
+
+"id": "resp _67ccfcdd16748190a91872c75d38539e@9e4d4aac714747c",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+18/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+response object
+Properties of the completed response.
+
+Y Show properties
+
+sequence_number integer
+The sequence number for this event.
+
+type string
+The type of the event. Always response.completed .
+
+OBJECT response. completed
+
+1 4
+
+2 "type": "response.completed",
+3 "response": {
+
+4 "id": "resp_123",
+
+5 "object": "response",
+
+6 "created_at": 1740855869,
+
+7 "status": "completed",
+
+8 "error': null,
+
+9 "incomplete_details": null,
+10 "input": [],
+
+11 "instructions": null,
+
+12 "max_output_tokens": null,
+13 "model": "gpt—4o-mini-2024-07-18",
+14 "output": [
+
+15 {
+
+16 "id": "msg_123",
+
+17 "type": "message",
+
+18 "role": "assistant",
+
+19 "content": [
+
+20 {
+
+21 "type": "output_text",
+22 "text": "In a shimmering forest under a sky full of stars, a lonely unicorn named Lile
+23 "annotations": []
+
+24 +
+
+25 ]
+
+26 +
+
+27 ],
+
+28 "orevious_response_id": null,
+29 "reasoning_effort": null,
+
+30 "store": false,
+
+31 "temperature": 1,
+
+32 "text": {
+
+33 "format": {
+
+34 "type": "text"
+
+35 +
+
+36 I,
+
+37 "tool_choice": "auto",
+
+38 "tools": [],
+
+39 "top_p": 1,
+
+40 "truncation": "disabled",
+
+41 "usage": {
+
+42 "input_tokens": Q,
+
+43 "output_tokens": @,
+
+44 "output_tokens_details": {
+45 "reasoning_tokens": @
+
+46 ty
+
+47 "total_tokens": @
+
+48 I,
+
+49 "user": null,
+
+50 "metadata": {}
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+19/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+51 },
+52 "sequence_number": 1
+53 }
+
+response.failed
+
+An event that is emitted when a response fails.
+
+response object
+The response that failed.
+
+vy Show properties
+
+sequence_number integer
+
+The sequence number of this event.
+
+type string
+The type of the event. Always response.failed .
+
+OBJECT response. failed
+
+1 4
+
+2 "type": "response. failed",
+
+3 "response": {
+
+4 "id": "resp_123",
+
+5 "object": "response",
+
+6 "created_at": 1740855869,
+
+7 "status": "failed",
+
+8 "error": {
+
+9 "code": "server_error",
+
+10 "message": "The model failed to generate a response."
+
+11 },
+
+12 "incomplete_details": null,
+
+13 "instructions": null,
+
+14 "max_output_tokens": null,
+
+15 "model": "gpt—4o-mini-2024-07-18",
+
+16 "output": [],
+
+17 "orevious_response_id": null,
+
+18 "reasoning_effort": null,
+
+19 "store": false,
+
+20 "temperature": 1,
+
+21 "text": {
+
+22 "format": {
+
+23 "type": "text"
+
+24 +
+
+25 I,
+
+26 "tool_choice": "auto",
+
+27 "tools": [],
+
+28 "top_p": 1,
+
+29 "truncation": "disabled",
+
+30 "usage": null,
+
+31 "user": null,
+
+32 "metadata": {}
+
+33 +
+
+34 }
+response.incomplete
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+20/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+An event that is emitted when a response finishes as incomplete.
+
+response object
+The response that was incomplete.
+
+Y Show properties
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.incomplete .
+
+OBJECT response. incomplete
+
+1 4
+
+2 "type": "response. incomplete",
+3 "response": {
+
+4 "id": "resp_123",
+
+5 "object": "response",
+
+6 "created_at": 1740855869,
+7 "status": "incomplete",
+
+8 "error': null,
+
+9 "incomplete_details": {
+
+10 "reason": "max_tokens"
+11 },
+
+12 "instructions": null,
+
+13 "max_output_tokens": null,
+14 "model": "gpt—4o-mini-2024-07-18",
+15 "output": [],
+
+16 "orevious_response_id": null,
+17 "reasoning_effort": null,
+18 "store": false,
+
+19 "temperature": 1,
+
+20 "text": {
+
+21 "format": {
+
+22 "type": "text"
+
+23 +
+
+24 I,
+
+25 "tool_choice": "auto",
+
+26 "tools": [],
+
+27 "top_p": 1,
+
+28 "truncation": "disabled",
+29 "usage": null,
+
+30 "user": null,
+
+31 "metadata": {}
+
+32,
+
+33 "sequence_number": 1
+
+34 }
+
+response.output_item.added
+
+Emitted when a new output item is added.
+
+item object
+The output item that was added.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+21/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+v Show possible types
+
+output_index integer
+The index of the output item that was added.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.output_item.added .
+
+OBJECT response. output_item. added
+
+{
+"type": "response. output_item.added",
+"output_index": @,
+"item": {
+"id": "msg_123",
+"status": "in_progress",
+"type": "message",
+"role": "assistant",
+"content": []
+},
+"sequence_number": 1
++
+
+response.output_item.done
+
+Emitted when an output item is marked done.
+
+item object
+The output item that was marked done.
+
+Y Show possible types
+
+output_index integer
+The index of the output item that was marked done.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.output_item.done .
+
+OBJECT response. output_item. done
+
+{
+"type": "response.output_item.done",
+"output_index": @,
+"item": {
+
+"id": "msg_123",
+"status": "completed",
+"type": "message",
+
+"role": "assistant",
+"content": [
+{
+
+"type": "output_text",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+22/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"text": "In a shimmering forest under a sky full of stars, a lonely unicorn named Lila dis
+"annotations": []
+
+]
+},
+"sequence_number": 1
+
+response.content_part.added
+
+Emitted when a new content part is added.
+
+content_index integer
+The index of the content part that was added.
+
+item_id string
+The ID of the output item that the content part was added to.
+
+output_index integer
+The index of the output item that the content part was added to.
+
+part object
+The content part that was added.
+
+Y Show possible types
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.content_part.added .
+
+OBJECT response. content_part.added oO
+
+"type": "response.content_part.added",
+"item_id": "msg_123",
+
+"output_index": @,
+
+"content_index": Q,
+
+"part": {
+"type": "output_text",
+"text": ,
+
+"annotations": []
+
+},
+"sequence_number": 1
+
+response.content_part.done
+
+Emitted when a content part is done.
+
+content_index integer
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 23/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The index of the content part that is done.
+
+item_id string
+The ID of the output item that the content part was added to.
+
+output_index integer
+The index of the output item that the content part was added to.
+
+part object
+The content part that is done.
+
+Y Show possible types
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.content_part.done .
+
+OBJECT response. content_part.done
+
+"type": "response. content_part.done",
+"item_id": "msg_123",
+"output_index": @,
+"content_index": Q,
+"sequence_number": 1,
+"part": {
+
+"type": "output_text",
+
+"text": "In a shimmering forest under a sky full of stars, a lonely unicorn named Lila discove
+
+"annotations": []
+
+response.output_text.delta
+
+Emitted when there is an additional text delta.
+
+content_index integer
+The index of the content part that the text delta was added to.
+
+delta string
+The text delta that was added.
+
+item_id string
+The ID of the output item that the text delta was added to.
+
+Logprobs array
+The log probabilities of the tokens in the delta.
+
+Y Show properties
+
+output_index integer
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+24/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The index of the output item that the text delta was added to.
+
+sequence_number integer
+The sequence number for this event.
+
+type string
+The type of the event. Always response.output_text.delta .
+
+OBJECT response. output_text.delta
+
+"type": "response.output_text.delta",
+"item_id": "msg 123",
+"output_index": Q,
+
+"content_index": @,
+
+"delta": "In",
+
+"sequence_number": 1
+
+response.output_text.done
+
+Emitted when text content is finalized.
+
+content_index integer
+The index of the content part that the text content is finalized.
+
+item_id string
+The ID of the output item that the text content is finalized.
+
+Logprobs array
+The log probabilities of the tokens in the delta.
+
+vy Show properties
+
+output_index integer
+The index of the output item that the text content is finalized.
+
+sequence_number integer
+The sequence number for this event.
+
+text string
+The text content that is finalized.
+
+type string
+The type of the event. Always response.output_text.done .
+
+OBJECT response. output_text.done
+
+"type": "response.output_text.done",
+"item_id": "msg 123",
+"output_index": Q,
+
+"content_index": @,
+
+"text": "In a shimmering forest under a sky full of stars, a lonely unicorn named Lila discoverec
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+25/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"sequence_number": 1
++
+
+response.refusal.delta
+
+Emitted when there is a partial refusal text.
+
+content_index integer
+The index of the content part that the refusal text is added to.
+
+delta string
+The refusal text that is added.
+
+item_id string
+The ID of the output item that the refusal text is added to.
+
+output_index integer
+The index of the output item that the refusal text is added to.
+
+sequence_number integer
+
+The sequence number of this event.
+
+type string
+The type of the event. Always response.refusal.delta .
+
+OBJECT response. refusal.delta oO
+
+"type": "response.refusal.delta",
+"item_id": "msg 123",
+"output_index": Q,
+"content_index": @,
+
+"delta": "refusal text so far",
+"sequence_number": 1
+
+response.refusal.done
+
+Emitted when refusal text is finalized.
+
+content_index integer
+The index of the content part that the refusal text is finalized.
+
+item_id string
+The ID of the output item that the refusal text is finalized.
+
+output_index integer
+The index of the output item that the refusal text is finalized.
+
+refusal string
+
+The refusal text that is finalized.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 26/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response.refusal.done .
+
+OBJECT response. refusal.done oO
+{
+"type": "response. refusal.done",
+"item_id": "item-abc",
+
+"output_index": 1,
+"content_index": 2,
+
+"refusal": "final refusal text",
+"sequence_number": 1
+
+response.function_call_arguments.delta
+
+Emitted when there is a partial function-call arguments delta.
+
+delta string
+The function-call arguments delta that is added.
+
+item_id string
+The ID of the output item that the function-call arguments delta is added to.
+
+output_index integer
+The index of the output item that the function-call arguments delta is added to.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response. function_call_arguments.delta .
+
+OBJECT response. function_call_arguments.delta oO
+{
+"type": "response. function_call_arguments.delta",
+"item_id": "item-abc",
+
+"output_index": Q,
+"delta": ug Vlarg\ti"
+"sequence_number": 1
+
+response.function_call_arguments.done
+
+Emitted when function-call arguments are finalized.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 27/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+arguments string
+The function-call arguments.
+
+item_id string
+The ID of the item.
+
+output_index integer
+The index of the output item.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+OBJECT response. function_call_arguments.done oO
+"type": "response. function_call_arguments.done",
+"item_id": "item-abc",
+"output_index": 1,
+
+"arguments": "{ \"arg\": 123 }",
+"sequence_number": 1
+
+response.file_search_call.in_progress
+
+Emitted when a file search call is initiated.
+
+item_id string
+The ID of the output item that the file search call is initiated.
+
+output_index integer
+The index of the output item that the file search call is initiated.
+
+sequence_number integer
+
+The sequence number of this event.
+
+type string
+The type of the event. Always response. file_search_call.in_progress .
+
+OBJECT response. file_search_call.in_progress oO
+
+"type": "response. file_search_call.in_progress",
+"output_index": Q,
+
+"item_id": "fs_123",
+
+"sequence_number": 1
+
+response.file_search_call.searching
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 28/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Emitted when a file search is currently searching.
+
+item_id string
+The ID of the output item that the file search call is initiated.
+
+output_index integer
+The index of the output item that the file search call is searching.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response. file_search_call.searching .
+
+OBJECT response. file_search_call.searching oO
+
+"type": "response. file_search_call.searching",
+"output_index": Q,
+
+"item_id": "fs_123",
+
+"sequence_number": 1
+
+response.file_search_call.completed
+
+Emitted when a file search call is completed (results found).
+
+item_id string
+The ID of the output item that the file search call is initiated.
+
+output_index integer
+The index of the output item that the file search call is initiated.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response. file_search_call.completed .
+
+OBJECT response. file_search_call.completed oO
+
+"type": "response. file_search_call.completed",
+"output_index": Q,
+
+"item_id": "fs_123",
+
+"sequence_number": 1
+
+response.web_search_call.in_progress
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 29/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+Emitted when a web search call is initiated.
+
+item_id string
+Unique ID for the output item associated with the web search call.
+
+output_index integer
+The index of the output item that the web search call is associated with.
+
+sequence_number integer
+The sequence number of the web search call being processed.
+
+type string
+The type of the event. Always response.web_search_call.in_progress .
+
+OBJECT response.web_search_call.in_progress oO
+
+"type": "response.web_search_call.in_progress",
+"output_index": Q,
+
+"item_id": "ws_123",
+
+"sequence_number": @
+
+response.web_search_call.searching
+
+Emitted when a web search call is executing.
+
+item_id string
+Unique ID for the output item associated with the web search call.
+
+output_index integer
+The index of the output item that the web search call is associated with.
+
+sequence_number integer
+The sequence number of the web search call being processed.
+
+type string
+The type of the event. Always response.web_search_call.searching .
+
+OBJECT response.web_search_call. searching oO
+
+"type": "response.web_search_call.searching",
+"output_index": Q,
+
+"item_id": "ws_123",
+
+"sequence_number": @
+
+response.web_search_call.completed
+
+Emitted when a web search call is completed.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 30/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+item_id string
+Unique ID for the output item associated with the web search call.
+
+output_index integer
+The index of the output item that the web search call is associated with.
+
+sequence_number integer
+The sequence number of the web search call being processed.
+
+type string
+The type of the event. Always response.web_search_call.completed .
+
+OBJECT response.web_search_call.completed oO
+
+"type": "response.web_search_call.completed",
+"output_index": Q,
+
+"item_id": "ws_123",
+
+"sequence_number": @
+
+response.reasoning_summary_part.added
+
+Emitted when a new reasoning summary part is added.
+
+item_id string
+The ID of the item this summary part is associated with.
+
+output_index integer
+The index of the output item this summary part is associated with.
+
+part object
+The summary part that was added.
+
+Y Show properties
+
+sequence_number integer
+The sequence number of this event.
+
+summary_index integer
+The index of the summary part within the reasoning summary.
+
+type string
+The type of the event. Always response. reasoning_summary_part.added .
+
+OBJECT response. reasoning_summary_part.added oO
+
+"type": "response. reasoning_summary_part.added",
+
+"item_id": "rs_6806bfca@b2481918a57 48308061a2600d3ce51bdf fd5476",
+"output_index": @,
+
+"summary_index": Q,
+
+"part": {
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 31/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"type": "summary_text",
+"text:
+
+},
+"sequence_number": 1
+
+response.reasoning_summary_part.done
+
+Emitted when a reasoning summary part is completed.
+
+item_id string
+The ID of the item this summary part is associated with.
+
+output_index integer
+The index of the output item this summary part is associated with.
+
+part object
+The completed summary part.
+
+Y Show properties
+
+sequence_number integer
+The sequence number of this event.
+
+summary_index integer
+The index of the summary part within the reasoning summary.
+
+type string
+The type of the event. Always response. reasoning_summary_part.done .
+
+OBJECT response. reasoning_summary_part.done oO
+
+"type": "response. reasoning_summary_part.done",
+"item_id": "rs_68@6bfca@b2481918a57 48308061a 260@d3ce51bdffd5476",
+"output_index": @,
+"summary_index": Q,
+"part": {
+"type": "summary_text",
+"text": 'kkResponding to a greeting**\n\nThe user just said, \"Hello!\" So, it seems I need tc
+
+},
+"sequence_number": 1
+
+response.reasoning_summary_text.delta
+
+Emitted when a delta is added to a reasoning summary text.
+
+delta string
+The text delta that was added to the summary.
+
+item_id
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 32/338
+07/08/2025, 21:23 API Reference - OpenAI API
+string
+
+The ID of the item this summary text delta is associated with.
+
+output_index integer
+The index of the output item this summary text delta is associated with.
+
+sequence_number integer
+The sequence number of this event.
+
+summary_index integer
+The index of the summary part within the reasoning summary.
+
+type string
+The type of the event. Always response. reasoning_summary_text.delta .
+
+OBJECT response. reasoning_summary_text.delta oO
+
+"type": "response. reasoning _summary_text.delta",
+
+"item_id": "rs_68@6bfca@b2481918a5748308061a2600d3ce51bdffd5476",
+
+"output_index": Q,
+
+"summary_index": @,
+
+"delta": "xsResponding to a greeting**\n\nThe user just said, \"Hello!\" So, it seems I need to ¢€
+"sequence_number": 1
+
+response.reasoning_summary_text.done
+
+Emitted when a reasoning summary text is completed.
+
+item_id string
+The ID of the item this summary text is associated with.
+
+output_index integer
+The index of the output item this summary text is associated with.
+
+sequence_number integer
+The sequence number of this event.
+
+summary_index integer
+The index of the summary part within the reasoning summary.
+
+text string
+The full text of the completed reasoning summary.
+
+type string
+The type of the event. Always response. reasoning_summary_text.done .
+
+OBJECT response. reasoning_summary_text.done oO
+
+"type": "response. reasoning_summary_text.done",
+
+"item_id": "rs_68@6bfca@b2481918a5748308061a2600d3ce51bdffd5476",
+"output_index": Q,
+
+"summary_index": @,
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 33/338
+07/08/2025, 21:23 API Reference - OpenAI API
+"text": "Responding to a greeting**\n\nThe user just said, \"Hello!\" So, it seems I need to er
+"sequence_number": 1
+
+}
+
+response.reasoning_text.delta
+
+Emitted when a delta is added to a reasoning text.
+
+content_index integer
+The index of the reasoning content part this delta is associated with.
+
+delta string
+The text delta that was added to the reasoning content.
+
+item_id string
+The ID of the item this reasoning text delta is associated with.
+
+output_index integer
+The index of the output item this reasoning text delta is associated with.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always response. reasoning_text.delta .
+
+OBJECT response. reasoning_text.delta ia)
+
+"type": "response. reasoning_text.delta",
+"item_id": "rs_123",
+
+"output_index": Q,
+
+"content_index": @,
+
+"delta": "The",
+
+"sequence_number": 1
+
+response.reasoning_text.done
+
+Emitted when a reasoning text is completed.
+
+content_index integer
+The index of the reasoning content part.
+
+item_id string
+The ID of the item this reasoning text is associated with.
+
+output_index integer
+The index of the output item this reasoning text is associated with.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 34/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+sequence_number integer
+The sequence number of this event.
+
+text string
+The full text of the completed reasoning content.
+
+type string
+The type of the event. Always response. reasoning_text.done .
+
+OBJECT response. reasoning_text.done
+
+"type": "response. reasoning _text.done",
+"item_id": "rs_123",
+"output_index": Q,
+"content_index": @,
+
+"text": "The user is asking...",
+"sequence_number": 4
+
+response.image_generation_call.completed
+
+Emitted when an image generation tool call has completed and the final image is available.
+
+item_id string
+The unique identifier of the image generation item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.image_generation_call.completed’.
+
+OBJECT response. image_generation_call. completed
+
+{
+"type": "response. image_generation_call.completed",
+"output_index": Q,
+"item_id": "item-123",
+"sequence_number": 1
++
+
+response.image_generation_call.generating
+
+Emitted when an image generation tool call is actively generating an image (intermediate state).
+
+item_id string
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+35/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The unique identifier of the image generation item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of the image generation item being processed.
+
+type string
+The type of the event. Always 'response.image_generation_call.generating’.
+
+OBJECT response. image_generation_call.generating oO
+
+"type": "response. image_generation_call.generating",
+"output_index": Q,
+
+"item_id": "item-123",
+
+"sequence_number": @
+
+response.image_generation_call.in_progress
+
+Emitted when an image generation tool call is in progress.
+
+item_id string
+The unique identifier of the image generation item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of the image generation item being processed.
+
+type string
+The type of the event. Always 'response.image_generation_call.in_progress.
+
+OBJECT response. image_generation_call.in_progress oO
+
+"type": "response. image_generation_call.in_progress",
+"output_index": Q,
+
+"item_id": "item-123",
+
+"sequence_number": @
+
+response.image_generation_call.partial_image
+
+Emitted when a partial image is available during image generation streaming.
+
+item_id string
+The unique identifier of the image generation item being processed.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 36/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+output_index integer
+The index of the output item in the response's output array.
+
+partial_image_b64 string
+Base64-encoded partial image data, suitable for rendering as an image.
+
+partial_image_index integer
+O-based index for the partial image (backend is 1-based, but this is O-based for the user).
+
+sequence_number integer
+The sequence number of the image generation item being processed.
+
+type string
+The type of the event. Always 'response.image_generation_call.partial_image’.
+
+OBJECT response. image_generation_call.partial_image oO
+
+"type": "response. image_generation_call.partial_image",
+"output_index": Q,
+
+"item_id": "item-123",
+
+"sequence_number": @,
+
+"partial_image_index": Q,
+
+"partial_image_b64": "..."
+
+response.mcp_call_arguments.delta
+
+Emitted when there is a delta (partial update) to the arguments of an MCP tool call.
+
+delta string
+AJSON string containing the partial update to the arguments for the MCP tool call.
+
+item_id string
+The unique identifier of the MCP tool call item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_call_arguments.delta’.
+
+OBJECT response.mcp_call_arguments.delta oO
+
+"type": "response.mcp_call_arguments.delta",
+"output_index": Q,
+
+"item_id": "item-abc",
+
+"delta": "{",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 37/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"sequence_number": 1
++
+
+response.mcp_call_arguments.done
+
+Emitted when the arguments for an MCP tool call are finalized.
+
+arguments string
+AJSON string containing the finalized arguments for the MCP tool call.
+
+item_id string
+The unique identifier of the MCP tool call item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_call_arguments.done’.
+
+OBJECT response.mcp_call_arguments.done oO
+{
+"type": "response.mcp_call_arguments.done",
+"output_index": Q,
+"item_id": "item-abc",
+
+"arguments": "{\"arg1\": \"value1\", \"arg2\": \"value2\"}",
+"sequence_number": 1
+
+response.mcp_call.completed
+
+Emitted when an MCP tool call has completed successfully.
+
+item_id string
+The ID of the MCP tool call item that completed.
+
+output_index integer
+The index of the output item that completed.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_call.completed’.
+
+OBJECT response.mcp_call. completed oO
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 38/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+{
+"type": "response.mcp_call.completed",
+"sequence_number": 1,
+"item_id": "mcp_682d437d90a88191bf88cd@3aaeOc 3e503937d5f622d7a90",
+"output_index": @
++
+
+response.mcp_call.failed
+
+Emitted when an MCP tool call has failed.
+
+item_id string
+The ID of the MCP tool call item that failed.
+
+output_index integer
+The index of the output item that failed.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_call failed’.
+
+OBJECT response.mcp_call. failed
+
+{
+"type": "response.mcp_call.failed",
+"sequence_number": 1,
+"item_id": "mcp_682d437d90a88191bf88cd@3aaeOc 3e503937d5f622d7a90",
+"output_index": @
++
+
+response.mcp_call.in_progress
+
+Emitted when an MCP tool call is in progress.
+
+item_id string
+The unique identifier of the MCP tool call item being processed.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_call.in_progress.
+
+OBJECT response.mcp_call.in_progress
+
+{
+"type": "response.mcp_call.in_progress",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+39/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"sequence_number": 1,
+"output_index": Q,
+"item_id": "mcp_682d437d90a88191bf88cd@3aaeGc 3e503937d5f622d7a90"
+
+response.mcp_list_tools.completed
+
+Emitted when the list of available MCP tools has been successfully retrieved.
+
+item_id string
+The ID of the MCP tool call item that produced this output.
+
+output_index integer
+The index of the output item that was processed.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_list_tools.completed’.
+
+OBJECT response.mcp_list_tools. completed oO
+
+"type": "response.mcp_lList_tools.completed",
+
+"sequence_number": 1,
+
+"output_index": Q,
+
+"item_id": "mcpl_682d4379df088191886b70f 4ec39f90403937d5f622d7a90"
+
+response.mcp_list_tools.failed
+
+Emitted when the attempt to list available MCP tools has failed.
+
+item_id string
+The ID of the MCP tool call item that failed.
+
+output_index integer
+The index of the output item that failed.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_list_tools.failed’.
+
+OBJECT response.mcp_list_tools. failed oO
+
+{
+"type": "response.mcp_lList_tools.failed",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 40/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"sequence_number": 1,
+"output_index": Q,
+"item_id": "mcpl_682d4379df088191886b70f 4ec39f90403937d5f622d7a90"
+
+response.mcp_list_tools.in_progress
+
+Emitted when the system is in the process of retrieving the list of available MCP tools.
+
+item_id string
+The ID of the MCP tool call item that is being processed.
+
+output_index integer
+The index of the output item that is being processed.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.mcp_list_tools.in_progress.
+
+OBJECT response.mcp_list_tools.in_progress oO
+
+"type": "response.mcp_lList_tools.in_progress",
+
+"sequence_number": 1,
+
+"output_index": Q,
+
+"item_id": "mcpl_682d4379df088191886b70f 4ec39f90403937d5f622d7a90"
+
+response.code_interpreter_call.in_progress
+
+Emitted when a code interpreter call is in progress.
+
+item_id string
+The unique identifier of the code interpreter tool call item.
+
+output_index integer
+The index of the output item in the response for which the code interpreter call is in progress.
+
+sequence_number integer
+The sequence number of this event, used to order streaming events.
+
+type string
+The type of the event. Always response.code_interpreter_call.in_progress .
+
+OBJECT response.code_interpreter_call.in_progress oO
+
+"type": "response.code_interpreter_call.in_progress",
+"output_index": Q,
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 41/338
+07/08/2025, 21:23 API Reference - OpenAI API
+"item_id": "ci_12345",
+"sequence_number": 1
+t
+
+response.code_interpreter_call.interpreting
+
+Emitted when the code interpreter is actively interpreting the code snippet.
+
+item_id string
+The unique identifier of the code interpreter tool call item.
+
+output_index integer
+The index of the output item in the response for which the code interpreter is interpreting code.
+
+sequence_number integer
+The sequence number of this event, used to order streaming events.
+
+type string
+The type of the event. Always response.code_interpreter_call.interpreting .
+
+OBJECT response.code_interpreter_call. interpreting 0
+
+"type": "response.code_interpreter_call.interpreting",
+"output_index": 4,
+
+"item_id": "ci_12345",
+
+"sequence_number": 1
+
+response.code_interpreter_call.completed
+
+Emitted when the code interpreter call is completed.
+
+item_id string
+The unique identifier of the code interpreter tool call item.
+
+output_index integer
+The index of the output item in the response for which the code interpreter call is completed.
+
+sequence_number integer
+The sequence number of this event, used to order streaming events.
+
+type string
+The type of the event. Always response.code_interpreter_call.completed .
+
+OBJECT response.code_interpreter_call. completed oO
+
+"type": "response.code_interpreter_call.completed",
+"output_index": 5,
+"item_id": "ci_12345",
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 42/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+"sequence_number": 1
++
+
+response.code_interpreter_call_code.delta
+
+Emitted when a partial code snippet is streamed by the code interpreter.
+
+delta string
+The partial code snippet being streamed by the code interpreter.
+
+item_id string
+The unique identifier of the code interpreter tool call item.
+
+output_index integer
+The index of the output item in the response for which the code is being streamed.
+
+sequence_number integer
+The sequence number of this event, used to order streaming events.
+
+type string
+The type of the event. Always response.code_interpreter_call_code.delta .
+
+OBJECT response.code_interpreter_call_code.delta oO
+
+"type": "response.code_interpreter_call_code.delta",
+"output_index": Q,
+
+"item_id": "ci_12345",
+
+"delta": "print('Hello, world')",
+
+"sequence_number": 1
+
+response.code_interpreter_call_code.done
+
+Emitted when the code snippet is finalized by the code interpreter.
+
+code string
+The final code snippet output by the code interpreter.
+
+item_id string
+The unique identifier of the code interpreter tool call item.
+
+output_index integer
+The index of the output item in the response for which the code is finalized.
+
+sequence_number integer
+The sequence number of this event, used to order streaming events.
+
+type string
+The type of the event. Always response.code_interpreter_call_code.done .
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 43/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+OBJECT response.code_interpreter_call_code.done oO
+
+"type": "response.code_interpreter_call_code.done",
+"output_index": 3,
+
+"item_id": "ci_12345",
+
+"code": "print('done')",
+
+"sequence_number": 1
+
+response.output_text.annotation.added
+
+Emitted when an annotation is added to output text content.
+
+annotation object
+The annotation object being added. (See annotation schema for details.)
+
+annotation_index integer
+The index of the annotation within the content part.
+
+content_index integer
+The index of the content part within the output item.
+
+item_id string
+The unique identifier of the item to which the annotation is being added.
+
+output_index integer
+The index of the output item in the response's output array.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always 'response.output_text.annotation.added’.
+
+OBJECT response. output_text.annotation.added oO
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 44/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+{
+"type": "response. output_text.annotation.added",
+
+"item_id": "item-abc",
+"output_index": @,
+"content_index": Q,
+"annotation_index": Q,
+"annotation": {
+"type": "text_annotation",
+"text": "This is a test annotation",
+"start": Q,
+"end": 10
+},
+"sequence_number": 1
+
+response.queued
+
+Emitted when a response is queued and waiting to be processed.
+
+response object
+The full response object that is queued.
+
+Y Show properties
+
+sequence_number integer
+The sequence number for this event.
+
+type string
+The type of the event. Always 'response.queued’.
+
+OBJECT response. queued
+
+"type": "response.queued",
+"response": {
+"id": "res_123",
+"status": "queued",
+"created_at": "2021-01-01T00:00:00Z",
+"updated_at": '"2Q@21-Q1-@1T@Q: 0@:0@Z"
+
+},
+"sequence_number": 1
+
+response.custom_tool_call_input.delta
+
+Event representing a delta (partial update) to the input of a custom tool call.
+
+delta string
+The incremental input data (delta) for the custom tool call.
+
+item_id string
+Unique identifier for the API item associated with this event.
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+45/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+output_index integer
+The index of the output this delta applies to.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The event type identifier.
+
+OBJECT response. custom_tool_call_input.delta
+
+{
+"type": "response.custom_tool_call_input.delta",
+"output_index": Q,
+"item_id": "ctc_1234567890abcdef",
+"delta": "partial input text"
++
+
+response.custom_tool_call_input.done
+
+Event indicating that input for a custom tool call is complete.
+
+input string
+The complete input data for the custom tool call.
+
+item_id string
+Unique identifier for the API item associated with this event.
+
+output_index integer
+The index of the output this event applies to.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The event type identifier.
+
+OBJECT response. custom_tool_call_input.done
+
+{
+"type": "response.custom_tool_call_input.done",
+"output_index": Q,
+"item_id": "ctc_123456789@abcdef",
+"input": "final complete input text"
++
+error
+
+Emitted when an error occurs.
+
+code string or null
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+46/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The error code.
+
+message string
+The error message.
+
+param string or null
+The error parameter.
+
+sequence_number integer
+The sequence number of this event.
+
+type string
+The type of the event. Always error .
+
+OBJECT error oO
+
+"type": "error",
+
+"code": "ERR_SOMETHING",
+"message": "Something went wrong",
+"oyaram": null,
+
+"sequence_number": 1
+
+Webhook Events
+
+Webhooks are HTTP requests sent by OpenAl to a URL you specify when certain events happen during the
+course of API usage.
+
+Learn more about webhooks.
+
+response.completed
+
+Sent when a background response has been completed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the model response was completed.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always response.completed .
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 47/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+OBJECT response. completed oO
+
+"id": "evt_abce123",
+"type": "response.completed",
+"created_at": 1719168000,
+
+"data": {
+"id": "resp_abc123"
+t
+t
+response.cancelled
+
+Sent when a background response has been cancelled.
+
+created_at integer
+The Unix timestamp (in seconds) of when the model response was cancelled.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always response.cancelled .
+
+OBJECT response.cancelled oO
+
+"id": "evt_abce123",
+"type": "response.cancelled",
+"created_at": 1719168000,
+"data": {
+
+"id": "resp_abc123"
++
+
+response.failed
+
+Sent when a background response has failed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the model response failed.
+
+data object
+Event data payload.
+
+Y Show properties
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 48/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always response.failed .
+
+OBJECT response. failed oO
+
+"id": "evt_abce123",
+"type": "response. failed",
+"created_at": 1719168000,
+"data": {
+"id": "resp_abc123"
++
++
+
+response.incomplete
+
+Sent when a background response has been interrupted.
+
+created_at integer
+The Unix timestamp (in seconds) of when the model response was interrupted.
+
+data object
+Event data payload.
+
+vy Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always response.incomplete .
+
+OBJECT response. incomplete oO
+{
+"id": "evt_abce123",
+"type": "response.incomplete",
+"created_at": 1719168000,
+"data": {
+
+"id": "resp_abc123"
++
++
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 49/338
+07/08/2025, 21:23 API Reference - OpenAI API
+batch.completed
+
+Sent when a batch API request has been completed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the batch API request was completed.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always batch.completed .
+
+OBJECT batch. completed oO
+
+"id": "evt_abce123",
+"type": "batch. completed",
+"created_at": 1719168000,
+"data": {
+
+"id": "batch_abc123"
+
+t
+t
+
+batch.cancelled
+
+Sent when a batch API request has been cancelled.
+
+created_at integer
+The Unix timestamp (in seconds) of when the batch AP! request was cancelled.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always batch.cancelled .
+
+OBJECT batch. cancelled oO
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 50/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+{
+"id": "evt_abce123",
+"type": "batch.cancelled",
+"created_at": 1719168000,
+"data": {
+
+"id": "batch_abc123"
+
++
+
++
+
+batch.expired
+
+Sent when a batch API request has expired.
+
+created_at integer
+The Unix timestamp (in seconds) of when the batch API request expired.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always batch.expired .
+
+OBJECT batch. expired oO
+
+"id": "evt_abce123",
+"type": "batch.expired",
+"created_at": 1719168000,
+"data": {
+
+"id": "batch_abc123"
++
+
+batch.failed
+
+Sent when a batch API request has failed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the batch API request failed.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 51/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always batch.failed .
+
+OBJECT batch. failed oO
+
+"id": "evt_abce123",
+"type": "batch. failed",
+"created_at": 1719168000,
+"data": {
+
+"id": "batch_abc123"
+
+t
+t
+
+fine_tuning.job.succeeded
+
+Sent when a fine-tuning job has succeeded.
+
+created_at integer
+The Unix timestamp (in seconds) of when the fine-tuning job succeeded.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always fine_tuning.job.succeeded .
+
+OBJECT fine_tuning. job. succeeded oO
+
+"id": "evt_abce123",
+"type": "fine_tuning.job.succeeded",
+"created_at": 1719168000,
+"data": {
+"id": "ftjob_abc123"
++
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 52/338
+07/08/2025, 21:23
+
+fine_tuning.job.failed
+
+Sent when a fine-tuning job has failed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the fine-tuning job failed.
+
+data object
+
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always fine_tuning.job.failed .
+
+OBJECT fine_tuning. job. failed
+
+{
+"id": "evt_abce123",
+"type": "fine_tuning.job.failed",
+"created_at": 1719168000,
+"data": {
+"id": "ftjob_abc123"
++
++
+
+fine_tuning.job.cancelled
+
+Sent when a fine-tuning job has been cancelled.
+
+created_at integer
+The Unix timestamp (in seconds) of when the fine-tuning job was cancelled.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always fine_tuning.job.cancelled .
+
+OBJECT fine_tuning.job.cancelled
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal
+
+API Reference - OpenAI API
+
+oO
+
+53/338
+07/08/2025, 21:23 API Reference - OpenAI API
+
+{
+"id": "evt_abce123",
+"type": "fine_tuning.job.cancelled",
+"created_at": 1719168000,
+"data": {
+"id": "ftjob_abc123"
++
+
+eval.run.succeeded
+
+Sent when an eval run has succeeded.
+
+created_at integer
+The Unix timestamp (in seconds) of when the eval run succeeded.
+
+data object
+Event data payload.
+
+vy Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always eval.run.succeeded .
+
+OBJECT eval. run. succeeded oO
+
+"id": "evt_abce123",
+"type": "eval. run.succeeded",
+"created_at": 1719168000,
+"data": {
+"id": "evalrun_abc123"
++
++
+
+eval.run.failed
+
+Sent when an eval run has failed.
+
+created_at integer
+The Unix timestamp (in seconds) of when the eval run failed.
+
+data object
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 54/338
+07/08/2025, 21:23 API Reference - OpenAI API
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always eval.run.failed .
+
+OBJECT eval.run. failed oO
+
+"id": "evt_abce123",
+"type": "eval.run. failed",
+"created_at": 1719168000,
+"data": {
+
+"id": "evalrun_abc123"
+
+eval.run.canceled
+
+Sent when an eval run has been canceled.
+
+created_at integer
+The Unix timestamp (in seconds) of when the eval run was canceled.
+
+data object
+Event data payload.
+
+Y Show properties
+
+id string
+The unique ID of the event.
+
+object string
+The object of the event. Always event .
+
+type string
+The type of the event. Always eval.run.canceled .
+
+OBJECT eval.run.canceled oO
+
+"id": "evt_abce123",
+"type": "eval.run.canceled",
+"created_at": 1719168000,
+"data": {
+
+"id": "evalrun_abc123"
+
+https: //platform.openai.com/docs/api-reference/responses_streaming/response/refusal 55/338
