@@ -1,5 +1,5 @@
 @testable import App
-import Testing
+import XCTest
 import Vapor
 
 /// Base test case for unit tests that test individual services, repositories, and business logic.
