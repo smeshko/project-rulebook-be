@@ -416,7 +416,7 @@ enum MockHTTPResponse {
             
         case .rateLimited:
             var response = ClientResponse(status: .tooManyRequests)
-            response.headers.add(name: "Retry-After", value: "60")
+            response.headers.add(name: "Retry-After", value: "0.1")  // 100ms for tests
             return response
             
         case .serverError:

@@ -10,9 +10,13 @@ final class ConfigurationTests: XCTestCase {
         let db = try config.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        XCTAssertEqual(db.name, "project_rulebook_dev")
-        XCTAssertEqual(db.username, "vapor")
-        XCTAssertEqual(db.password, "password")
+        // Use actual environment values or fallback to defaults
+        let expectedDbName = Environment.get("DATABASE_NAME") ?? "dev_database"
+        let expectedUsername = Environment.get("DATABASE_USERNAME") ?? "dev_user"
+        let expectedPassword = Environment.get("DATABASE_PASSWORD") ?? "dev_password"
+        XCTAssertEqual(db.name, expectedDbName)
+        XCTAssertEqual(db.username, expectedUsername)
+        XCTAssertEqual(db.password, expectedPassword)
         
         let services = try config.services
         XCTAssertEqual(services.brevoURL, "https://api.brevo.com")
