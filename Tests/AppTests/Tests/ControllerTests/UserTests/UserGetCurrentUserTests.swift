@@ -9,8 +9,7 @@ final class UserGetCurrentUserTests: XCTestCase {
     let path = "api/user/me"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         self.testWorld = try TestWorld(app: app)
     }
     

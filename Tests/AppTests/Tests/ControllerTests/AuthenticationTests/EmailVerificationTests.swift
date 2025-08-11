@@ -10,8 +10,7 @@ final class EmailVerificationTests: XCTestCase {
     let verifyURL = "verify-email"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         self.testWorld = try TestWorld(app: app)
     }
     

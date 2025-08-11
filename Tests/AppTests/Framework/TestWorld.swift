@@ -166,4 +166,53 @@ class TestWorld: @unchecked Sendable {
         // Additional services can be configured here as needed
         // app.services.ipExtractor.use(.mock) // If we create a mock IP extractor
     }
+    
+    // MARK: - Static Helpers for Application Creation
+    
+    /// Creates a new test application using the async API.
+    ///
+    /// This is a helper method to migrate from the deprecated Application(.testing) 
+    /// to the new Application.make(.testing) async API.
+    ///
+    /// - Returns: Configured test application
+    /// - Throws: Configuration errors
+    static func makeTestApp() async throws -> Application {
+        let app = try await Application.make(.testing)
+        try configure(app)
+        return app
+    }
+    
+    /// Creates a new test application synchronously for XCTest compatibility.
+    ///
+    /// This helper method bridges the async Application.make(.testing) API for use
+    /// in synchronous XCTest setUpWithError methods.
+    ///
+    /// - Returns: Configured test application
+    /// - Throws: Configuration errors
+    static func makeTestAppSync() throws -> Application {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: Result<Application, Error>!
+        
+        Task {
+            do {
+                let app = try await makeTestApp()
+                result = .success(app)
+            } catch {
+                result = .failure(error)
+            }
+            semaphore.signal()
+        }
+        
+        semaphore.wait()
+        return try result.get()
+    }
+    
+    /// Creates a TestWorld with a new async application.
+    ///
+    /// - Returns: TestWorld instance with async application
+    /// - Throws: Configuration or setup errors
+    static func make() async throws -> TestWorld {
+        let app = try await makeTestApp()
+        return try TestWorld(app: app)
+    }
 }

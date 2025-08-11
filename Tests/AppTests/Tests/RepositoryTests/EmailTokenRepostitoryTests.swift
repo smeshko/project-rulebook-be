@@ -8,8 +8,7 @@ final class EmailTokenRepositoryTests: XCTestCase {
     var user: UserAccountModel!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         repository = DatabaseEmailTokenRepository(database: app.db)
         try app.autoMigrate().wait()
         

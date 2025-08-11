@@ -7,8 +7,7 @@ final class UserRepositoryTests: XCTestCase {
     var repository: DatabaseUserRepository!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         repository = DatabaseUserRepository(database: app.db)
         try app.autoMigrate().wait()
     }

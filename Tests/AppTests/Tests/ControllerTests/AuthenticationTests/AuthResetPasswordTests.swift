@@ -12,8 +12,7 @@ final class AuthResetPasswordTests: XCTestCase {
     let path = "api/auth/reset-password"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         self.testWorld = try TestWorld(app: app)
     }
     

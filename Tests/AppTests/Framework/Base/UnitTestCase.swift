@@ -16,8 +16,8 @@ final class UnitTestCase {
     /// with just the essential services configured.
     ///
     /// - Throws: Configuration or setup errors
-    init() throws {
-        self.app = Application(.testing)
+    init() async throws {
+        self.app = try await Application.make(.testing)
         try setupMinimalConfiguration()
     }
     

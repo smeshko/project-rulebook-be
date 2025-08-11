@@ -9,8 +9,7 @@ final class AuthSigninTests: XCTestCase {
     let loginPath = "api/auth/sign-in"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: app)
     }
     

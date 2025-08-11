@@ -6,8 +6,7 @@ final class AISecurityTests: XCTestCase {
     var testWorld: TestWorld!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: app)
     }
     

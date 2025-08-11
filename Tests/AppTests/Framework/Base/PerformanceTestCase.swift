@@ -13,8 +13,8 @@ final class PerformanceTestCase {
     /// Initializes a new performance test case.
     ///
     /// - Throws: Configuration or setup errors
-    init() throws {
-        self.app = Application(.testing)
+    init() async throws {
+        self.app = try await Application.make(.testing)
         try setupPerformanceConfiguration()
     }
     

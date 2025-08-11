@@ -9,8 +9,7 @@ final class UserListTests: XCTestCase {
     let listPath = "api/user/list"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: app)
         
         user = try UserAccountModel.mock(app: app, isAdmin: true)

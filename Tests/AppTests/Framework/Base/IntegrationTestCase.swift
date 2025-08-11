@@ -14,8 +14,8 @@ struct IntegrationTestCase {
     /// Initializes a new integration test case with a fully configured application.
     ///
     /// - Throws: Configuration or setup errors
-    init() throws {
-        let app = try withApp { app in return app }
+    init() async throws {
+        let app = try await withApp { app in return app }
         self.testWorld = try TestWorld(app: app)
     }
     
@@ -67,10 +67,16 @@ struct IntegrationTestCase {
 /// - Parameter configure: Optional closure to perform additional configuration
 /// - Returns: Configured application instance
 /// - Throws: Any configuration errors
-func withApp<T>(_ closure: (Application) throws -> T) throws -> T {
-    let app = Application(.testing)
-    defer { app.shutdown() }
+func withApp<T>(_ closure: (Application) throws -> T) async throws -> T {
+    let app = try await Application.make(.testing)
     
-    try configure(app)
-    return try closure(app)
+    do {
+        try configure(app)
+        let result = try closure(app)
+        try await app.asyncShutdown()
+        return result
+    } catch {
+        try await app.asyncShutdown()
+        throw error
+    }
 }

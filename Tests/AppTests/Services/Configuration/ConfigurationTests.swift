@@ -1,27 +1,30 @@
-@testable import App
-import XCTest
 import Vapor
+import XCTest
+
+@testable import App
 
 final class ConfigurationTests: XCTestCase {
     
-    func testDevelopmentConfigurationDefaults() throws {
-        // This test runs in testing environment but tests development config behavior
-        // Since we're in testing, we expect testing environment variables to be loaded
-        // The development config will read those testing values, not its own defaults
-        let config = DevelopmentConfiguration(environment: .development)
+    func testDevelopmentConfigurationDefaults() async throws {
+        // Test development configuration behavior - this test verifies what development
+        // configuration returns with current environment variables. It uses the .env file loaded
+        // for the given environemtn, in this case .env.testing
+        try await setupApp()
+        let config = DevelopmentConfiguration()
         
         let db = try config.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        // In testing environment, reads mixed values from current env
-        XCTAssertEqual(db.name, "project_rulebook_dev")
-        XCTAssertEqual(db.username, "vapor")
-        XCTAssertEqual(db.password, "password")
+        // DevelopmentConfiguration uses environment variables when set, fallbacks otherwise
+        XCTAssertEqual(db.name, "test_db")  // From DATABASE_NAME env.testing var
+        XCTAssertEqual(db.username, "test_user")  // From DATABASE_USERNAME env.testing var
+        XCTAssertEqual(db.password, "test_password")  // From DATABASE_PASSWORD env.testing var
         
         let services = try config.services
         XCTAssertEqual(services.brevoURL, "https://api.brevo.com")
-        XCTAssertEqual(services.brevoAPIKey, "test_brevo_key")  // This one comes from .env.testing
-        XCTAssertTrue(services.openAIKey.hasPrefix("sk-"))  // Real API key, just verify format
+        XCTAssertEqual(services.brevoAPIKey, "test_brevo_key")  // From .env.testing (loaded by test suite)
+        // OpenAI key is from actual environment variable
+        XCTAssertTrue(services.openAIKey.hasPrefix("sk-"))  // Real OpenAI API key from environment
         
         let security = try config.security
         XCTAssertEqual(security.baseURL, "http://localhost:8080")
@@ -30,17 +33,17 @@ final class ConfigurationTests: XCTestCase {
         
         let aws = try config.aws
         XCTAssertEqual(aws.region, "us-west-2")
-        XCTAssertEqual(aws.s3BucketName, "test-bucket")  // From .env.testing
+        XCTAssertEqual(aws.s3BucketName, "test-bucket")  // From .env.testing (loaded by test suite)
         
         let cache = try config.cache
-        XCTAssertEqual(cache.maxEntries, 100)  // From .env.testing
-        XCTAssertEqual(cache.rulesGenerationTTL, 300.0)  // From .env.testing
+        XCTAssertEqual(cache.maxEntries, 100)  // From .env.testing (loaded by test suite)
+        XCTAssertEqual(cache.rulesGenerationTTL, 300.0)  // From .env.testing (loaded by test suite)
         
         XCTAssertNoThrow(try config.validate())
     }
     
     func testTestingConfigurationProvidesSensibleDefaults() throws {
-        let config = TestingConfiguration(environment: .testing)
+        let config = TestingConfiguration()
         
         let db = try config.database
         XCTAssertEqual(db.name, "test_db")
@@ -72,7 +75,7 @@ final class ConfigurationTests: XCTestCase {
     }
     
     func testDevelopmentConfigurationValidation() throws {
-        let config = DevelopmentConfiguration(environment: .development)
+        let config = DevelopmentConfiguration()
         
         // Valid configuration should pass validation
         XCTAssertNoThrow(try config.validate())
@@ -82,11 +85,11 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertTrue(db.port > 0 && db.port <= 65535)
         
         let security = try config.security
-        XCTAssertTrue(security.jwtKey.count >= 16) // Development minimum
+        XCTAssertTrue(security.jwtKey.count >= 16)  // Development minimum
     }
     
     func testTestingConfigurationValidation() throws {
-        let config = TestingConfiguration(environment: .testing)
+        let config = TestingConfiguration()
         
         XCTAssertNoThrow(try config.validate())
         
@@ -95,42 +98,43 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertTrue(db.name.contains("test"))
         
         let security = try config.security
-        XCTAssertEqual(security.jwtKey.count, 32) // Testing has fixed 32-char key
+        XCTAssertEqual(security.jwtKey.count, 32)  // Testing has fixed 32-char key
     }
     
-    func testCacheConfigurationDefaults() throws {
-        let devConfig = DevelopmentConfiguration(environment: .development)
+    func testCacheConfigurationDefaults() async throws {
+        try await setupApp()
+        let devConfig = DevelopmentConfiguration()
         let cache = try devConfig.cache
         
-        // In testing environment, development config reads testing values
+        // DevelopmentConfiguration uses .env.testing values when they're loaded
         XCTAssertEqual(cache.maxEntries, 100)  // From .env.testing
-        XCTAssertEqual(cache.rulesGenerationTTL, 300.0)  // From .env.testing 
-        XCTAssertEqual(cache.imageAnalysisTTL, 300.0)    // From .env.testing
-        XCTAssertEqual(cache.cleanupInterval, 60.0)      // From .env.testing
-        XCTAssertFalse(cache.enableLogging)  // From .env.testing
+        XCTAssertEqual(cache.rulesGenerationTTL, 300.0)  // From .env.testing
+        XCTAssertEqual(cache.imageAnalysisTTL, 300.0)  // From .env.testing
+        XCTAssertEqual(cache.cleanupInterval, 60.0)  // From .env.testing
+        XCTAssertFalse(cache.enableLogging)  // From .env.testing (disabled)
         
-        let testConfig = TestingConfiguration(environment: .testing)
+        let testConfig = TestingConfiguration()
         let testCache = try testConfig.cache
         
         XCTAssertEqual(testCache.maxEntries, 100)
         XCTAssertEqual(testCache.rulesGenerationTTL, 300.0)  // 5 minutes
-        XCTAssertEqual(testCache.imageAnalysisTTL, 300.0)    // 5 minutes
-        XCTAssertFalse(testCache.enableLogging) // Disabled in tests
+        XCTAssertEqual(testCache.imageAnalysisTTL, 300.0)  // 5 minutes
+        XCTAssertFalse(testCache.enableLogging)  // Disabled in tests
     }
     
     func testSecurityConfigurationDefaults() throws {
-        let devConfig = DevelopmentConfiguration(environment: .development)
+        let devConfig = DevelopmentConfiguration()
         let security = try devConfig.security
         
         // Check CORS origins
         XCTAssertTrue(security.corsAllowedOrigins.contains("http://localhost:3000"))
         XCTAssertTrue(security.corsAllowedOrigins.contains("http://localhost:8080"))
         
-        // Check rate limiting - reads from .env.testing
+        // Check rate limiting - from .env.testing when loaded
         XCTAssertEqual(security.rateLimitMaxRequests, 1000)  // From .env.testing
         XCTAssertEqual(security.rateLimitWindowMinutes, 1)
         
-        let testConfig = TestingConfiguration(environment: .testing)
+        let testConfig = TestingConfiguration()
         let testSecurity = try testConfig.security
         
         // Test environment should have lenient rate limits
@@ -138,31 +142,33 @@ final class ConfigurationTests: XCTestCase {
         XCTAssertEqual(testSecurity.rateLimitWindowMinutes, 1)
     }
     
-    func testAWSConfigurationDefaults() throws {
-        let devConfig = DevelopmentConfiguration(environment: .development)
+    func testAWSConfigurationDefaults() async throws {
+        try await setupApp()
+        let devConfig = DevelopmentConfiguration()
         let aws = try devConfig.aws
         
         XCTAssertEqual(aws.region, "us-west-2")
-        // Reads from .env.testing when running tests
+        // From .env.testing when loaded
         XCTAssertEqual(aws.s3BucketName, "test-bucket")
         XCTAssertEqual(aws.accessKey, "test_access_key")
         
-        let testConfig = TestingConfiguration(environment: .testing)
+        let testConfig = TestingConfiguration()
         let testAWS = try testConfig.aws
         
         XCTAssertEqual(testAWS.region, "us-west-2")
         XCTAssertEqual(testAWS.s3BucketName, "test-bucket")
     }
     
-    func testAPNSConfigurationDefaults() throws {
-        let devConfig = DevelopmentConfiguration(environment: .development)
+    func testAPNSConfigurationDefaults() async throws {
+        try await setupApp()
+        let devConfig = DevelopmentConfiguration()
         let apns = try devConfig.apns
         
-        // Reads from .env.testing when running tests
+        // From .env.testing when loaded
         XCTAssertEqual(apns.teamId, "TEST_TEAM_ID")
         XCTAssertEqual(apns.key, "test_apns_key")
         
-        let testConfig = TestingConfiguration(environment: .testing)
+        let testConfig = TestingConfiguration()
         let testAPNS = try testConfig.apns
         
         XCTAssertEqual(testAPNS.teamId, "TEST_TEAM_ID")
@@ -179,5 +185,11 @@ final class ConfigurationTests: XCTestCase {
         // This test verifies the correct type is created
         let stagingConfig = ConfigurationFactory.create(for: .staging)
         XCTAssertTrue(stagingConfig is ProductionConfiguration)
+    }
+    
+    private func setupApp() async throws {
+        let app = try await Application.make(.testing)
+        try configure(app)
+        try await app.asyncShutdown()
     }
 }

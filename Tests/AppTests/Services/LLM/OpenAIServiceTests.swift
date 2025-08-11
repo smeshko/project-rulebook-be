@@ -3,21 +3,11 @@ import XCTVapor
 import Vapor
 
 final class OpenAIServiceTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
-    
-    override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
-        testWorld = try TestWorld(app: app)
-    }
-    
-    override func tearDownWithError() throws {
-        app?.shutdown()
-    }
     
     func testSuccessfulGeneration() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -62,10 +52,15 @@ final class OpenAIServiceTests: XCTestCase {
         // Assert
         XCTAssertEqual(result, "Test game rules")
         XCTAssertEqual(mockClient.requestCount, 1)
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testRateLimitWithRetry() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -111,10 +106,15 @@ final class OpenAIServiceTests: XCTestCase {
         // Assert
         XCTAssertEqual(result, "Success after retry")
         XCTAssertEqual(mockClient.requestCount, 2)
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testMaxRetriesExceeded() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -136,10 +136,15 @@ final class OpenAIServiceTests: XCTestCase {
         }
         
         XCTAssertEqual(mockClient.requestCount, 3) // Should retry 3 times
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testAuthenticationFailure() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -161,10 +166,15 @@ final class OpenAIServiceTests: XCTestCase {
         }
         
         XCTAssertEqual(mockClient.requestCount, 1) // Should not retry auth failures
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testEmptyResponse() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -202,10 +212,15 @@ final class OpenAIServiceTests: XCTestCase {
                 XCTFail("Expected emptyResponse, got \(error)")
             }
         }
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testInvalidJSONResponse() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -225,10 +240,15 @@ final class OpenAIServiceTests: XCTestCase {
                 XCTFail("Expected invalidResponse, got \(error)")
             }
         }
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testGenerateOptimizedWithCustomParameters() async throws {
-        // Arrange
+        // Arrange - Create app using new async API
+        let app = try await TestWorld.makeTestApp()
+        
         let mockClient = MockHTTPClient()
         app.clients.use { _ in mockClient }
         
@@ -279,6 +299,9 @@ final class OpenAIServiceTests: XCTestCase {
         // Assert
         XCTAssertEqual(result, "Custom response")
         XCTAssertEqual(mockClient.requestCount, 1)
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
     func testResponseTextExtraction() throws {

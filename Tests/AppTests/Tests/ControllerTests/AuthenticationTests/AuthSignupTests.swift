@@ -11,8 +11,7 @@ final class AuthSignupTests: XCTestCase {
     let registerPath = "api/auth/sign-up"
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         self.testWorld = try TestWorld(app: app)
     }
     

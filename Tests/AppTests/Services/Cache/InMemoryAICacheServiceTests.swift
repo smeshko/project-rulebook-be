@@ -9,8 +9,7 @@ final class InMemoryAICacheServiceTests: XCTestCase {
     var testConfiguration: CacheConfiguration!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         
         // Create test configuration with shorter TTLs for faster testing
         testConfiguration = CacheConfiguration(

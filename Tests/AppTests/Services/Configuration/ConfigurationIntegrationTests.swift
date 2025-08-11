@@ -3,9 +3,9 @@ import XCTest
 import XCTVapor
 
 final class ConfigurationIntegrationTests: XCTestCase {
-    func testApplicationStartupWithValidConfiguration() throws {
-        let app = Application(.testing)
-        defer { app.shutdown() }
+    func testApplicationStartupWithValidConfiguration() async throws {
+        let app = try await Application.make(.testing)
+        // No defer needed - will clean up at end
         
         XCTAssertNoThrow(try app.setupConfiguration())
         XCTAssertNotNil(app.configuration)
@@ -16,11 +16,14 @@ final class ConfigurationIntegrationTests: XCTestCase {
         
         let security = try app.configuration.security
         XCTAssertEqual(security.baseURL, "http://localhost:8080")
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
-    func testApplicationCanConfigureServices() throws {
-        let app = Application(.testing)
-        defer { app.shutdown() }
+    func testApplicationCanConfigureServices() async throws {
+        let app = try await Application.make(.testing)
+        // No defer needed - will clean up at end
         
         try configure(app)
         
@@ -31,24 +34,30 @@ final class ConfigurationIntegrationTests: XCTestCase {
         let services = try app.configuration.services
         XCTAssertFalse(services.brevoAPIKey.isEmpty)
         XCTAssertFalse(services.openAIKey.isEmpty)
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
-    func testDevelopmentEnvironmentUsesDefaults() throws {
-        let app = Application(.development)
-        defer { app.shutdown() }
+    func testTestingEnvironmentUsesTestingDefaults() async throws {
+        let app = try await Application.make(.testing)
+        // No defer needed - will clean up at end
         
         try app.setupConfiguration()
         
         let db = try app.configuration.database
         XCTAssertEqual(db.host, "localhost")
         XCTAssertEqual(db.port, 5432)
-        // When tests run, reads from mixed environment (not pure defaults)
-        XCTAssertEqual(db.name, "project_rulebook_dev")
+        // In testing environment, reads from .env.testing
+        XCTAssertEqual(db.name, "test_db")
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
     
-    func testConfigurationLoggingDoesNotExposeSecrets() throws {
-        let app = Application(.testing)
-        defer { app.shutdown() }
+    func testConfigurationLoggingDoesNotExposeSecrets() async throws {
+        let app = try await Application.make(.testing)
+        // No defer needed - will clean up at end
         
         // This test verifies that sensitive information is not logged
         // In a real implementation, you would capture log output and verify
@@ -58,5 +67,8 @@ final class ConfigurationIntegrationTests: XCTestCase {
         
         // The setupConfiguration method should log safely without exposing secrets
         // We can't easily test log output here, but this verifies no exceptions are thrown
+        
+        // Cleanup
+        try await app.asyncShutdown()
     }
 }

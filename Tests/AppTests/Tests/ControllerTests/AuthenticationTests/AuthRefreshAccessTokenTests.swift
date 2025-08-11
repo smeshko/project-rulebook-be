@@ -12,8 +12,7 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
     var user: UserAccountModel!
     
     override func setUpWithError() throws {
-        app = Application(.testing)
-        try configure(app)
+        app = try TestWorld.makeTestAppSync()
         self.testWorld = try TestWorld(app: app)
         
         user = UserAccountModel(email: "test@test.com", password: "123")
