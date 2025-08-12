@@ -67,6 +67,7 @@ extension Application.Repositories {
 
 extension Request.Services {
     var passwordTokens: any PasswordTokenRepository {
-        request.application.repositories.passwordTokens
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.passwordTokenRepository
     }
 }

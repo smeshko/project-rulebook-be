@@ -117,7 +117,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     init(app: Application? = nil, promptSanitizer: PromptSanitizerServiceInterface? = nil) {
         self.app = app
         self.logger = app?.logger
-        self.promptSanitizer = promptSanitizer ?? app?.services.promptSanitizer.service
+        self.promptSanitizer = promptSanitizer
     }
     
     // MARK: - Service Pattern
@@ -137,6 +137,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         try validateAgainstPromptInjection(gameTitle, context: "game title")
         
         // Then sanitize and validate format
+        let promptSanitizer = self.promptSanitizer ?? app?.serviceCache.promptSanitizerService
         guard let promptSanitizer = promptSanitizer else {
             throw Abort(.internalServerError, reason: "Prompt sanitizer service not available")
         }
@@ -147,6 +148,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     
     /// Validates and sanitizes a game title, returning the safe version
     func validateAndSanitizeGameTitle(_ gameTitle: String) throws -> String {
+        let promptSanitizer = self.promptSanitizer ?? app?.serviceCache.promptSanitizerService
         guard let promptSanitizer = promptSanitizer else {
             throw Abort(.internalServerError, reason: "Prompt sanitizer service not available")
         }
@@ -422,7 +424,8 @@ extension Application.Services {
 
 extension Request.Services {
     var aiInputValidator: AIInputValidatorServiceInterface {
-        request.application.services.aiInputValidator.service.for(request)
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.aiInputValidatorService.for(request)
     }
 }
 

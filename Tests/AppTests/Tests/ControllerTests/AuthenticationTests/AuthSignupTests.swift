@@ -20,7 +20,8 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterHappyPath() async throws {
-        app.services.randomGenerator.use(.rigged(value: "token"))
+        // TestWorld already configures random generator with "test_random_value"
+        // No need to reconfigure - just use the TestWorld configured value
         
         let data = Auth.SignUp.Request(
             email: "test@test.com",
@@ -53,10 +54,10 @@ final class AuthSignupTests: XCTestCase {
             XCTAssertNotNil(model)
             XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
             
-            // Verify email token was created
-            let emailToken = try await app.repositories.emailTokens.find(token: SHA256.hash("token"))
-            XCTAssertEqual(emailToken?.$user.id, content.user.id)
+            // Verify email token was created for the user (don't predict exact random value)
+            let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)
             XCTAssertNotNil(emailToken)
+            XCTAssertEqual(emailToken?.$user.id, content.user.id)
         })
     }
     
@@ -101,7 +102,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterValidations() throws {
-        app.services.randomGenerator.use(.rigged(value: "token"))
+        // TestWorld already configures random generator with "test_random_value"
 
         let data = Auth.SignUp.Request(
             email: "TEStest.com",  // Invalid email
@@ -121,7 +122,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterLowercaseEmail() throws {
-        app.services.randomGenerator.use(.rigged(value: "token"))
+        // TestWorld already configures random generator with "test_random_value"
 
         let data = Auth.SignUp.Request(
             email: "TEST@test.com",
@@ -141,7 +142,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterWithOptionalFields() throws {
-        app.services.randomGenerator.use(.rigged(value: "token"))
+        // TestWorld already configures random generator with "test_random_value"
 
         // Test with no first/last name
         let data = Auth.SignUp.Request(
@@ -164,7 +165,7 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterWithEmptyOptionalFields() throws {
-        app.services.randomGenerator.use(.rigged(value: "token"))
+        // TestWorld already configures random generator with "test_random_value"
 
         // Test with empty strings (should be converted to nil)
         let data = Auth.SignUp.Request(

@@ -3,15 +3,235 @@
 This document provides comprehensive documentation for all API endpoints in the Project Rulebook application, including request/response schemas, authentication requirements, rate limiting, and practical examples.
 
 ## Table of Contents
-1. [Authentication & Authorization](#authentication--authorization)
-2. [Rate Limiting](#rate-limiting)
-3. [Security Headers](#security-headers)
-4. [AI-Powered Features](#ai-powered-features)
-5. [User Management](#user-management)
-6. [Authentication Endpoints](#authentication-endpoints)
-7. [Cache Administration](#cache-administration)
-8. [Error Handling](#error-handling)
-9. [Development & Testing](#development--testing)
+1. [ServiceRegistry Integration (Phase 4.1)](#serviceregistry-integration-phase-41)
+2. [Authentication & Authorization](#authentication--authorization)
+3. [Rate Limiting](#rate-limiting)
+4. [Security Headers](#security-headers)
+5. [AI-Powered Features](#ai-powered-features)
+6. [User Management](#user-management)
+7. [Authentication Endpoints](#authentication-endpoints)
+8. [Cache Administration](#cache-administration)
+9. [Error Handling](#error-handling)
+10. [Development & Testing](#development--testing)
+
+---
+
+## ServiceRegistry Integration (Phase 4.1)
+
+### New Dependency Injection Patterns for Controllers
+
+Phase 4.1 introduced a comprehensive ServiceRegistry system that fundamentally changes how services are resolved and used within the application. This section documents the new patterns available for developers.
+
+#### Service Resolution in Controllers
+
+Controllers now have clean, type-safe access to services through the Request object:
+
+```swift
+// In your controller methods
+func handleRequest(_ request: Request) async throws -> Response {
+    // Resolve required services (throws if not found)
+    let userRepo = try await request.resolveService(any UserRepository.self)
+    let llmService = try await request.resolveService(LLMService.self)
+    let emailService = try await request.resolveService(EmailService.self)
+    
+    // Resolve optional services (returns nil if not found)
+    let cacheService = try await request.resolveServiceOptional(CacheService.self)
+    
+    // Use services in your business logic
+    let user = try await userRepo.find(id: userId)
+    let gameRules = try await llmService.generateRules(for: gameTitle)
+    
+    return try await gameRules.encodeResponse(for: request)
+}
+```
+
+#### Available Service Resolution Methods
+
+**From Request Object:**
+- `request.resolveService<T>(_ type: T.Type) async throws -> T` - Required service (throws if missing)
+- `request.resolveServiceOptional<T>(_ type: T.Type) async throws -> T?` - Optional service (nil if missing)
+
+**From Application Object:**
+- `app.serviceRegistry.resolveRequired<T>(_ type: T.Type) async throws -> T`
+- `app.serviceRegistry.resolve<T>(_ type: T.Type) async throws -> T?`
+- `app.serviceRegistry.resolveAll<T>(_ type: T.Type) async -> [T]`
+
+#### Service Registration Patterns
+
+Services are registered using the ServiceProvider pattern:
+
+```swift
+struct MyServiceProvider: ServiceProvider {
+    static func register(in registry: ServiceContainer, app: Application) async throws {
+        // Register with factory function
+        registry.register(UserService.self) { app in
+            UserService(database: app.db, logger: app.logger)
+        }
+        
+        // Register existing instance
+        let configService = ConfigurationService(app: app)
+        registry.register(ConfigurationService.self, instance: configService)
+        
+        // Register protocol implementations
+        registry.register(any UserRepository.self) { app in
+            UserDatabaseRepository(database: app.db)
+        }
+    }
+}
+```
+
+#### Error Handling with ServiceRegistry
+
+The ServiceRegistry provides comprehensive error handling:
+
+```swift
+do {
+    let service = try await request.resolveService(RequiredService.self)
+    // Use service
+} catch let error as ServiceRegistryError {
+    switch error {
+    case .serviceNotFound(let type):
+        throw Abort(.internalServerError, reason: "Service \(type) not available")
+    case .serviceInitializationFailed(let type, let underlyingError):
+        throw Abort(.internalServerError, reason: "Service initialization failed")
+    case .circularDependency(let chain):
+        throw Abort(.internalServerError, reason: "Service configuration error")
+    case .factoryTypeMismatch(let type):
+        throw Abort(.internalServerError, reason: "Service registration error")
+    }
+}
+```
+
+#### Service Health Monitoring
+
+Services can implement health checks for monitoring:
+
+```swift
+extension MyService: ServiceHealthCheck {
+    func isHealthy() async -> Bool {
+        // Check service health (e.g., database connection, external API)
+        return await checkDatabaseConnection() && await checkExternalAPIHealth()
+    }
+    
+    func healthCheckName() -> String {
+        "My Service"
+    }
+}
+
+// Access health status
+let healthChecks = await app.serviceRegistry.healthCheckAll()
+for check in healthChecks {
+    print("Service \(check.name): \(check.healthy ? "✅" : "❌")")
+}
+```
+
+#### Service Lifecycle Management
+
+Services can implement startup and shutdown hooks:
+
+```swift
+extension MyService: ServiceLifecycle {
+    func startup(_ app: Application) async throws {
+        // Initialize connections, start background tasks, etc.
+        try await initializeConnections()
+        app.logger.info("MyService started successfully")
+    }
+    
+    func shutdown(_ app: Application) async throws {
+        // Clean up resources, close connections, etc.
+        try await closeConnections()
+        app.logger.info("MyService shut down gracefully")
+    }
+}
+```
+
+#### Testing with ServiceRegistry
+
+Register mock services for testing:
+
+```swift
+// In test setup
+struct TestServiceProvider: ServiceProvider {
+    static func register(in registry: ServiceContainer, app: Application) async throws {
+        // Register mock implementations
+        registry.register(UserService.self, instance: MockUserService())
+        registry.register(EmailService.self, instance: MockEmailService())
+        
+        // Register real services that work in test environment
+        registry.register(ConfigurationService.self) { app in
+            ConfigurationService(app: app)
+        }
+    }
+}
+
+// Use in tests
+func testEndpoint() async throws {
+    let testCase = try await IntegrationTestCase()
+    try await TestServiceProvider.register(in: testCase.application.serviceRegistry, app: testCase.application)
+    
+    // Test endpoint with mock services
+    try await testCase.test(.POST, "/api/endpoint") { request in
+        // Configure request
+    } afterResponse: { response in
+        XCTAssertEqual(response.status, .ok)
+    }
+}
+```
+
+#### Migration from Legacy DI
+
+**Old Pattern (Vapor 4 Services):**
+```swift
+// Legacy approach (REMOVED)
+let userRepo = request.application.services.userRepository.service
+let llmService = request.application.services.llmService.service
+```
+
+**New Pattern (ServiceRegistry with ServiceCache):**
+```swift
+// Synchronous access via ServiceCache (preferred)
+let userRepo = request.services.users
+let llmService = request.services.llm
+
+// Async resolution via ServiceRegistry (when needed)
+let userRepo = try await request.resolveService((any UserRepository).self)
+let llmService = try await request.resolveService(LLMService.self)
+```
+
+#### Service Registry Configuration
+
+Application setup with ServiceRegistry:
+
+```swift
+// In configure.swift
+public func configure(_ app: Application) async throws {
+    // ... other configuration
+    
+    // Setup ServiceRegistry and register all services
+    try await app.setupServiceRegistry()
+    
+    // Register shutdown hook
+    app.lifecycle.use {
+        try await app.shutdownServiceRegistry()
+    }
+}
+```
+
+#### ServiceRegistry Features Summary
+
+- **Thread-Safe Resolution**: Concurrent service access using NIOLock
+- **Lazy Initialization**: Services created on-demand with singleton caching
+- **Lifecycle Management**: Automatic startup/shutdown hooks
+- **Health Monitoring**: Built-in health checks for all registered services
+- **Request Integration**: Direct service resolution from Request objects
+- **Comprehensive Testing**: Complete mockability for testing isolation
+- **Type Safety**: Full generic type support with compile-time validation
+- **Error Handling**: Detailed error types with appropriate HTTP status mapping
+
+For complete implementation details, see:
+- `/docs/architecture/ServiceRegistry-Developer-Guide.md`
+- `/docs/architecture/ServiceRegistry-Architecture-Decision-Record.md`
+- `/docs/testing/Testing-Standards-and-Patterns.md` (ServiceRegistry testing patterns)
 
 ---
 

@@ -21,9 +21,10 @@ final class UnitTestCase {
         try setupMinimalConfiguration()
     }
     
-    /// Cleans up resources when the test case is deallocated.
-    deinit {
-        app.shutdown()
+    /// Cleans up resources and shuts down the application.
+    /// Should be called from test tearDown methods.
+    func shutdown() async throws {
+        try await app.asyncShutdown()
     }
     
     /// Access to the application instance for service and repository access.

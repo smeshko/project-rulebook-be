@@ -97,7 +97,7 @@ final class ConfigurationServiceTests {
     @Test("Configuration service loads development settings")
     func testDevelopmentConfiguration() async throws {
         let request = testCase.makeMockRequest()
-        let configService = request.application.services.configuration.service
+        let configService = request.services.configuration
         
         let config = try await configService.getDevelopmentConfiguration()
         
@@ -222,6 +222,204 @@ await testWorld.resetAll()
 testWorld.configureForAITesting()
 testWorld.configureForAuthTesting()
 ```
+
+## 🔧 ServiceRegistry Testing Patterns (Phase 4.1)
+
+### ServiceRegistry Integration Testing
+
+The ServiceRegistry system provides comprehensive testing support with dedicated test patterns and mock integration.
+
+#### Unit Testing with ServiceRegistry
+
+```swift
+final class ServiceContainerTests: XCTestCase {
+    var testCase: UnitTestCase!
+    var app: Application { testCase.application }
+    
+    override func setUp() async throws {
+        testCase = try await UnitTestCase()
+    }
+    
+    override func tearDown() async throws {
+        try await testCase.shutdown()
+        testCase = nil
+    }
+    
+    func testServiceRegistryBasics() async throws {
+        // Test basic service registration and resolution
+        let registry = ServiceContainer(application: app)
+        
+        // Register real services for testing
+        try await RepositoryServiceProvider.register(in: registry, app: app)
+        try await ExternalServiceProvider.register(in: registry, app: app)
+        
+        // Test service resolution with production services
+        let userRepository = try await registry.resolveRequired((any UserRepository).self)
+        let llmService = try await registry.resolveRequired(LLMService.self)
+        
+        XCTAssertNotNil(userRepository)
+        XCTAssertNotNil(llmService)
+    }
+    
+    func testServiceLifecycle() async throws {
+        let registry = ServiceContainer(application: app)
+        
+        // Register service with lifecycle
+        try await LifecycleServiceProvider.register(in: registry, app: app)
+        
+        // Test startup
+        try await registry.startupAll(app)
+        
+        // Verify service is accessible after startup
+        let service = try await registry.resolveRequired(LifecycleService.self)
+        XCTAssertTrue(service.isStarted)
+        
+        // Test shutdown
+        try await registry.shutdownAll(app)
+        XCTAssertTrue(service.isShutdown)
+    }
+    
+    func testHealthChecks() async throws {
+        let registry = ServiceContainer(application: app)
+        
+        // Register service with health check
+        try await HealthCheckServiceProvider.register(in: registry, app: app)
+        
+        // Ensure service is instantiated
+        _ = try await registry.resolveRequired(HealthCheckService.self)
+        
+        // Test health checks
+        let healthChecks = await registry.healthCheckAll()
+        XCTAssertEqual(healthChecks.count, 1)
+        XCTAssertTrue(healthChecks.first?.healthy ?? false)
+    }
+}
+```
+
+#### Mock Service Registration for Testing
+
+```swift
+// Create mock services for testing
+final class MockUserService: UserService {
+    var users: [UUID: User] = [:]
+    
+    func createUser(_ user: User) async throws -> User {
+        users[user.id] = user
+        return user
+    }
+    
+    func findUser(id: UUID) async throws -> User? {
+        return users[id]
+    }
+}
+
+// Register mock in test setup
+struct TestServiceProvider: ServiceProvider {
+    static func register(in registry: ServiceContainer, app: Application) async throws {
+        // Register mock services
+        registry.register(UserService.self, instance: MockUserService())
+        registry.register(EmailService.self, instance: MockEmailService())
+        
+        // Register real services that work in test environment
+        registry.register(ConfigurationService.self) { app in
+            return ConfigurationService(app: app)
+        }
+    }
+}
+
+// Usage in tests
+func testControllerWithMockServices() async throws {
+    let testCase = try await IntegrationTestCase()
+    
+    // Register test services
+    try await TestServiceProvider.register(in: testCase.application.serviceRegistry, app: testCase.application)
+    
+    // Test endpoint using mock services
+    try await testCase.test(.POST, "/api/users") { request in
+        try request.content.encode(["email": "test@example.com"])
+    } afterResponse: { response in
+        XCTAssertEqual(response.status, .created)
+    }
+}
+```
+
+#### Request-based Service Testing
+
+```swift
+func testRequestServiceResolution() async throws {
+    // Test Application.setupServiceRegistry integration
+    try await app.setupServiceRegistry()
+    
+    // Register services in the app's registry
+    try await TestServiceProvider.register(in: app.serviceRegistry, app: app)
+    
+    // Create a mock request
+    let request = Request(application: app, on: app.eventLoopGroup.next())
+    
+    // Test service resolution through Request extension
+    let userService = try await request.resolveService(UserService.self)
+    let emailService = try await request.resolveServiceOptional(EmailService.self)
+    
+    XCTAssertNotNil(userService)
+    XCTAssertNotNil(emailService)
+}
+```
+
+#### Error Handling Testing
+
+```swift
+func testServiceRegistryErrorHandling() async throws {
+    let registry = ServiceContainer(application: app)
+    
+    // Test resolving non-existent service
+    let nonExistentService = try await registry.resolve(NonExistentService.self)
+    XCTAssertNil(nonExistentService)
+    
+    // Test requiring non-existent service throws appropriate error
+    do {
+        _ = try await registry.resolveRequired(NonExistentService.self)
+        XCTFail("Should have thrown ServiceRegistryError.serviceNotFound")
+    } catch let error as ServiceRegistryError {
+        if case .serviceNotFound(let type) = error {
+            XCTAssertTrue(type.contains("NonExistentService"))
+        } else {
+            XCTFail("Wrong error type: \(error)")
+        }
+    }
+}
+```
+
+#### Performance Testing with ServiceRegistry
+
+```swift
+func testServiceResolutionPerformance() async throws {
+    let testCase = try await PerformanceTestCase()
+    let registry = testCase.application.serviceRegistry
+    
+    // Register services
+    try await TestServiceProvider.register(in: registry, app: testCase.application)
+    
+    // Measure service resolution performance
+    let metrics = await testCase.measure(
+        "Service Resolution",
+        iterations: 1000
+    ) {
+        _ = try? await registry.resolveRequired(UserService.self)
+    }
+    
+    // Verify performance requirements
+    XCTAssertLessThan(metrics.averageTime, 0.001) // < 1ms average resolution
+}
+```
+
+### ServiceRegistry Testing Best Practices
+
+1. **Service Isolation**: Always register mock services for testing to avoid external dependencies
+2. **Lifecycle Testing**: Test service startup and shutdown hooks to ensure proper resource management
+3. **Health Check Validation**: Verify health check implementations for service monitoring
+4. **Error Scenarios**: Test service resolution failures and error handling
+5. **Performance Validation**: Ensure service resolution meets performance requirements
+6. **Thread Safety**: Test concurrent service resolution to validate thread safety
 
 ## 🎭 Mock Service System
 

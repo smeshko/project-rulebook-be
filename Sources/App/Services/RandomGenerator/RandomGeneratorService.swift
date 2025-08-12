@@ -14,6 +14,7 @@ extension Application.Services {
 
 extension Request.Services {
     var randomGenerator: RandomGeneratorService {
-        self.request.application.services.randomGenerator.service.for(request)
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.randomGeneratorService.for(request)
     }
 }

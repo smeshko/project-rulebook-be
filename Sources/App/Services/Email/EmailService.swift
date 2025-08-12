@@ -15,6 +15,7 @@ extension Application.Services {
 
 extension Request.Services {
     var email: EmailService {
-        self.request.application.services.email.service.for(request)
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.emailService.for(request)
     }
 }

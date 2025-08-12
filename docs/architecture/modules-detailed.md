@@ -953,10 +953,13 @@ final class TestWorld {
     let app: Application
     
     func setUp() throws {
-        // Configure all module mocks
-        app.repositories.usersService.use { _ in TestUserRepository() }
-        app.services.email.use(.fake)
-        app.services.llm.use(.mock)
+        // Configure ServiceRegistry with test services
+        try await RepositoryServiceProvider.register(in: app.serviceRegistry, app: app)
+        try await ExternalServiceProvider.register(in: app.serviceRegistry, app: app)
+        
+        // Services available via ServiceCache
+        let userRepo = app.serviceCache.userRepository
+        let emailService = app.serviceCache.emailService
         // etc.
     }
 }

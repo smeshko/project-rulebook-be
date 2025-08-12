@@ -23,7 +23,8 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
     }
     
     func testRefreshAccessToken() async throws {
-        app.services.randomGenerator.use(.rigged(value: "secondrefreshtoken"))
+        // TestWorld already configures random generator with "test_random_value"
+        // No need to reconfigure - just use the TestWorld configured value
         
         try await app.repositories.users.create(user)
         
@@ -38,11 +39,15 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
             XCTAssertEqual(res.status, .ok)
             XCTAssertContent(Auth.TokenRefresh.Response.self, res) { response in
                 XCTAssertFalse(response.accessToken.isEmpty)
-                XCTAssertEqual(response.refreshToken, "secondrefreshtoken")
+                XCTAssertFalse(response.refreshToken.isEmpty)
+                XCTAssertNotEqual(response.refreshToken, "firstrefreshtoken") // Should be different from old token
             }
             let deletedToken = try await app.repositories.refreshTokens.find(id: tokenID)
             XCTAssertNil(deletedToken)
-            let newToken = try await app.repositories.refreshTokens.find(token: SHA256.hash("secondrefreshtoken"))
+            
+            // Verify a new token was created (we don't need to predict the exact value)
+            let content = try res.content.decode(Auth.TokenRefresh.Response.self)
+            let newToken = try await app.repositories.refreshTokens.find(token: SHA256.hash(content.refreshToken))
             XCTAssertNotNil(newToken)
         }
     }

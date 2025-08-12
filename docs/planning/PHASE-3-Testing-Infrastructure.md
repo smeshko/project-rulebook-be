@@ -135,7 +135,7 @@ class TestDataFactory {
 final class ServiceTests: UnitTestCase {
     func testServiceBehavior() async throws {
         let request = makeMockRequest()
-        let service = request.application.services.targetService.service
+        let service = request.services.targetService
         // Test service behavior with predictable dependencies
     }
 }
