@@ -14,7 +14,7 @@ import Vapor
 ///
 /// Note: Currently returns empty entries array to avoid non-sendable type issues.
 /// This can be improved later with a proper sendable detailed info method.
-struct GetCacheEntriesUseCase: UseCase {
+struct GetCacheEntriesUseCase: Query {
     
     /// Request parameters for getting cache entries.
     struct Request {
@@ -27,7 +27,7 @@ struct GetCacheEntriesUseCase: UseCase {
     }
     
     /// Response from get cache entries operation.
-    typealias Response = CacheEntriesResponse
+    typealias Response = CacheAdmin.Entries.Response
     
     // Dependencies
     let aiCacheService: AICacheServiceInterface
@@ -68,14 +68,14 @@ struct GetCacheEntriesUseCase: UseCase {
         
         // For now, return empty entries array to avoid non-sendable type issues
         // This can be improved later with a proper sendable detailed info method
-        let entriesInfo: [CacheEntryInfo] = []
+        let entriesInfo: [CacheAdmin.Entries.EntryInfo] = []
         
         // Convert enum keys to strings for JSON serialization
         let stringKeysEntriesByType = Dictionary(uniqueKeysWithValues: 
             entriesByType.map { (key, value) in (key.rawValue, value) }
         )
         
-        return CacheEntriesResponse(
+        return CacheAdmin.Entries.Response(
             entries: entriesInfo,
             entriesByType: stringKeysEntriesByType,
             totalCount: entriesInfo.count,

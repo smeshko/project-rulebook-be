@@ -166,7 +166,13 @@ public struct CQRSServiceProvider: ServiceProvider {
         // Rules generation command - creates AI-generated game rules
         registry.register(GenerateRulesUseCase.self) { app in
             GenerateRulesUseCase(
-                rulesOrchestrationService: try await app.serviceRegistry.resolveRequired(RulesOrchestrationService.self)
+                rulesOrchestrationService: try await app.serviceRegistry.resolveRequired(RulesOrchestrationService.self),
+                aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
+                cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
+                aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
+                llmService: try await app.serviceRegistry.resolveRequired(LLMService.self),
+                aiResponseValidator: try await app.serviceRegistry.resolveRequired(AIResponseValidationService.self),
+                cacheConfiguration: try app.configuration.cache
             )
         }
     }
@@ -240,7 +246,12 @@ public struct CQRSServiceProvider: ServiceProvider {
         // Game box analysis query - reads/analyzes game images
         registry.register(AnalyzeGameBoxUseCase.self) { app in
             AnalyzeGameBoxUseCase(
-                gameIdentificationService: try await app.serviceRegistry.resolveRequired(GameIdentificationService.self)
+                gameIdentificationService: try await app.serviceRegistry.resolveRequired(GameIdentificationService.self),
+                aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
+                cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
+                aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
+                llmService: try await app.serviceRegistry.resolveRequired(LLMService.self),
+                cacheConfiguration: try app.configuration.cache
             )
         }
     }

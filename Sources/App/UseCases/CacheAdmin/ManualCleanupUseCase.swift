@@ -12,7 +12,7 @@ import Vapor
 ///
 /// This use case encapsulates the manual cache cleanup administrative logic
 /// while maintaining security audit trails and proper metrics collection.
-struct ManualCleanupUseCase: UseCase {
+struct ManualCleanupUseCase: Command {
     
     /// Request parameters for manual cache cleanup.
     struct Request {
@@ -25,7 +25,7 @@ struct ManualCleanupUseCase: UseCase {
     }
     
     /// Response from manual cleanup operation.
-    typealias Response = CacheCleanupResponse
+    typealias Response = CacheAdmin.Cleanup.Response
     
     // Dependencies
     let aiCacheService: AICacheServiceInterface
@@ -81,7 +81,7 @@ struct ManualCleanupUseCase: UseCase {
             "client_ip": .string(request.clientIP)
         ])
         
-        return CacheCleanupResponse(
+        return CacheAdmin.Cleanup.Response(
             entriesRemoved: entriesRemoved,
             remainingEntries: countAfter,
             timestamp: Date()

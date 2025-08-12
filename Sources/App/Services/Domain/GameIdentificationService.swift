@@ -37,12 +37,22 @@ protocol GameIdentificationService: Sendable {
     ///
     /// - Parameters:
     ///   - imageData: Raw binary image data from the request
-    ///   - request: Vapor request for accessing services
+    ///   - context: Request context with client information and logger
+    ///   - aiInputValidator: Service for validating AI inputs
+    ///   - cacheKeyGenerator: Service for generating cache keys
+    ///   - aiCache: Service for caching AI responses
+    ///   - llmService: Service for LLM interactions
+    ///   - cacheConfiguration: Cache configuration settings
     /// - Returns: Game identification results with confidence ratings
     /// - Throws: AIValidationError for invalid images, ContentError for AI failures
     func analyzeGameBox(
         imageData: Data,
-        request: Request
+        context: RequestContext,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response
 }
 
@@ -62,28 +72,32 @@ final class DefaultGameIdentificationService: GameIdentificationService {
     
     func analyzeGameBox(
         imageData: Data,
-        request: Request
+        context: RequestContext,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response {
         
-        let clientIP = request.services.ipExtractor.extractClientIP(from: request)
-        let logger = request.logger
-        
-        logger.info("Game identification service initiated", metadata: [
-            "client_ip": .string(clientIP),
+        context.logger.info("Game identification service initiated", metadata: [
+            "client_ip": .string(context.clientIP),
             "image_size": .string("\(imageData.count) bytes"),
-            "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
+            "request_id": .string(context.requestID),
+            "timestamp": .string(ISO8601DateFormatter().string(from: context.timestamp))
         ])
         
         // 1. Process and validate image data
-        let dataURL = try processImageData(imageData, request: request)
+        let dataURL = try processImageData(imageData, context: context, aiInputValidator: aiInputValidator)
         
         // 2. Check cache for existing results
-        let cacheKey = request.services.cacheKeyGenerator.generateBoxPhotoKey(for: imageData, context: "box")
+        let cacheKey = cacheKeyGenerator.generateBoxPhotoKey(for: imageData, context: "box")
         
-        if let cachedResponse = await request.services.aiCache.get(key: cacheKey) {
-            logger.info("Cache hit for game identification", metadata: [
+        if let cachedResponse = await aiCache.get(key: cacheKey) {
+            context.logger.info("Cache hit for game identification", metadata: [
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             
             let cachedBuffer = ByteBuffer(string: cachedResponse)
@@ -91,26 +105,30 @@ final class DefaultGameIdentificationService: GameIdentificationService {
             return result
         }
         
-        logger.debug("Cache miss for game identification", metadata: [
-            "cache_key": .string(cacheKey)
+        context.logger.debug("Cache miss for game identification", metadata: [
+            "cache_key": .string(cacheKey),
+            "request_id": .string(context.requestID)
         ])
         
         // 3. Generate AI analysis
-        let response = try await performAIAnalysis(dataURL: dataURL, request: request)
+        let response = try await performAIAnalysis(dataURL: dataURL, context: context, llmService: llmService)
         
         // 4. Validate and cache response
         let result = try await validateAndCacheResponse(
             response: response,
             cacheKey: cacheKey,
-            request: request
+            context: context,
+            aiCache: aiCache,
+            cacheConfiguration: cacheConfiguration
         )
         
-        logger.info("Game identification completed successfully", metadata: [
+        context.logger.info("Game identification completed successfully", metadata: [
             "confidence": .string("\(result.confidence)"),
             "guessed_title": .string(result.guessedTitle),
             "cached": .string("true"),
             "cache_key": .string(cacheKey),
-            "client_ip": .string(clientIP)
+            "client_ip": .string(context.clientIP),
+            "request_id": .string(context.requestID)
         ])
         
         return result
@@ -119,7 +137,11 @@ final class DefaultGameIdentificationService: GameIdentificationService {
     // MARK: - Private Methods
     
     /// Processes raw image data and validates it for AI analysis.
-    private func processImageData(_ imageData: Data, request: Request) throws -> String {
+    private func processImageData(
+        _ imageData: Data, 
+        context: RequestContext, 
+        aiInputValidator: AIInputValidatorServiceInterface
+    ) throws -> String {
         // Convert binary image data to base64 with data URL prefix
         let base64String = imageData.base64EncodedString()
         
@@ -144,15 +166,13 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         let dataURL = "data:\(mimeType);base64,\(base64String)"
         
         // Validate image data for security and compliance
-        let clientIP = request.services.ipExtractor.extractClientIP(from: request)
-        let logger = request.logger
-        
         do {
-            try request.services.aiInputValidator.validateImageData(dataURL)
+            try aiInputValidator.validateImageData(dataURL)
         } catch let validationError as AIValidationError {
-            logger.warning("Image validation failed", metadata: [
+            context.logger.warning("Image validation failed", metadata: [
                 "error": .string(validationError.description),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw validationError
         }
@@ -161,7 +181,11 @@ final class DefaultGameIdentificationService: GameIdentificationService {
     }
     
     /// Performs AI image analysis using the LLM service.
-    private func performAIAnalysis(dataURL: String, request: Request) async throws -> String {
+    private func performAIAnalysis(
+        dataURL: String, 
+        context: RequestContext, 
+        llmService: LLMService
+    ) async throws -> String {
         // Construct optimized prompt for game identification
         let systemPrompt = """
         You are an expert board game identification assistant. Analyze the game box image carefully.
@@ -190,11 +214,8 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         If text is unclear, mention it in notes. For franchise games, include the specific edition.
         """
         
-        let clientIP = request.services.ipExtractor.extractClientIP(from: request)
-        let logger = request.logger
-        
         do {
-            return try await request.services.llm.analyzeImage(
+            return try await llmService.analyzeImage(
                 imageData: dataURL,
                 prompt: systemPrompt,
                 model: "gpt-4o-mini",
@@ -203,9 +224,10 @@ final class DefaultGameIdentificationService: GameIdentificationService {
                 useJSONMode: true
             )
         } catch {
-            logger.error("LLM service error during game identification", metadata: [
+            context.logger.error("LLM service error during game identification", metadata: [
                 "error": .string(error.localizedDescription),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw ContentError.externalServiceFailedToRespond
         }
@@ -215,47 +237,47 @@ final class DefaultGameIdentificationService: GameIdentificationService {
     private func validateAndCacheResponse(
         response: String,
         cacheKey: String,
-        request: Request
+        context: RequestContext,
+        aiCache: AICacheServiceInterface,
+        cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response {
         
         // Validate response format and content
-        let validatedResponse = try validateResponse(response, request: request)
+        let validatedResponse = try validateResponse(response, context: context)
         
         // Parse validated response
         let responseBuffer = ByteBuffer(string: validatedResponse)
         let result = try JSONDecoder().decode(GameboxRecognition.Response.self, from: responseBuffer)
         
         // Cache successful result
-        let cacheConfig = try request.application.configuration.cache
-        await request.services.aiCache.set(
+        await aiCache.set(
             key: cacheKey,
             value: validatedResponse,
-            ttl: cacheConfig.imageAnalysisTTL
+            ttl: cacheConfiguration.imageAnalysisTTL
         )
         
         return result
     }
     
     /// Validates AI response for security and structural integrity.
-    private func validateResponse(_ response: String, request: Request) throws -> String {
-        
-        let clientIP = request.services.ipExtractor.extractClientIP(from: request)
-        let logger = request.logger
+    private func validateResponse(_ response: String, context: RequestContext) throws -> String {
         // Check response size limits (prevent DoS)
         let maxResponseSize = 50_000 // 50KB max response
         guard response.count <= maxResponseSize else {
-            logger.warning("AI response too large", metadata: [
+            context.logger.warning("AI response too large", metadata: [
                 "size": .string("\(response.count)"),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw Abort(.payloadTooLarge, reason: "AI response too large")
         }
         
         // Check for minimum response size
         guard response.count >= 10 else {
-            logger.warning("AI response too short", metadata: [
+            context.logger.warning("AI response too short", metadata: [
                 "size": .string("\(response.count)"),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw Abort(.unprocessableEntity, reason: "AI response too short")
         }
@@ -263,8 +285,9 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         // Basic JSON structure validation
         guard response.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") &&
               response.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("}") else {
-            logger.warning("AI response invalid JSON structure", metadata: [
-                "client_ip": .string(clientIP)
+            context.logger.warning("AI response invalid JSON structure", metadata: [
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw Abort(.unprocessableEntity, reason: "AI response is not valid JSON")
         }
@@ -278,9 +301,10 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         let lowercasedResponse = response.lowercased()
         for pattern in suspiciousPatterns {
             if lowercasedResponse.contains(pattern) {
-                logger.warning("AI response contains suspicious content", metadata: [
+                context.logger.warning("AI response contains suspicious content", metadata: [
                     "pattern": .string(pattern),
-                    "client_ip": .string(clientIP)
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID)
                 ])
                 throw Abort(.unprocessableEntity, reason: "AI response contains suspicious content")
             }
@@ -288,8 +312,9 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         
         // Validate required fields for GameboxRecognition
         guard response.contains("\"guessedTitle\"") && response.contains("\"confidence\"") else {
-            logger.warning("AI response missing required fields", metadata: [
-                "client_ip": .string(clientIP)
+            context.logger.warning("AI response missing required fields", metadata: [
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
         }

@@ -20,21 +20,21 @@ import Vapor
 /// - **Reusability**: Can be used by different interfaces (HTTP, CLI, etc.)
 /// - **Maintainability**: Clear separation of concerns and dependencies
 /// - **Scalability**: Efficient use of caching and external services
-struct AnalyzeGameBoxUseCase: UseCase {
+struct AnalyzeGameBoxUseCase: Query {
     
     /// Request parameters for game box analysis.
     struct Request {
         /// Raw binary image data from the uploaded game box photo
         let imageData: Data
-        /// Vapor request for accessing services and context
-        let vaporRequest: Vapor.Request
+        /// Request context with client information and logging
+        let context: RequestContext
         
         init(
             imageData: Data,
-            vaporRequest: Vapor.Request
+            context: RequestContext
         ) {
             self.imageData = imageData
-            self.vaporRequest = vaporRequest
+            self.context = context
         }
     }
     
@@ -62,11 +62,33 @@ struct AnalyzeGameBoxUseCase: UseCase {
     
     /// Domain service for game identification operations
     private let gameIdentificationService: GameIdentificationService
+    /// Service for validating AI inputs
+    private let aiInputValidator: AIInputValidatorServiceInterface
+    /// Service for generating cache keys
+    private let cacheKeyGenerator: CacheKeyGeneratorServiceInterface
+    /// Service for caching AI responses
+    private let aiCache: AICacheServiceInterface
+    /// Service for LLM interactions
+    private let llmService: LLMService
+    /// Cache configuration settings
+    private let cacheConfiguration: CacheConfig
     
     // MARK: - Initialization
     
-    init(gameIdentificationService: GameIdentificationService) {
+    init(
+        gameIdentificationService: GameIdentificationService,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        cacheConfiguration: CacheConfig
+    ) {
         self.gameIdentificationService = gameIdentificationService
+        self.aiInputValidator = aiInputValidator
+        self.cacheKeyGenerator = cacheKeyGenerator
+        self.aiCache = aiCache
+        self.llmService = llmService
+        self.cacheConfiguration = cacheConfiguration
     }
     
     // MARK: - Use Case Execution
@@ -98,21 +120,29 @@ struct AnalyzeGameBoxUseCase: UseCase {
     /// - Throws: Service errors if validation fails or AI service unavailable
     func execute(_ request: Request) async throws -> Response {
         
-        request.vaporRequest.logger.debug("Executing AnalyzeGameBoxUseCase", metadata: [
+        request.context.logger.debug("Executing AnalyzeGameBoxUseCase", metadata: [
             "image_size": .string("\(request.imageData.count) bytes"),
-            "client_ip": .string(request.vaporRequest.services.ipExtractor.extractClientIP(from: request.vaporRequest))
+            "client_ip": .string(request.context.clientIP),
+            "request_id": .string(request.context.requestID)
         ])
         
         // Validate input parameters
         guard !request.imageData.isEmpty else {
-            request.vaporRequest.logger.warning("Empty image data provided to AnalyzeGameBoxUseCase")
+            request.context.logger.warning("Empty image data provided to AnalyzeGameBoxUseCase", metadata: [
+                "request_id": .string(request.context.requestID)
+            ])
             throw Abort(.badRequest, reason: "No image data provided")
         }
         
         // Delegate to domain service for core business logic
         let gameboxRecognition = try await gameIdentificationService.analyzeGameBox(
             imageData: request.imageData,
-            request: request.vaporRequest
+            context: request.context,
+            aiInputValidator: aiInputValidator,
+            cacheKeyGenerator: cacheKeyGenerator,
+            aiCache: aiCache,
+            llmService: llmService,
+            cacheConfiguration: cacheConfiguration
         )
         
         // Create structured response with metadata
@@ -122,10 +152,11 @@ struct AnalyzeGameBoxUseCase: UseCase {
             wasCached: false // Cache information is abstracted by the service
         )
         
-        request.vaporRequest.logger.info("AnalyzeGameBoxUseCase completed successfully", metadata: [
+        request.context.logger.info("AnalyzeGameBoxUseCase completed successfully", metadata: [
             "guessed_title": .string(gameboxRecognition.guessedTitle),
             "confidence": .string("\(gameboxRecognition.confidence)"),
-            "client_ip": .string(request.vaporRequest.services.ipExtractor.extractClientIP(from: request.vaporRequest))
+            "client_ip": .string(request.context.clientIP),
+            "request_id": .string(request.context.requestID)
         ])
         
         return response

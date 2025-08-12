@@ -11,7 +11,7 @@ import Vapor
 ///
 /// This use case encapsulates the administrative cache statistics logic
 /// while keeping HTTP concerns separate from business logic.
-struct GetCacheStatsUseCase: UseCase {
+struct GetCacheStatsUseCase: Query {
     
     /// Request parameters for getting cache statistics.
     struct Request {
@@ -24,7 +24,7 @@ struct GetCacheStatsUseCase: UseCase {
     }
     
     /// Response from get cache statistics operation.
-    typealias Response = CacheStatisticsResponse
+    typealias Response = CacheAdmin.Statistics.Response
     
     // Dependencies
     let aiCacheService: AICacheServiceInterface
@@ -68,7 +68,7 @@ struct GetCacheStatsUseCase: UseCase {
             entriesByType.map { (key, value) in (key.rawValue, value) }
         )
         
-        return CacheStatisticsResponse(
+        return CacheAdmin.Statistics.Response(
             statistics: statistics,
             entriesByType: stringKeysEntriesByType,
             timestamp: Date()

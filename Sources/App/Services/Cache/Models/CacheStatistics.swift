@@ -1,7 +1,7 @@
 import Foundation
 
 /// Cache statistics for monitoring and optimization
-public struct CacheStatistics: Codable, Sendable {
+public struct CacheStatistics: Codable, Equatable, Sendable {
     /// Total number of cache hit requests
     let hits: Int
     

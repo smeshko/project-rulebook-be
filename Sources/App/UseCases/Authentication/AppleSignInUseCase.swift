@@ -16,7 +16,7 @@ import Crypto
 ///
 /// This use case coordinates between Apple's JWT verification, user management,
 /// and session token generation to provide secure Apple authentication.
-struct AppleSignInUseCase: UseCase {
+struct AppleSignInUseCase: Command {
     
     /// Request parameters for Apple Sign-In operation.
     struct Request {

@@ -146,37 +146,24 @@ struct AuthController {
     }
     
     func signUp(_ req: Request) async throws -> Auth.SignUp.Response {
-        print("DEBUG: SignUp controller called")
-        
         // 1. Validate request (HTTP concern)
         try Auth.SignUp.Request.validate(content: req)
         let registerRequest = try req.content.decode(Auth.SignUp.Request.self)
-        print("DEBUG: Request decoded successfully: \(registerRequest.email)")
         
         // 2. Execute use case (business logic)
-        do {
-            let signUpUseCase = try await req.useCases.auth.signUp
-            print("DEBUG: Use case resolved successfully")
-            
-            let result = try await signUpUseCase.execute(SignUpUseCase.Request(
-                email: registerRequest.email,
-                password: registerRequest.password,
-                firstName: registerRequest.firstName,
-                lastName: registerRequest.lastName
-            ))
-            print("DEBUG: Use case executed successfully")
-            
-            // 3. Convert to HTTP response
-            let response = Auth.SignUp.Response(
-                token: try .init(token: result.refreshToken, user: result.user, on: req),
-                user: try .init(from: result.user)
-            )
-            print("DEBUG: Response created successfully")
-            return response
-        } catch {
-            print("DEBUG: Error in signup: \(error)")
-            throw error
-        }
+        let signUpUseCase = try await req.useCases.auth.signUp
+        let result = try await signUpUseCase.execute(SignUpUseCase.Request(
+            email: registerRequest.email,
+            password: registerRequest.password,
+            firstName: registerRequest.firstName,
+            lastName: registerRequest.lastName
+        ))
+        
+        // 3. Convert to HTTP response
+        return Auth.SignUp.Response(
+            token: try .init(token: result.refreshToken, user: result.user, on: req),
+            user: try .init(from: result.user)
+        )
     }
     
     func refreshAccessToken(_ req: Request) async throws -> Auth.TokenRefresh.Response {

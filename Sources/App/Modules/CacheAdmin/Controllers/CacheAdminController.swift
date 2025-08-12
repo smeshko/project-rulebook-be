@@ -7,7 +7,7 @@ struct CacheAdminController {
     
     /// GET /api/admin/cache/stats
     /// Returns detailed cache statistics and performance metrics
-    func getCacheStatistics(_ req: Request) async throws -> CacheStatisticsResponse {
+    func getCacheStatistics(_ req: Request) async throws -> CacheAdmin.Statistics.Response {
         let useCase = try await req.useCases.cacheAdmin.getStats
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
         
@@ -20,7 +20,7 @@ struct CacheAdminController {
     
     /// DELETE /api/admin/cache
     /// Clears all entries from the cache
-    func clearCache(_ req: Request) async throws -> CacheClearResponse {
+    func clearCache(_ req: Request) async throws -> CacheAdmin.Clear.Response {
         let useCase = try await req.useCases.cacheAdmin.clearCache
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
         
@@ -33,7 +33,7 @@ struct CacheAdminController {
     
     /// GET /api/admin/cache/entries
     /// Lists all cached entries with metadata (paginated for large caches)
-    func getCacheEntries(_ req: Request) async throws -> CacheEntriesResponse {
+    func getCacheEntries(_ req: Request) async throws -> CacheAdmin.Entries.Response {
         let useCase = try await req.useCases.cacheAdmin.getEntries
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
         
@@ -46,7 +46,7 @@ struct CacheAdminController {
     
     /// POST /api/admin/cache/cleanup
     /// Manually triggers cleanup of expired entries
-    func manualCleanup(_ req: Request) async throws -> CacheCleanupResponse {
+    func manualCleanup(_ req: Request) async throws -> CacheAdmin.Cleanup.Response {
         let useCase = try await req.useCases.cacheAdmin.manualCleanup
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
         
@@ -59,7 +59,7 @@ struct CacheAdminController {
     
     /// GET /api/admin/cache/health
     /// Returns cache health status and performance metrics
-    func getCacheHealth(_ req: Request) async throws -> CacheHealthResponse {
+    func getCacheHealth(_ req: Request) async throws -> CacheAdmin.Health.Response {
         let useCase = try await req.useCases.cacheAdmin.getHealth
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
         

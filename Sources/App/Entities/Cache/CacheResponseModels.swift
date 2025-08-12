@@ -1,93 +1,170 @@
-import Vapor
 import Foundation
+import Vapor
 
-// MARK: - Response Models
+public enum CacheAdmin {}
 
-/// Response model for cache statistics endpoint
-struct CacheStatisticsResponse: Content, Sendable {
-    let statistics: CacheStatistics
-    let entriesByType: [String: [String]] // Convert enum keys to strings
-    let timestamp: Date
-    
-    enum CodingKeys: String, CodingKey {
-        case statistics
-        case entriesByType = "entries_by_type"
-        case timestamp
+public extension CacheAdmin {
+    enum Statistics {
+        public struct Response: Content, Equatable {
+            public let statistics: CacheStatistics
+            public let entriesByType: [String: [String]]
+            public let timestamp: Date
+            
+            public init(
+                statistics: CacheStatistics,
+                entriesByType: [String: [String]],
+                timestamp: Date
+            ) {
+                self.statistics = statistics
+                self.entriesByType = entriesByType
+                self.timestamp = timestamp
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case statistics
+                case entriesByType = "entries_by_type"
+                case timestamp
+            }
+        }
     }
-}
 
-/// Response model for cache clear endpoint
-struct CacheClearResponse: Content, Sendable {
-    let entriesRemoved: Int
-    let remainingEntries: Int
-    let timestamp: Date
-    
-    enum CodingKeys: String, CodingKey {
-        case entriesRemoved = "entries_removed"
-        case remainingEntries = "remaining_entries"
-        case timestamp
+    enum Clear {
+        public struct Response: Content, Equatable {
+            public let entriesRemoved: Int
+            public let remainingEntries: Int
+            public let timestamp: Date
+            
+            public init(
+                entriesRemoved: Int,
+                remainingEntries: Int,
+                timestamp: Date
+            ) {
+                self.entriesRemoved = entriesRemoved
+                self.remainingEntries = remainingEntries
+                self.timestamp = timestamp
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case entriesRemoved = "entries_removed"
+                case remainingEntries = "remaining_entries"
+                case timestamp
+            }
+        }
     }
-}
 
-/// Response model for cache entries endpoint
-struct CacheEntriesResponse: Content, Sendable {
-    let entries: [CacheEntryInfo]
-    let entriesByType: [String: [String]] // Convert enum keys to strings
-    let totalCount: Int
-    let timestamp: Date
-    
-    enum CodingKeys: String, CodingKey {
-        case entries
-        case entriesByType = "entries_by_type"
-        case totalCount = "total_count"
-        case timestamp
+    enum Entries {
+        public struct Response: Content, Equatable {
+            public let entries: [EntryInfo]
+            public let entriesByType: [String: [String]]
+            public let totalCount: Int
+            public let timestamp: Date
+            
+            public init(
+                entries: [EntryInfo],
+                entriesByType: [String: [String]],
+                totalCount: Int,
+                timestamp: Date
+            ) {
+                self.entries = entries
+                self.entriesByType = entriesByType
+                self.totalCount = totalCount
+                self.timestamp = timestamp
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case entries
+                case entriesByType = "entries_by_type"
+                case totalCount = "total_count"
+                case timestamp
+            }
+        }
+        
+        public struct EntryInfo: Content, Equatable {
+            public let key: String
+            public let age: TimeInterval
+            public let ttlRemaining: TimeInterval
+            public let hitCount: Int
+            public let lastAccessed: TimeInterval
+            public let expired: Bool
+            
+            public init(
+                key: String,
+                age: TimeInterval,
+                ttlRemaining: TimeInterval,
+                hitCount: Int,
+                lastAccessed: TimeInterval,
+                expired: Bool
+            ) {
+                self.key = key
+                self.age = age
+                self.ttlRemaining = ttlRemaining
+                self.hitCount = hitCount
+                self.lastAccessed = lastAccessed
+                self.expired = expired
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case key
+                case age
+                case ttlRemaining = "ttl_remaining"
+                case hitCount = "hit_count"
+                case lastAccessed = "last_accessed"
+                case expired
+            }
+        }
     }
-}
 
-/// Sendable cache entry info for API responses
-struct CacheEntryInfo: Content, Sendable {
-    let key: String
-    let age: TimeInterval
-    let ttlRemaining: TimeInterval
-    let hitCount: Int
-    let lastAccessed: TimeInterval
-    let expired: Bool
-    
-    enum CodingKeys: String, CodingKey {
-        case key
-        case age
-        case ttlRemaining = "ttl_remaining"
-        case hitCount = "hit_count"
-        case lastAccessed = "last_accessed"
-        case expired
+    enum Cleanup {
+        public struct Response: Content, Equatable {
+            public let entriesRemoved: Int
+            public let remainingEntries: Int
+            public let timestamp: Date
+            
+            public init(
+                entriesRemoved: Int,
+                remainingEntries: Int,
+                timestamp: Date
+            ) {
+                self.entriesRemoved = entriesRemoved
+                self.remainingEntries = remainingEntries
+                self.timestamp = timestamp
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case entriesRemoved = "entries_removed"
+                case remainingEntries = "remaining_entries"
+                case timestamp
+            }
+        }
     }
-}
-
-/// Response model for manual cleanup endpoint
-struct CacheCleanupResponse: Content, Sendable {
-    let entriesRemoved: Int
-    let remainingEntries: Int
-    let timestamp: Date
     
-    enum CodingKeys: String, CodingKey {
-        case entriesRemoved = "entries_removed"
-        case remainingEntries = "remaining_entries"
-        case timestamp
+    enum Health {
+        public enum Status: String, Codable, Equatable, Sendable {
+            case healthy = "healthy"
+            case warning = "warning"
+            case critical = "critical"
+        }
+        
+        public struct Response: Content, Equatable {
+            public let status: Status
+            public let statistics: CacheStatistics
+            public let issues: [String]
+            public let recommendations: [String]
+            public let timestamp: Date
+            
+            public init(
+                status: Status,
+                statistics: CacheStatistics,
+                issues: [String],
+                recommendations: [String],
+                timestamp: Date
+            ) {
+                self.status = status
+                self.statistics = statistics
+                self.issues = issues
+                self.recommendations = recommendations
+                self.timestamp = timestamp
+            }
+        }
     }
-}
-
-/// Health status enum for cache
-enum CacheHealthStatus: String, Content, Sendable {
-    case healthy = "healthy"
-    case warning = "warning"
-    case critical = "critical"
-}
-
-/// Response model for cache health endpoint
-struct CacheHealthResponse: Content, Sendable {
-    let status: CacheHealthStatus
-    let statistics: CacheStatistics
-    let issues: [String]
-    let recommendations: [String]
-    let timestamp: Date
 }

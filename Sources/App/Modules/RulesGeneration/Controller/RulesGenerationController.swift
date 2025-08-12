@@ -129,10 +129,13 @@ struct RulesGenerationController {
             throw Abort(.badRequest, reason: "Failed to read image data")
         }
         
+        // Create request context for Clean Architecture compliance
+        let context = RequestContext.from(req)
+        
         // Create use case request
         let useCaseRequest = AnalyzeGameBoxUseCase.Request(
             imageData: imageData,
-            vaporRequest: req
+            context: context
         )
         
         // Execute use case
@@ -226,10 +229,13 @@ struct RulesGenerationController {
             throw Abort(.badRequest, reason: "Invalid request format")
         }
         
+        // Create request context for Clean Architecture compliance
+        let context = RequestContext.from(req)
+        
         // Create use case request
         let useCaseRequest = GenerateRulesUseCase.Request(
             gameTitle: input.gameTitle,
-            vaporRequest: req
+            context: context
         )
         
         // Execute use case

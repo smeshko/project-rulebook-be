@@ -10,7 +10,7 @@ import Vapor
 ///
 /// This use case focuses on the core business logic of account deletion
 /// while keeping HTTP concerns separate.
-struct DeleteUserAccountUseCase: UseCase {
+struct DeleteUserAccountUseCase: Command {
     
     /// Request parameters for user account deletion.
     struct Request {

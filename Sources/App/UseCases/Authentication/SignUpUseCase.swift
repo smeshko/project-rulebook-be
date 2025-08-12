@@ -13,7 +13,7 @@ import Crypto
 ///
 /// This use case coordinates between multiple repositories and services
 /// to provide secure user registration with proper error handling.
-struct SignUpUseCase: UseCase {
+struct SignUpUseCase: Command {
     
     /// Request parameters for sign-up operation.
     struct Request {
@@ -81,12 +81,9 @@ struct SignUpUseCase: UseCase {
         )
         
         // 3. Create user account (handles unique email constraint)
-        print("DEBUG: About to create user with email: \(user.email)")
         do {
             try await userRepository.create(user)
-            print("DEBUG: User created successfully with ID: \(user.id ?? UUID())")
         } catch {
-            print("DEBUG: User creation failed with error: \(error)")
             // Check if this is a unique constraint failure for email
             if error.localizedDescription.contains("UNIQUE constraint failed: users.email") {
                 throw AuthenticationError.emailAlreadyExists
@@ -97,13 +94,11 @@ struct SignUpUseCase: UseCase {
         // 4. Generate refresh token for immediate authentication
         let tokenValue = randomGenerator.generate(bits: 256)
         let userID = try user.requireID()
-        print("DEBUG: Creating refresh token for user ID: \(userID)")
         let refreshToken = RefreshTokenModel(
             value: SHA256.hash(tokenValue), 
             userID: userID
         )
         try await refreshTokenRepository.create(refreshToken)
-        print("DEBUG: Refresh token created successfully")
         
         // 5. Initiate email verification (temporarily disabled for testing)
         // try await sendEmailVerification(for: user)

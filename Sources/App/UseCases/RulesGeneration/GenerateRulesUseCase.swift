@@ -22,21 +22,18 @@ import Vapor
 /// - **Maintainability**: Clear separation of concerns and dependencies
 /// - **Scalability**: Efficient use of caching and external services
 /// - **Cost Efficiency**: Intelligent caching reduces AI API costs significantly
-struct GenerateRulesUseCase: UseCase {
+struct GenerateRulesUseCase: Command {
     
     /// Request parameters for rules generation.
     struct Request {
         /// Game title for which rules should be generated
         let gameTitle: String
-        /// Vapor request for accessing services and context
-        let vaporRequest: Vapor.Request
+        /// Request context with client information and logging
+        let context: RequestContext
         
-        init(
-            gameTitle: String,
-            vaporRequest: Vapor.Request
-        ) {
+        init(gameTitle: String, context: RequestContext) {
             self.gameTitle = gameTitle
-            self.vaporRequest = vaporRequest
+            self.context = context
         }
     }
     
@@ -68,11 +65,37 @@ struct GenerateRulesUseCase: UseCase {
     
     /// Domain service for rules generation and orchestration
     private let rulesOrchestrationService: RulesOrchestrationService
+    /// Service for validating and sanitizing AI inputs
+    private let aiInputValidator: AIInputValidatorServiceInterface
+    /// Service for generating cache keys
+    private let cacheKeyGenerator: CacheKeyGeneratorServiceInterface
+    /// Service for caching AI responses
+    private let aiCache: AICacheServiceInterface
+    /// Service for LLM interactions
+    private let llmService: LLMService
+    /// Service for validating AI responses
+    private let aiResponseValidator: AIResponseValidationService
+    /// Cache configuration settings
+    private let cacheConfiguration: CacheConfig
     
     // MARK: - Initialization
     
-    init(rulesOrchestrationService: RulesOrchestrationService) {
+    init(
+        rulesOrchestrationService: RulesOrchestrationService,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
+        cacheConfiguration: CacheConfig
+    ) {
         self.rulesOrchestrationService = rulesOrchestrationService
+        self.aiInputValidator = aiInputValidator
+        self.cacheKeyGenerator = cacheKeyGenerator
+        self.aiCache = aiCache
+        self.llmService = llmService
+        self.aiResponseValidator = aiResponseValidator
+        self.cacheConfiguration = cacheConfiguration
     }
     
     // MARK: - Use Case Execution
@@ -112,29 +135,14 @@ struct GenerateRulesUseCase: UseCase {
     /// - Returns: Comprehensive rules explanation with generation metadata
     /// - Throws: Service errors if validation fails or AI service unavailable
     func execute(_ request: Request) async throws -> Response {
-        
-        let clientIP = request.vaporRequest.services.ipExtractor.extractClientIP(from: request.vaporRequest)
-        
-        request.vaporRequest.logger.debug("Executing GenerateRulesUseCase", metadata: [
-            "game_title": .string(request.gameTitle),
-            "client_ip": .string(clientIP)
-        ])
-        
         // Validate input parameters
         guard !request.gameTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            request.vaporRequest.logger.warning("Empty game title provided to GenerateRulesUseCase", metadata: [
-                "client_ip": .string(clientIP)
-            ])
             throw Abort(.badRequest, reason: "Game title cannot be empty")
         }
         
         // Check for reasonable title length
         guard request.gameTitle.count <= 200 else {
-            request.vaporRequest.logger.warning("Game title too long in GenerateRulesUseCase", metadata: [
-                "title_length": .string("\(request.gameTitle.count)"),
-                "client_ip": .string(clientIP)
-            ])
-            throw Abort(.badRequest, reason: "Game title too long")
+            throw Abort(.badRequest, reason: "Game title too long (max 200 characters)")
         }
         
         // Delegate to domain service for core business logic
@@ -142,7 +150,13 @@ struct GenerateRulesUseCase: UseCase {
         // response validation, caching, and all security concerns
         let rulesSummary = try await rulesOrchestrationService.generateRules(
             gameTitle: request.gameTitle,
-            request: request.vaporRequest
+            context: request.context,
+            aiInputValidator: aiInputValidator,
+            cacheKeyGenerator: cacheKeyGenerator,
+            aiCache: aiCache,
+            llmService: llmService,
+            aiResponseValidator: aiResponseValidator,
+            cacheConfiguration: cacheConfiguration
         )
         
         // Create structured response with metadata
@@ -153,11 +167,12 @@ struct GenerateRulesUseCase: UseCase {
             wasCached: false // Cache information is abstracted by the service
         )
         
-        request.vaporRequest.logger.info("GenerateRulesUseCase completed successfully", metadata: [
+        request.context.logger.info("GenerateRulesUseCase completed successfully", metadata: [
             "original_title": .string(request.gameTitle),
             "processed_title": .string(response.processedGameTitle),
             "confidence": .string("\(rulesSummary.confidence)"),
-            "client_ip": .string(clientIP)
+            "client_ip": .string(request.context.clientIP),
+            "request_id": .string(request.context.requestID)
         ])
         
         return response

@@ -12,7 +12,7 @@ import Vapor
 ///
 /// This use case encapsulates the cache clearing administrative logic
 /// while maintaining security audit trails and proper metrics collection.
-struct ClearCacheUseCase: UseCase {
+struct ClearCacheUseCase: Command {
     
     /// Request parameters for clearing cache.
     struct Request {
@@ -25,7 +25,7 @@ struct ClearCacheUseCase: UseCase {
     }
     
     /// Response from clear cache operation.
-    typealias Response = CacheClearResponse
+    typealias Response = CacheAdmin.Clear.Response
     
     // Dependencies
     let aiCacheService: AICacheServiceInterface
@@ -78,7 +78,7 @@ struct ClearCacheUseCase: UseCase {
             "client_ip": .string(request.clientIP)
         ])
         
-        return CacheClearResponse(
+        return CacheAdmin.Clear.Response(
             entriesRemoved: countBefore,
             remainingEntries: countAfter,
             timestamp: Date()

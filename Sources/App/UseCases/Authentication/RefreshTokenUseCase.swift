@@ -14,7 +14,7 @@ import Crypto
 ///
 /// This use case implements secure token refresh following best practices
 /// with automatic cleanup and rotation of refresh tokens.
-struct RefreshTokenUseCase: UseCase {
+struct RefreshTokenUseCase: Command {
     
     /// Request parameters for token refresh operation.
     struct Request {

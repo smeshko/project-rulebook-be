@@ -12,7 +12,7 @@ import Vapor
 ///
 /// This use case encapsulates complex health assessment logic that determines
 /// cache performance status and generates actionable recommendations for optimization.
-struct GetCacheHealthUseCase: UseCase {
+struct GetCacheHealthUseCase: Query {
     
     /// Request parameters for getting cache health.
     struct Request {
@@ -25,7 +25,7 @@ struct GetCacheHealthUseCase: UseCase {
     }
     
     /// Response from get cache health operation.
-    typealias Response = CacheHealthResponse
+    typealias Response = CacheAdmin.Health.Response
     
     // Dependencies
     let aiCacheService: AICacheServiceInterface
@@ -74,7 +74,7 @@ struct GetCacheHealthUseCase: UseCase {
         let utilizationPercentage = statistics.utilization
         let hitRatio = statistics.hitRatio
         
-        let healthStatus: CacheHealthStatus
+        let healthStatus: CacheAdmin.Health.Status
         let issues: [String] = []
         var currentIssues = issues
         
@@ -96,7 +96,7 @@ struct GetCacheHealthUseCase: UseCase {
         // Generate performance recommendations
         let recommendations = generateRecommendations(for: statistics, config: config)
         
-        return CacheHealthResponse(
+        return CacheAdmin.Health.Response(
             status: healthStatus,
             statistics: statistics,
             issues: currentIssues,

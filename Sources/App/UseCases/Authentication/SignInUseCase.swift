@@ -12,7 +12,7 @@ import Crypto
 ///
 /// This use case assumes the user has already been authenticated via middleware
 /// and focuses on the business logic of establishing a new authenticated session.
-struct SignInUseCase: UseCase {
+struct SignInUseCase: Command {
     
     /// Request parameters for sign-in operation.
     struct Request {

@@ -10,16 +10,28 @@ protocol RulesOrchestrationService: Sendable {
     /// Generates comprehensive rules explanation for a board game.
     ///
     /// This method coordinates the complete rules generation workflow using
-    /// existing services through the Vapor request context.
+    /// injected dependencies following Clean Architecture principles.
     ///
     /// - Parameters:
-    ///   - gameTitle: Raw game title from user input  
-    ///   - request: Vapor request for accessing services
+    ///   - gameTitle: Raw game title from user input
+    ///   - context: Request context with client information and logger
+    ///   - aiInputValidator: Service for validating and sanitizing AI inputs
+    ///   - cacheKeyGenerator: Service for generating cache keys
+    ///   - aiCache: Service for caching AI responses
+    ///   - llmService: Service for LLM interactions
+    ///   - aiResponseValidator: Service for validating AI responses
+    ///   - cacheConfiguration: Cache configuration settings
     /// - Returns: Comprehensive rules explanation with structured content
     /// - Throws: AIValidationError for invalid input, ContentError for AI failures
     func generateRules(
         gameTitle: String,
-        request: Request
+        context: RequestContext,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
+        cacheConfiguration: CacheConfig
     ) async throws -> RulesSummary.Response
 }
 
@@ -30,45 +42,53 @@ final class DefaultRulesOrchestrationService: RulesOrchestrationService {
     
     func generateRules(
         gameTitle: String,
-        request: Request
+        context: RequestContext,
+        aiInputValidator: AIInputValidatorServiceInterface,
+        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
+        aiCache: AICacheServiceInterface,
+        llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
+        cacheConfiguration: CacheConfig
     ) async throws -> RulesSummary.Response {
         
-        let clientIP = request.services.ipExtractor.extractClientIP(from: request)
-        
-        request.logger.info("AI rules generation request initiated", metadata: [
+        context.logger.info("AI rules generation request initiated", metadata: [
             "endpoint": "generateRulesSummary",
-            "client_ip": .string(clientIP),
-            "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
+            "client_ip": .string(context.clientIP),
+            "request_id": .string(context.requestID),
+            "timestamp": .string(ISO8601DateFormatter().string(from: context.timestamp))
         ])
         
         // CRITICAL SECURITY FIX: Validate and sanitize game title before AI processing
         let sanitizedGameTitle: String
         do {
-            sanitizedGameTitle = try request.services.aiInputValidator.validateAndSanitizeGameTitle(gameTitle)
+            sanitizedGameTitle = try aiInputValidator.validateAndSanitizeGameTitle(gameTitle)
         } catch let validationError as AIValidationError {
-            request.logger.warning("Game title validation failed", metadata: [
+            context.logger.warning("Game title validation failed", metadata: [
                 "error": .string(validationError.description),
                 "raw_title": .string(gameTitle),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw validationError
         } catch let sanitizationError as ValidationError {
-            request.logger.warning("Game title sanitization failed", metadata: [
+            context.logger.warning("Game title sanitization failed", metadata: [
                 "error": .string(sanitizationError.description),
                 "raw_title": .string(gameTitle),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw Abort(.badRequest, reason: sanitizationError.description)
         }
         
         // PERFORMANCE OPTIMIZATION: Check cache first
-        let cacheKey = request.services.cacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
+        let cacheKey = cacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
         
-        if let cachedResponse = await request.services.aiCache.get(key: cacheKey) {
-            request.logger.info("Cache hit for rules generation", metadata: [
+        if let cachedResponse = await aiCache.get(key: cacheKey) {
+            context.logger.info("Cache hit for rules generation", metadata: [
                 "game_title": .string(sanitizedGameTitle),
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             
             // Parse and return cached response
@@ -77,9 +97,10 @@ final class DefaultRulesOrchestrationService: RulesOrchestrationService {
             return result
         }
         
-        request.logger.debug("Cache miss for rules generation", metadata: [
+        context.logger.debug("Cache miss for rules generation", metadata: [
             "game_title": .string(sanitizedGameTitle),
-            "cache_key": .string(cacheKey)
+            "cache_key": .string(cacheKey),
+            "request_id": .string(context.requestID)
         ])
         
         // Enhanced prompt for comprehensive, consistent rule generation
@@ -137,7 +158,7 @@ final class DefaultRulesOrchestrationService: RulesOrchestrationService {
         
         let rulesResponse: String
         do {
-            rulesResponse = try await request.services.llm.generateOptimized(
+            rulesResponse = try await llmService.generateOptimized(
                 input: combinedPrompt,
                 model: "gpt-4o-mini",
                 temperature: 0,
@@ -145,50 +166,51 @@ final class DefaultRulesOrchestrationService: RulesOrchestrationService {
                 useJSONMode: true
             )
         } catch {
-            request.logger.error("LLM service error during rules generation", metadata: [
+            context.logger.error("LLM service error during rules generation", metadata: [
                 "error": .string(error.localizedDescription),
                 "game_title": .string(sanitizedGameTitle),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw ContentError.externalServiceFailedToRespond
         }
         
         // SECURITY FIX: Validate AI response before returning using validation service  
         do {
-            let validationService = try await request.resolveService(AIResponseValidationService.self)
-            let validatedResponse = try validationService.validateRulesSummaryResponse(
+            let validatedResponse = try aiResponseValidator.validateRulesSummaryResponse(
                 rulesResponse,
                 gameTitle: sanitizedGameTitle,
-                clientIP: clientIP,
-                logger: request.logger
+                clientIP: context.clientIP,
+                logger: context.logger
             )
             let rulesBuffer = ByteBuffer(string: validatedResponse)
             let result = try JSONDecoder().decode(RulesSummary.Response.self, from: rulesBuffer)
             
             // PERFORMANCE OPTIMIZATION: Cache successful response
-            let cacheConfig = try request.application.configuration.cache
-            await request.services.aiCache.set(
+            await aiCache.set(
                 key: cacheKey,
                 value: validatedResponse,
-                ttl: cacheConfig.rulesGenerationTTL
+                ttl: cacheConfiguration.rulesGenerationTTL
             )
             
             // Log successful generation and caching
-            request.logger.info("AI rules generation completed successfully", metadata: [
+            context.logger.info("AI rules generation completed successfully", metadata: [
                 "game_title": .string(sanitizedGameTitle),
                 "confidence": .string("\(result.confidence)"),
                 "cached": .string("true"),
                 "cache_key": .string(cacheKey),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             
             return result
         } catch {
-            request.logger.error("AI response validation failed for rules generation", metadata: [
+            context.logger.error("AI response validation failed for rules generation", metadata: [
                 "error": .string(error.localizedDescription),
                 "game_title": .string(sanitizedGameTitle),
                 "response_length": .string("\(rulesResponse.count)"),
-                "client_ip": .string(clientIP)
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID)
             ])
             throw ContentError.externalServiceFailedToRespond
         }
