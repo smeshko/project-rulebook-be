@@ -15,8 +15,15 @@ final class LogoutUseCaseTests {
         let mockRepository = TestRefreshTokenRepository()
         let useCase = LogoutUseCase(refreshTokenRepository: mockRepository)
         
-        // Use UserBuilder to create test user
-        let user = UserBuilder.build()
+        // Create test user directly (UserBuilder requires app instance which is not needed for this test)
+        let user = UserAccountModel(
+            email: "test@example.com",
+            password: "hashed_password",
+            firstName: "Test",
+            lastName: "User",
+            isEmailVerified: true
+        )
+        user.id = UUID()
         
         // Act
         let useCaseRequest = LogoutUseCase.Request(user: user)
@@ -36,11 +43,15 @@ final class LogoutUseCaseTests {
         let mockRepository = TestRefreshTokenRepository()
         let useCase = LogoutUseCase(refreshTokenRepository: mockRepository)
         
-        // Use UserBuilder with custom parameters
-        let user = UserBuilder.build(
+        // Create test user with custom parameters
+        let user = UserAccountModel(
             email: "custom@example.com",
+            password: "hashed_password",
+            firstName: "Custom",
+            lastName: "User",
             isEmailVerified: true
         )
+        user.id = UUID()
         
         // Act
         let useCaseRequest = LogoutUseCase.Request(user: user)
