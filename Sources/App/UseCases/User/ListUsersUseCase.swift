@@ -9,7 +9,9 @@ import Vapor
 ///
 /// This use case focuses on the core business logic of user listing
 /// while keeping HTTP concerns separate.
-struct ListUsersUseCase: UseCase {
+/// ## CQRS Classification
+/// This is a **Query** that returns a collection - it only reads user data without modifications.
+struct ListUsersUseCase: Query {
     
     /// Request parameters for user listing.
     struct Request {

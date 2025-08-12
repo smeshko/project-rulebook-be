@@ -11,7 +11,10 @@ import Vapor
 ///
 /// This use case focuses on the core business logic of updating user profiles
 /// while keeping HTTP concerns separate.
-struct UpdateUserProfileUseCase: UseCase {
+/// ## CQRS Classification  
+/// This is an **UpdateCommand** because it modifies existing user profile data.
+struct UpdateUserProfileUseCase: UpdateCommand {
+    typealias EntityID = UUID
     
     /// Request parameters for user profile update.
     struct Request {

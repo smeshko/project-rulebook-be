@@ -57,7 +57,7 @@ extension Application {
         try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
         try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
         try await DomainServiceProvider.register(in: serviceRegistry, app: self)
-        try await UseCaseServiceProvider.register(in: serviceRegistry, app: self)
+        try await CQRSServiceProvider.register(in: serviceRegistry, app: self)
         
         // Validate all services are properly registered
         try await validateServiceRegistration()
@@ -112,8 +112,15 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(RulesOrchestrationService.self)
         _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
         
-        // Validate use cases are registered
+        // Validate CQRS use cases are registered
+        // Commands
         _ = try await serviceRegistry.resolveRequired(LogoutUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(SignUpUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(UpdateUserProfileUseCase.self)
+        
+        // Queries
+        _ = try await serviceRegistry.resolveRequired(GetCurrentUserUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(GetCacheStatsUseCase.self)
         _ = try await serviceRegistry.resolveRequired(AnalyzeGameBoxUseCase.self)
         _ = try await serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
     }

@@ -10,7 +10,10 @@ import Vapor
 ///
 /// This use case demonstrates the minimal pattern for extracting business logic
 /// from controllers into testable, reusable components.
-struct LogoutUseCase: UseCase {
+///
+/// ## CQRS Classification
+/// This is a **Command** because it modifies system state by deleting refresh tokens.
+struct LogoutUseCase: Command {
     
     /// Request parameters for logout operation.
     struct Request {

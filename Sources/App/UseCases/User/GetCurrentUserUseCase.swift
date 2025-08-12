@@ -8,7 +8,10 @@ import Vapor
 ///
 /// This use case focuses on retrieving user profile data in a format
 /// appropriate for client consumption.
-struct GetCurrentUserUseCase: UseCase {
+///
+/// ## CQRS Classification
+/// This is a **Query** because it only reads user data without modifying system state.
+struct GetCurrentUserUseCase: Query {
     
     /// Request parameters for getting current user.
     struct Request {
