@@ -165,7 +165,7 @@ extension Application {
   }
 
   func setupServices() throws {
-    // Existing Vapor DI setup (keeping for backward compatibility)
+    // Existing Vapor DI setup (keeping for backward compatibility with sync tests)
     repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
     repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
     repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db)
@@ -174,7 +174,18 @@ extension Application {
       DatabasePasswordTokenRepository(database: app.db)
     }
 
-    // ServiceRegistry setup (replaces old Vapor DI system)
+    // Service providers setup (keeping for backward compatibility with tests)
+    services.email.use(.brevo)
+    services.randomGenerator.use(.random)
+    services.uuidGenerator.use(.random)
+    services.llm.use(.openAI)
+    services.ipExtractor.use(.default)
+    services.aiCache.use(.inMemory)
+    services.promptSanitizer.use(.default)
+    services.aiInputValidator.use(.default)
+    services.cacheKeyGenerator.use(.default)
+
+    // ServiceRegistry setup (new system running in parallel for transition)
     Task {
       try await setupServiceRegistry()
     }

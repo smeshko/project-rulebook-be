@@ -2,16 +2,17 @@ import XCTVapor
 @testable import App
 
 final class ServiceContainerTests: XCTestCase {
-    var testCase: UnitTestCase!
-    var app: Application { testCase.application }
+    var app: Application!
     
     override func setUp() async throws {
-        testCase = try await UnitTestCase()
+        // Use full application setup for ServiceRegistry tests since they need configuration
+        app = try await Application.make(.testing)
+        try configure(app)
     }
     
     override func tearDown() async throws {
-        try await testCase.shutdown()
-        testCase = nil
+        try await app.asyncShutdown()
+        app = nil
     }
     
     func testServiceRegistryBasics() async throws {
@@ -103,6 +104,7 @@ final class ServiceContainerTests: XCTestCase {
     
     func testRequestServiceResolution() async throws {
         // Test Application.setupServiceRegistry integration
+        // Note: Configuration is already initialized by the test framework
         try await app.setupServiceRegistry()
         
         // Register demo service in the app's registry
