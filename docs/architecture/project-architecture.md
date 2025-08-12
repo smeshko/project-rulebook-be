@@ -137,7 +137,8 @@ extension Application.Services {
 
 extension Request.Services {
     var llm: LLMService {
-        self.request.application.services.llm.service.for(request)
+        // Access pre-resolved service from ServiceCache
+        request.application.serviceCache.llmService.for(request)
     }
 }
 ```

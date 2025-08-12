@@ -262,8 +262,13 @@ extension Application.Service.Provider where ServiceType == ConfigurationService
     }
 }
 
-// Usage
-app.services.configuration.use(.default)
+// ServiceRegistry Registration
+registry.register(ConfigurationService.self) { app in
+    return DefaultConfigurationService(app: app)
+}
+
+// Synchronous Access via ServiceCache
+let config = request.services.configuration
 ```
 
 ## 📱 Module Architecture

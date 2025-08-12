@@ -52,7 +52,8 @@ let userRepo = try await request.resolveService(any UserRepository.self)
 let llmService = try await request.resolveService(LLMService.self)
 
 // Service Registration Pattern
-try await DemoServiceProvider.register(in: app.serviceRegistry, app: app)
+try await RepositoryServiceProvider.register(in: app.serviceRegistry, app: app)
+try await ExternalServiceProvider.register(in: app.serviceRegistry, app: app)
 
 // Application Integration
 try await app.setupServiceRegistry()  // Setup all services

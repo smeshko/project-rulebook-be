@@ -97,7 +97,7 @@ final class ConfigurationServiceTests {
     @Test("Configuration service loads development settings")
     func testDevelopmentConfiguration() async throws {
         let request = testCase.makeMockRequest()
-        let configService = request.application.services.configuration.service
+        let configService = request.services.configuration
         
         let config = try await configService.getDevelopmentConfiguration()
         
@@ -249,14 +249,16 @@ final class ServiceContainerTests: XCTestCase {
         // Test basic service registration and resolution
         let registry = ServiceContainer(application: app)
         
-        // Register demo service
-        try await DemoServiceProvider.register(in: registry, app: app)
+        // Register real services for testing
+        try await RepositoryServiceProvider.register(in: registry, app: app)
+        try await ExternalServiceProvider.register(in: registry, app: app)
         
-        // Test service resolution
-        let demoService = try await registry.resolveRequired(DemoService.self)
-        let message = demoService.getMessage()
+        // Test service resolution with production services
+        let userRepository = try await registry.resolveRequired((any UserRepository).self)
+        let llmService = try await registry.resolveRequired(LLMService.self)
         
-        XCTAssertEqual(message, "Demo Service: ServiceRegistry is working!")
+        XCTAssertNotNil(userRepository)
+        XCTAssertNotNil(llmService)
     }
     
     func testServiceLifecycle() async throws {

@@ -182,15 +182,19 @@ func testEndpoint() async throws {
 
 **Old Pattern (Vapor 4 Services):**
 ```swift
-// Legacy approach
+// Legacy approach (REMOVED)
 let userRepo = request.application.services.userRepository.service
 let llmService = request.application.services.llmService.service
 ```
 
-**New Pattern (ServiceRegistry):**
+**New Pattern (ServiceRegistry with ServiceCache):**
 ```swift
-// ServiceRegistry approach
-let userRepo = try await request.resolveService(any UserRepository.self)
+// Synchronous access via ServiceCache (preferred)
+let userRepo = request.services.users
+let llmService = request.services.llm
+
+// Async resolution via ServiceRegistry (when needed)
+let userRepo = try await request.resolveService((any UserRepository).self)
 let llmService = try await request.resolveService(LLMService.self)
 ```
 
