@@ -1,22 +1,157 @@
-# Complete API Documentation
+# Clean Architecture API Documentation
 
-This document provides comprehensive documentation for all API endpoints in the Project Rulebook application, including request/response schemas, authentication requirements, rate limiting, and practical examples.
+This document provides comprehensive documentation for all API endpoints in the Project Rulebook application following the Clean Architecture implementation. It covers request/response schemas, authentication requirements, rate limiting, and the new architectural patterns.
 
 ## Table of Contents
-1. [ServiceRegistry Integration (Phase 4.1)](#serviceregistry-integration-phase-41)
-2. [Authentication & Authorization](#authentication--authorization)
-3. [Rate Limiting](#rate-limiting)
-4. [Security Headers](#security-headers)
-5. [AI-Powered Features](#ai-powered-features)
-6. [User Management](#user-management)
-7. [Authentication Endpoints](#authentication-endpoints)
-8. [Cache Administration](#cache-administration)
-9. [Error Handling](#error-handling)
-10. [Development & Testing](#development--testing)
+1. [Clean Architecture Overview](#clean-architecture-overview)
+2. [Use Case-Driven Endpoints](#use-case-driven-endpoints)
+3. [CQRS Implementation](#cqrs-implementation)
+4. [Authentication & Authorization](#authentication--authorization)
+5. [Rate Limiting](#rate-limiting)
+6. [Security Headers](#security-headers)
+7. [AI-Powered Features](#ai-powered-features)
+8. [User Management](#user-management)
+9. [Authentication Endpoints](#authentication-endpoints)
+10. [Cache Administration](#cache-administration)
+11. [Error Handling](#error-handling)
+12. [Development & Testing](#development--testing)
 
 ---
 
-## ServiceRegistry Integration (Phase 4.1)
+## Clean Architecture Overview
+
+Project Rulebook has been fully refactored to implement Clean Architecture with the following key characteristics:
+
+### 80% Controller Complexity Reduction
+Controllers now contain only HTTP-specific concerns:
+```swift
+// Before: 150+ lines of mixed business and HTTP logic
+// After: 20-30 lines of pure HTTP handling
+func signIn(_ request: Request) async throws -> Response {
+    // 1. Parse and validate HTTP input
+    let credentials = try request.content.decode(SignInRequest.self)
+    
+    // 2. Execute use case with business logic
+    let useCase = try await request.resolveRequired(SignInUseCase.self)
+    let result = try await useCase.execute(.init(
+        user: request.user // Already validated by middleware
+    ))
+    
+    // 3. Format HTTP response
+    return AuthResponse(
+        accessToken: try generateAccessToken(for: result.user),
+        refreshToken: result.refreshToken,
+        user: UserResponse(from: result.user)
+    )
+}
+```
+
+### Use Case Architecture
+All business logic has been extracted to dedicated use cases:
+- **25+ Use Cases** across authentication, user management, AI operations, and cache administration
+- **Single Responsibility** - Each use case handles one specific business operation
+- **Framework Independent** - Pure business logic without HTTP dependencies
+- **Fully Testable** - Comprehensive test coverage with mocked dependencies
+
+### Domain Services
+3 domain services handle complex business logic:
+- **RulesOrchestrationService** - AI rules generation workflow
+- **GameIdentificationService** - Image analysis coordination
+- **AIResponseValidationService** - Security validation pipeline
+
+### Service Registry with Dependency Injection
+Comprehensive ServiceRegistry system provides:
+- **Thread-safe service resolution** using NIOLock
+- **Lazy initialization** with singleton caching
+- **Lifecycle management** with startup/shutdown hooks
+- **Health monitoring** for all registered services
+- **Request-level service access** through `request.services`
+- **Complete mockability** for testing isolation
+
+---
+
+## Use Case-Driven Endpoints
+
+Every API endpoint is now powered by a dedicated use case that encapsulates the business logic:
+
+### Authentication Use Cases
+- `SignUpUseCase` - User registration with validation
+- `SignInUseCase` - Authentication and token generation
+- `LogoutUseCase` - Session termination and cleanup
+- `RefreshTokenUseCase` - Token refresh operations
+
+### User Management Use Cases
+- `GetCurrentUserUseCase` - Current user profile retrieval
+- `UpdateUserProfileUseCase` - Profile modification
+- `ListUsersUseCase` - Admin user listing
+- `DeleteUserAccountUseCase` - Account deletion
+
+### AI Operations Use Cases
+- `GenerateRulesUseCase` - Game rules generation
+- `AnalyzeGameBoxUseCase` - Image analysis operations
+
+### Cache Administration Use Cases
+- `GetCacheStatsUseCase` - Cache performance metrics
+- `GetCacheHealthUseCase` - Cache health monitoring
+- `ClearCacheUseCase` - Cache cleanup operations
+- `ManualCleanupUseCase` - Manual cache maintenance
+
+### Use Case Execution Pattern
+All endpoints follow this consistent pattern:
+```swift
+func endpointHandler(_ request: Request) async throws -> Response {
+    // 1. Parse HTTP input and validate
+    let input = try request.content.decode(RequestType.self)
+    
+    // 2. Resolve and execute use case
+    let useCase = try await request.resolveRequired(UseCaseType.self)
+    let result = try await useCase.execute(.init(from: input))
+    
+    // 3. Format and return HTTP response
+    return ResponseType(from: result)
+}
+```
+
+---
+
+## CQRS Implementation
+
+The API implements Command Query Responsibility Segregation (CQRS) to clearly separate read and write operations:
+
+### Commands (Write Operations)
+Commands modify system state and may return success indicators or created resource IDs:
+
+**Creation Commands:**
+- `POST /api/auth/sign-up` → `SignUpUseCase: CreationCommand`
+- `POST /api/reviews` → `CreateGameReviewUseCase: CreationCommand`
+
+**Update Commands:**
+- `PATCH /api/users/profile` → `UpdateUserProfileUseCase: UpdateCommand`
+
+**Void Commands (No return data):**
+- `POST /api/auth/logout` → `LogoutUseCase: VoidCommand`
+- `DELETE /api/admin/cache` → `ClearCacheUseCase: VoidCommand`
+
+### Queries (Read Operations)
+Queries return data without modifying system state:
+
+**Single Entity Queries:**
+- `GET /api/users/me` → `GetCurrentUserUseCase: Query`
+- `GET /api/admin/cache/health` → `GetCacheHealthUseCase: Query`
+
+**Collection Queries:**
+- `GET /api/users` → `ListUsersUseCase: CollectionQuery`
+- `GET /api/admin/cache/entries` → `GetCacheEntriesUseCase: CollectionQuery`
+
+### CQRS Benefits
+1. **Clear Separation** - Read and write operations are distinct
+2. **Optimized Performance** - Queries can be cached, commands ensure consistency
+3. **Security** - Different authorization rules for reads vs writes
+4. **Testing** - Easy to test read vs write scenarios separately
+
+---
+
+## ServiceRegistry Integration
 
 ### New Dependency Injection Patterns for Controllers
 

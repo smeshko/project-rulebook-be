@@ -51,34 +51,33 @@ final class AuthSignupTests: XCTestCase {
             
             // Verify user was created in database
             let model = try await app.repositories.users.find(id: content.user.id)
-            XCTAssertNotNil(model)
-            XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
+            XCTAssertNotNil(model, "User should exist in database")
+            guard let foundModel = model else {
+                XCTFail("User not found in database")
+                return
+            }
+            guard let password = foundModel.password else {
+                XCTFail("User password is nil")
+                return
+            }
+            XCTAssertTrue(try BCryptDigest().verify("password123", created: password))
             
-            // Verify email token was created for the user (don't predict exact random value)
-            let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)
-            XCTAssertNotNil(emailToken)
-            XCTAssertEqual(emailToken?.$user.id, content.user.id)
+            // TODO: Restore email token verification when email verification is re-enabled
+            // let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)
+            // XCTAssertNotNil(emailToken)
+            // XCTAssertEqual(emailToken?.$user.id, content.user.id)
         })
     }
     
     func testRegisterFailsWithExistingEmail() async throws {
-        try await app.autoMigrate()
-        
-        do {
-
-        // Use database repositories instead of test repositories
-        app.repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
-        app.repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db) }
-        app.repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
-        app.repositories.passwordTokensService.use { app in DatabasePasswordTokenRepository(database: app.db) }
-        
-        let user = UserAccountModel(
+        // Create a user first using the test repository
+        let existingUser = UserAccountModel(
             email: "test@test.com",
             password: "123"
         )
+        try await app.repositories.users.create(existingUser)
 
-        try await user.create(on: app.db)
-
+        // Try to register with the same email
         let registerRequest = Auth.SignUp.Request(
             email: "test@test.com",
             password: "password123",
@@ -90,15 +89,10 @@ final class AuthSignupTests: XCTestCase {
             try req.content.encode(registerRequest)
         }, afterResponse: { res async throws in
             XCTAssertResponseError(res, AuthenticationError.emailAlreadyExists)
-            let users = try await UserAccountModel.query(on: app.db).all()
+            // Verify only one user exists in the test repository
+            let users = try await app.repositories.users.all()
             XCTAssertEqual(users.count, 1)
         })
-        } catch {
-            try await app.autoRevert()
-            throw error
-        }
-        
-        try await app.autoRevert()
     }
     
     func testRegisterValidations() throws {

@@ -11,6 +11,7 @@ extension Application {
         accessToken: String? = nil,
         user: UserAccountModel? = nil,
         content: C,
+        beforeRequest: (inout XCTHTTPRequest) async throws -> () = { _ in },
         afterResponse: (XCTHTTPResponse) async throws -> () = { _ in },
         file: StaticString = #file,
         line: UInt = #line
@@ -27,6 +28,7 @@ extension Application {
         }
         
         return try await test(method, path, headers: headers, beforeRequest: { req in
+            try await beforeRequest(&req)
             try req.content.encode(content)
         }, afterResponse: afterResponse)
     }

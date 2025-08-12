@@ -6,7 +6,7 @@ extension RulesSummary {
     public struct Request: Codable, Equatable, Sendable {
         public let gameTitle: String
         
-        init(gameTitle: String) {
+        public init(gameTitle: String) {
             self.gameTitle = gameTitle
         }
     }

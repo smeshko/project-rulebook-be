@@ -23,8 +23,8 @@ final class ConfigurationTests: XCTestCase {
         let services = try config.services
         XCTAssertEqual(services.brevoURL, "https://api.brevo.com")
         XCTAssertEqual(services.brevoAPIKey, "test_brevo_key")  // From .env.testing (loaded by test suite)
-        // OpenAI key is from actual environment variable
-        XCTAssertTrue(services.openAIKey.hasPrefix("sk-"))  // Real OpenAI API key from environment
+        // OpenAI key from .env.testing
+        XCTAssertEqual(services.openAIKey, "test_openai_key")  // From .env.testing
         
         let security = try config.security
         XCTAssertEqual(security.baseURL, "http://localhost:8080")

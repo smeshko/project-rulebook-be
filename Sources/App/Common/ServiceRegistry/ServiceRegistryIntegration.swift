@@ -54,8 +54,13 @@ extension Application {
     /// - Throws: Service registration or startup errors that prevent application launch
     public func setupServiceRegistry() async throws {
         // Register all services in the registry in dependency order
-        try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        // Skip database repositories for testing environment if test repositories are already registered
+        if environment != .testing || !isTestRepositoriesRegistered() {
+            try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        }
         try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        try await DomainServiceProvider.register(in: serviceRegistry, app: self)
+        try await CQRSServiceProvider.register(in: serviceRegistry, app: self)
         
         // Validate all services are properly registered
         try await validateServiceRegistration()
@@ -65,6 +70,16 @@ extension Application {
         
         // Start up all services that implement ServiceLifecycle
         try await serviceRegistry.startupAll(self)
+    }
+    
+    /// Checks if test repositories are already registered in the service registry.
+    ///
+    /// This prevents database repositories from overriding test repositories during testing.
+    private func isTestRepositoriesRegistered() -> Bool {
+        return serviceRegistry.isRegistered((any UserRepository).self) &&
+               serviceRegistry.isRegistered((any RefreshTokenRepository).self) &&
+               serviceRegistry.isRegistered((any EmailTokenRepository).self) &&
+               serviceRegistry.isRegistered((any PasswordTokenRepository).self)
     }
     
     /// Validates that all required services are properly registered.
@@ -98,10 +113,29 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
         _ = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
+        
+        // Validate additional external services are registered
         _ = try await serviceRegistry.resolveRequired(IPExtractorService.self)
         _ = try await serviceRegistry.resolveRequired(PromptSanitizerServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
+        
+        // Validate domain services are registered
+        _ = try await serviceRegistry.resolveRequired(GameIdentificationService.self)
+        _ = try await serviceRegistry.resolveRequired(RulesOrchestrationService.self)
+        _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
+        
+        // Validate CQRS use cases are registered
+        // Commands
+        _ = try await serviceRegistry.resolveRequired(LogoutUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(SignUpUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(UpdateUserProfileUseCase.self)
+        
+        // Queries
+        _ = try await serviceRegistry.resolveRequired(GetCurrentUserUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(GetCacheStatsUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(AnalyzeGameBoxUseCase.self)
+        _ = try await serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
     }
     
     /// Pre-resolves all services and creates a service cache for synchronous access.

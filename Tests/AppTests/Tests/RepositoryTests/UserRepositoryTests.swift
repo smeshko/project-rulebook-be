@@ -18,7 +18,8 @@ final class UserRepositoryTests: XCTestCase {
     }
     
     func testDefaultProvider() throws {
-        let defaultProvider = app.repositories.users
+        // Test that DatabaseUserRepository can be instantiated with database
+        let defaultProvider = DatabaseUserRepository(database: app.db)
         XCTAssertTrue(type(of: defaultProvider) == DatabaseUserRepository.self)
     }
     

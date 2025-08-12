@@ -191,13 +191,6 @@ extension Request.Services {
     }
 }
 
-extension Application.Service.Provider where ServiceType == CacheKeyGeneratorServiceInterface {
-    static var `default`: Self {
-        .init {
-            $0.services.cacheKeyGenerator.use { DefaultCacheKeyGeneratorService(app: $0) }
-        }
-    }
-}
 
 // MARK: - Character Extension
 

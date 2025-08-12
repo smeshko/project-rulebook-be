@@ -262,7 +262,7 @@ actor InMemoryAICacheService: AICacheServiceInterface {
     // MARK: - AICacheServiceInterface Implementation
     
     nonisolated func `for`(_ request: Request) -> AICacheServiceInterface {
-        let keyGenerator = request.application.services.cacheKeyGenerator.service
+        let keyGenerator = request.application.serviceCache.cacheKeyGeneratorService.for(request)
         return Self(configuration: configuration, logger: request.logger, keyGenerator: keyGenerator)
     }
     

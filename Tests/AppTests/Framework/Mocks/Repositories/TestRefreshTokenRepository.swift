@@ -2,9 +2,19 @@
 import Vapor
 import Crypto
 
-class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
+final class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
     var tokens: [RefreshTokenModel]
     typealias Model = RefreshTokenModel
+    
+    // Test tracking properties
+    var createCalled = false
+    var deleteCalled = false
+
+    /// Alias for consistent test interface
+    var entities: [RefreshTokenModel] {
+        get { tokens }
+        set { tokens = newValue }
+    }
 
     init(tokens: [RefreshTokenModel] = []) {
         self.tokens = tokens
@@ -23,6 +33,7 @@ class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
     }
     
     func create(_ model: RefreshTokenModel) async throws {
+        createCalled = true
         model.id = UUID()
         tokens.append(model)
     }
@@ -36,6 +47,7 @@ class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
     }
     
     func delete(id: UUID) async throws {
+        deleteCalled = true
         tokens.removeAll(where: { $0.id == id })
     }
     
@@ -45,5 +57,11 @@ class TestRefreshTokenRepository: RefreshTokenRepository, TestRepository {
     
     func reset() async {
         tokens.removeAll()
+        createCalled = false
+        deleteCalled = false
+    }
+    
+    func `for`(_ req: Request) -> TestRefreshTokenRepository {
+        return self
     }
 }

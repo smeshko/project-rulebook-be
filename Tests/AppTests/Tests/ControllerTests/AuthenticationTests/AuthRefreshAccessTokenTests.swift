@@ -35,7 +35,7 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
         
         let accessTokenRequest = Auth.TokenRefresh.Request(refreshToken: "firstrefreshtoken")
         
-        try await app.test(.POST, accessTokenPath, content: accessTokenRequest) { res in
+        try await app.test(.POST, accessTokenPath, content: accessTokenRequest, afterResponse: { res in
             XCTAssertEqual(res.status, .ok)
             XCTAssertContent(Auth.TokenRefresh.Response.self, res) { response in
                 XCTAssertFalse(response.accessToken.isEmpty)
@@ -49,7 +49,7 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
             let content = try res.content.decode(Auth.TokenRefresh.Response.self)
             let newToken = try await app.repositories.refreshTokens.find(token: SHA256.hash(content.refreshToken))
             XCTAssertNotNil(newToken)
-        }
+        })
     }
     
     func testRefreshAccessTokenFailsWithExpiredRefreshToken() async throws {
@@ -66,12 +66,21 @@ final class AuthRefreshAccessTokenTests: XCTestCase {
     }
     
     func testRefreshAccessTokenFailsWhenUserDoesntExist() async throws {
-        let token = RefreshTokenModel(value: SHA256.hash("123"), userID: UUID())
+        // Create a user that will be deleted
+        let tempUser = UserAccountModel(email: "temp@test.com", password: "123")
+        try await app.repositories.users.create(tempUser)
+        
+        // Create a refresh token for this user
+        let token = try RefreshTokenModel(value: SHA256.hash("123"), userID: tempUser.requireID())
         try await app.repositories.refreshTokens.create(token)
+        
+        // Delete the user to simulate user not found scenario
+        try await app.repositories.users.delete(id: tempUser.requireID())
         
         let accessTokenRequest = Auth.TokenRefresh.Request(refreshToken: "123")
 
         try await app.test(.POST, accessTokenPath, content: accessTokenRequest, afterResponse: { res in
+            // When the user doesn't exist but token does, we get userNotFound
             XCTAssertResponseError(res, UserError.userNotFound)
         })
     }

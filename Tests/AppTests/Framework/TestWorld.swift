@@ -3,6 +3,51 @@ import Fluent
 import FluentSQLiteDriver
 import XCTVapor
 
+/// Shared test repositories that get used across the application
+private final class SharedTestRepositories: @unchecked Sendable {
+    static let shared = SharedTestRepositories()
+    
+    let tokenRepository: TestRefreshTokenRepository = .init()
+    let userRepository: TestUserRepository = .init()
+    let emailTokenRepository: TestEmailTokenRepository = .init()
+    let passwordTokenRepository: TestPasswordTokenRepository = .init()
+    
+    private init() {}
+    
+    func reset() async {
+        await tokenRepository.reset()
+        await userRepository.reset()
+        await emailTokenRepository.reset()
+        await passwordTokenRepository.reset()
+    }
+    
+    func resetSync() {
+        Task {
+            await reset()
+        }
+    }
+}
+
+/// Helper class to set up test repositories before configure() runs
+private class TestWorldPreConfiguration {
+    let app: Application
+    
+    init(app: Application) throws {
+        self.app = app
+    }
+    
+    func setupTestRepositories() {
+        let shared = SharedTestRepositories.shared
+        
+        // Register test repositories in service registry BEFORE it gets finalized
+        // This ensures all services use test repositories
+        app.serviceRegistry.register((any UserRepository).self) { _ in shared.userRepository }
+        app.serviceRegistry.register((any RefreshTokenRepository).self) { _ in shared.tokenRepository }
+        app.serviceRegistry.register((any EmailTokenRepository).self) { _ in shared.emailTokenRepository }
+        app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in shared.passwordTokenRepository }
+    }
+}
+
 /// Enhanced test world for comprehensive testing with mock services and repositories.
 ///
 /// TestWorld provides a complete testing environment with all necessary mock services
@@ -14,11 +59,8 @@ import XCTVapor
 class TestWorld: @unchecked Sendable {
     let app: Application
     
-    // MARK: - Test Repositories
-    private let tokenRepository: TestRefreshTokenRepository = .init()
-    private let userRepository: TestUserRepository = .init()
-    private let emailTokenRepository: TestEmailTokenRepository = .init()
-    private let passwordTokenRepository: TestPasswordTokenRepository = .init()
+    // MARK: - Test Repositories (shared across the application)
+    private let sharedRepositories = SharedTestRepositories.shared
     
     // MARK: - Mock Services
     private let fakeLLMService: FakeLLMService
@@ -37,6 +79,9 @@ class TestWorld: @unchecked Sendable {
     /// - Throws: Configuration errors
     init(app: Application) throws {
         self.app = app
+        
+        // Reset shared repositories to ensure clean state for each test
+        SharedTestRepositories.shared.resetSync()
         
         // Initialize mock services
         self.fakeLLMService = FakeLLMService(app: app)
@@ -77,22 +122,22 @@ class TestWorld: @unchecked Sendable {
     
     /// Access to the test user repository.
     var users: TestUserRepository {
-        userRepository
+        sharedRepositories.userRepository
     }
     
     /// Access to the test refresh token repository.
     var refreshTokens: TestRefreshTokenRepository {
-        tokenRepository
+        sharedRepositories.tokenRepository
     }
     
     /// Access to the test email token repository.
     var emailTokens: TestEmailTokenRepository {
-        emailTokenRepository
+        sharedRepositories.emailTokenRepository
     }
     
     /// Access to the test password token repository.
     var passwordTokens: TestPasswordTokenRepository {
-        passwordTokenRepository
+        sharedRepositories.passwordTokenRepository
     }
     
     // MARK: - Test Utilities
@@ -102,10 +147,7 @@ class TestWorld: @unchecked Sendable {
     /// Use this method between tests to ensure clean state and avoid test pollution.
     func resetAll() async {
         // Reset repositories
-        await userRepository.reset()
-        await tokenRepository.reset()
-        await emailTokenRepository.reset()
-        await passwordTokenRepository.reset()
+        await sharedRepositories.reset()
         
         // Reset services
         fakeLLMService.reset()
@@ -149,10 +191,14 @@ class TestWorld: @unchecked Sendable {
     }
     
     private func setupRepositories() {
-        app.repositories.refreshTokensService.use { _ in self.tokenRepository }
-        app.repositories.usersService.use { _ in self.userRepository }
-        app.repositories.emailTokensService.use { _ in self.emailTokenRepository }
-        app.repositories.passwordTokensService.use { _ in self.passwordTokenRepository }
+        // Override old Vapor service system repositories
+        app.repositories.refreshTokensService.use { _ in self.sharedRepositories.tokenRepository }
+        app.repositories.usersService.use { _ in self.sharedRepositories.userRepository }
+        app.repositories.emailTokensService.use { _ in self.sharedRepositories.emailTokenRepository }
+        app.repositories.passwordTokensService.use { _ in self.sharedRepositories.passwordTokenRepository }
+        
+        // Note: Service registry repositories are already set up in TestWorldPreConfiguration
+        // before configure() runs, so we don't need to register them again here
     }
     
     private func setupServices() {
@@ -191,6 +237,12 @@ class TestWorld: @unchecked Sendable {
     /// - Throws: Configuration errors
     static func makeTestAppSync() throws -> Application {
         let app = Application(.testing)
+        
+        // Pre-configure test repositories BEFORE running configure()
+        // This ensures the service registry uses test repositories
+        let testWorld = try TestWorldPreConfiguration(app: app)
+        testWorld.setupTestRepositories()
+        
         try configure(app)
         return app
     }
