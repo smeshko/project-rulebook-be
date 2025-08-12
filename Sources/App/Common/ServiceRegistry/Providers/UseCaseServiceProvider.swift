@@ -84,5 +84,21 @@ public struct UseCaseServiceProvider: ServiceProvider {
                 randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
             )
         }
+        
+        // MARK: - Rules Generation Use Cases
+        
+        /// Analyze game box use case for AI-powered game identification business logic
+        registry.register(AnalyzeGameBoxUseCase.self) { app in
+            AnalyzeGameBoxUseCase(
+                gameIdentificationService: try await app.serviceRegistry.resolveRequired(GameIdentificationService.self)
+            )
+        }
+        
+        /// Generate rules use case for AI-powered rules generation business logic
+        registry.register(GenerateRulesUseCase.self) { app in
+            GenerateRulesUseCase(
+                rulesOrchestrationService: try await app.serviceRegistry.resolveRequired(RulesOrchestrationService.self)
+            )
+        }
     }
 }

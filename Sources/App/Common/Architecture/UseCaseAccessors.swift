@@ -22,9 +22,13 @@ struct UseCases {
         AuthUseCases(request: request)
     }
     
+    /// Rules generation-related use cases.
+    var rules: RulesUseCases {
+        RulesUseCases(request: request)
+    }
+    
     // Future namespaces will be added here:
     // var user: UserUseCases { UserUseCases(request: request) }
-    // var rules: RulesUseCases { RulesUseCases(request: request) }
 }
 
 /// Namespace for authentication-related use cases.
@@ -64,6 +68,25 @@ struct AuthUseCases {
     var refreshToken: RefreshTokenUseCase {
         get async throws {
             try await request.resolveService(RefreshTokenUseCase.self)
+        }
+    }
+}
+
+/// Namespace for rules generation-related use cases.
+struct RulesUseCases {
+    let request: Request
+    
+    /// Analyze game box use case for AI-powered game identification.
+    var analyzeGameBox: AnalyzeGameBoxUseCase {
+        get async throws {
+            try await request.resolveService(AnalyzeGameBoxUseCase.self)
+        }
+    }
+    
+    /// Generate rules use case for AI-powered rules generation.
+    var generateRules: GenerateRulesUseCase {
+        get async throws {
+            try await request.resolveService(GenerateRulesUseCase.self)
         }
     }
 }
