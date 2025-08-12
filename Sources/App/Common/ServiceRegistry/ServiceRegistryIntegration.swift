@@ -56,6 +56,7 @@ extension Application {
         // Register all services in the registry in dependency order
         try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
         try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        try await UseCaseServiceProvider.register(in: serviceRegistry, app: self)
         
         // Validate all services are properly registered
         try await validateServiceRegistration()
@@ -98,6 +99,9 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
         _ = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
+        
+        // Validate use cases are registered
+        _ = try await serviceRegistry.resolveRequired(LogoutUseCase.self)
         _ = try await serviceRegistry.resolveRequired(IPExtractorService.self)
         _ = try await serviceRegistry.resolveRequired(PromptSanitizerServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self)
