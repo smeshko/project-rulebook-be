@@ -480,7 +480,8 @@ extension Application.Services {
 
 extension Request.Services {
     var promptSanitizer: PromptSanitizerServiceInterface {
-        request.application.services.promptSanitizer.service.for(request)
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.promptSanitizerService.for(request)
     }
 }
 

@@ -57,6 +57,7 @@ extension Application.Repositories {
 
 extension Request.Services {
     var refreshTokens: any RefreshTokenRepository {
-        request.application.repositories.refreshTokens
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.refreshTokenRepository
     }
 }

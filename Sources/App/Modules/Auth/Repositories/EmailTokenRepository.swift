@@ -69,6 +69,7 @@ extension Application.Repositories {
 
 extension Request.Services {
     var emailTokens: any EmailTokenRepository {
-        request.application.repositories.emailTokens
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.emailTokenRepository
     }
 }

@@ -59,6 +59,7 @@ extension Application.Repositories {
 
 extension Request.Services {
     var users: any UserRepository {
-        request.application.repositories.users
+        // Use pre-resolved service from ServiceCache for immediate synchronous access
+        request.application.serviceCache.userRepository
     }
 }

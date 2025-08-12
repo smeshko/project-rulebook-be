@@ -165,29 +165,24 @@ extension Application {
   }
 
   func setupServices() throws {
-    // Existing Vapor DI setup (keeping for backward compatibility with sync tests)
-    repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
-    repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
-    repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db)
-    }
-    repositories.passwordTokensService.use { app in
-      DatabasePasswordTokenRepository(database: app.db)
-    }
-
-    // Service providers setup (keeping for backward compatibility with tests)
-    services.email.use(.brevo)
-    services.randomGenerator.use(.random)
-    services.uuidGenerator.use(.random)
-    services.llm.use(.openAI)
-    services.ipExtractor.use(.default)
-    services.aiCache.use(.inMemory)
-    services.promptSanitizer.use(.default)
-    services.aiInputValidator.use(.default)
-    services.cacheKeyGenerator.use(.default)
-
-    // ServiceRegistry setup (new system running in parallel for transition)
+    // ServiceRegistry setup (replaces old Vapor DI system completely)
+    // Create a semaphore to block until async setup completes
+    let semaphore = DispatchSemaphore(value: 0)
+    var setupError: Error?
+    
     Task {
-      try await setupServiceRegistry()
+      do {
+        try await setupServiceRegistry()
+      } catch {
+        setupError = error
+      }
+      semaphore.signal()
+    }
+    
+    semaphore.wait()
+    
+    if let error = setupError {
+      throw error
     }
   }
 }

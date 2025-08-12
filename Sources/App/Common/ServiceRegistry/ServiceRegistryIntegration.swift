@@ -55,12 +55,14 @@ extension Application {
     /// - Throws: Service registration or startup errors that prevent application launch
     public func setupServiceRegistry() async throws {
         // Register all services in the registry in dependency order
-        try await DemoServiceProvider.register(in: serviceRegistry, app: self)
         try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
         try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
         
         // Validate all services are properly registered
         try await validateServiceRegistration()
+        
+        // Pre-resolve all services and create service cache for synchronous access
+        try await createServiceCache()
         
         // Start up all services that implement ServiceLifecycle
         try await serviceRegistry.startupAll(self)
@@ -101,6 +103,93 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(PromptSanitizerServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self)
         _ = try await serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
+    }
+    
+    /// Pre-resolves all services and creates a service cache for synchronous access.
+    ///
+    /// This method resolves all frequently accessed services from the ServiceRegistry
+    /// and stores them in a ServiceCache for immediate synchronous access. This enables
+    /// the convenient service accessor patterns to work without async resolution.
+    ///
+    /// ## Pre-Resolution Benefits
+    /// - **Synchronous Access**: Enables `request.services.llm` syntax without async
+    /// - **Performance**: Eliminates repeated async resolution during request processing
+    /// - **Early Validation**: Catches service initialization issues during startup
+    /// - **API Compatibility**: Preserves existing service accessor patterns
+    ///
+    /// ## Cached Services
+    /// This method pre-resolves and caches:
+    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens)
+    /// - All external services (email, llm, aiCache, generators, validators)
+    /// - All utility services (randomGenerator, uuidGenerator, ipExtractor)
+    ///
+    /// ## Memory Management
+    /// Services are resolved once during startup and cached for the application's lifetime.
+    /// This trades a small amount of memory for significant performance improvements
+    /// and API compatibility.
+    ///
+    /// - Throws: Service resolution errors if any service cannot be created
+    private func createServiceCache() async throws {
+        // Pre-resolve all repositories
+        let userRepository = try await serviceRegistry.resolveRequired((any UserRepository).self)
+        let emailTokenRepository = try await serviceRegistry.resolveRequired((any EmailTokenRepository).self)
+        let refreshTokenRepository = try await serviceRegistry.resolveRequired((any RefreshTokenRepository).self)
+        let passwordTokenRepository = try await serviceRegistry.resolveRequired((any PasswordTokenRepository).self)
+        
+        // Pre-resolve all external services
+        let emailService = try await serviceRegistry.resolveRequired(EmailService.self)
+        let llmService = try await serviceRegistry.resolveRequired(LLMService.self)
+        let aiCacheService = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
+        let randomGeneratorService = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
+        let uuidGeneratorService = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
+        let ipExtractorService = try await serviceRegistry.resolveRequired(IPExtractorService.self)
+        let promptSanitizerService = try await serviceRegistry.resolveRequired(PromptSanitizerServiceInterface.self)
+        let aiInputValidatorService = try await serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self)
+        let cacheKeyGeneratorService = try await serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
+        
+        // Create service cache with all pre-resolved services
+        let serviceCache = ServiceCache(
+            userRepository: userRepository,
+            emailTokenRepository: emailTokenRepository,
+            refreshTokenRepository: refreshTokenRepository,
+            passwordTokenRepository: passwordTokenRepository,
+            emailService: emailService,
+            llmService: llmService,
+            aiCacheService: aiCacheService,
+            randomGeneratorService: randomGeneratorService,
+            uuidGeneratorService: uuidGeneratorService,
+            ipExtractorService: ipExtractorService,
+            promptSanitizerService: promptSanitizerService,
+            aiInputValidatorService: aiInputValidatorService,
+            cacheKeyGeneratorService: cacheKeyGeneratorService
+        )
+        
+        // Store service cache in application storage for global access
+        self.serviceCache = serviceCache
+        
+        logger.info("ServiceCache created with all services pre-resolved for synchronous access")
+    }
+    
+    /// Sets up ServiceRegistry synchronously for testing environments.
+    ///
+    /// This method provides a synchronous alternative to setupServiceRegistry() that
+    /// can be used in test environments where the async setup doesn't complete before
+    /// services are accessed. It performs the same setup but without Task wrapping.
+    ///
+    /// ## Usage
+    /// ```swift
+    /// // In test setup
+    /// try await app.setupServiceRegistrySync()
+    /// ```
+    ///
+    /// ## Differences from Async Setup
+    /// - Runs synchronously without Task wrapper
+    /// - Suitable for test environments
+    /// - Maintains same service registration and validation
+    ///
+    /// - Throws: Service registration, validation, or startup errors
+    public func setupServiceRegistrySync() async throws {
+        try await setupServiceRegistry()
     }
     
     /// Gracefully shuts down all services in the registry.
