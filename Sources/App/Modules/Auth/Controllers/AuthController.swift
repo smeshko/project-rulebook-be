@@ -266,17 +266,14 @@ struct AuthController {
         // 1. Extract authenticated user (HTTP concern)
         let user = try req.auth.require(UserAccountModel.self)
         
-        // 2. Create use case request
-        let useCaseRequest = LogoutUseCase.Request(user: user)
+        // 2. Execute use case (business logic)
+        let logoutUseCase = try await req.useCases.auth.logout
+        _ = try await logoutUseCase.execute(LogoutUseCase.Request(user: user))
         
-        // 3. Resolve and execute use case (business logic)
-        let logoutUseCase = try await req.resolveService(LogoutUseCase.self)
-        _ = try await logoutUseCase.execute(useCaseRequest)
-        
-        // 4. Handle HTTP authentication state (HTTP concern)
+        // 3. Handle HTTP authentication state (HTTP concern)
         req.auth.logout(UserAccountModel.self)
         
-        // 5. Return HTTP response
+        // 4. Return HTTP response
         return .ok
     }
     

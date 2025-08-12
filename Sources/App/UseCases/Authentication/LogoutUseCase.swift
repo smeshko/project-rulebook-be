@@ -20,8 +20,6 @@ struct LogoutUseCase: UseCase {
     
     /// Response from logout operation.
     struct Response {
-        /// Confirmation that logout was successful
-        let success: Bool
         /// Timestamp when logout completed
         let loggedOutAt: Date
     }
@@ -43,10 +41,7 @@ struct LogoutUseCase: UseCase {
         // Business logic: Clean up all refresh tokens for security
         try await refreshTokenRepository.delete(forUserID: request.user.requireID())
         
-        // Return success response
-        return Response(
-            success: true,
-            loggedOutAt: Date.now
-        )
+        // Return response with timestamp
+        return Response(loggedOutAt: Date.now)
     }
 }
