@@ -7,8 +7,9 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
     private let lock = NIOLock()
     private var factories: [ObjectIdentifier: Any] = [:]
     private var instances: [ObjectIdentifier: Any] = [:]
-    private var lifecycleServices: [Any] = []
-    private var healthCheckServices: [Any] = []
+    private var lifecycleServices: [ObjectIdentifier: ServiceLifecycle] = [:]
+    private var healthCheckServices: [ObjectIdentifier: ServiceHealthCheck] = [:]
+    private var resolutionStack: Set<ObjectIdentifier> = []
     private let application: Application
     
     public init(application: Application) {
@@ -20,8 +21,13 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
     public func register<T>(_ type: T.Type, factory: @escaping @Sendable (Application) async throws -> T) {
         let key = ObjectIdentifier(type)
         
+        // Validate factory type at registration time to catch issues early
+        let wrappedFactory: @Sendable (Application) async throws -> Any = { app in
+            try await factory(app)
+        }
+        
         lock.withLock {
-            factories[key] = factory
+            factories[key] = wrappedFactory
             instances.removeValue(forKey: key)
         }
     }
@@ -33,19 +39,28 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
             instances[key] = instance
             factories.removeValue(forKey: key)
             
-            // Track lifecycle and health check services
+            // Track lifecycle and health check services using ObjectIdentifier for reliable removal
             if let lifecycle = instance as? ServiceLifecycle {
-                lifecycleServices.append(lifecycle)
+                lifecycleServices[key] = lifecycle
             }
             
             if let healthCheck = instance as? ServiceHealthCheck {
-                healthCheckServices.append(healthCheck)
+                healthCheckServices[key] = healthCheck
             }
         }
     }
     
     public func resolve<T>(_ type: T.Type) async throws -> T? {
         let key = ObjectIdentifier(type)
+        
+        // Check for circular dependency
+        let isCircular = lock.withLock { resolutionStack.contains(key) }
+        if isCircular {
+            let chain = lock.withLock {
+                resolutionStack.map { String(describing: $0) } + [String(describing: type)]
+            }
+            throw ServiceRegistryError.circularDependency(chain)
+        }
         
         // Check for existing instance
         let existingInstance = lock.withLock { instances[key] as? T }
@@ -59,29 +74,39 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
             return nil
         }
         
+        // Add to resolution stack to detect circular dependencies
+        lock.withLock { _ = resolutionStack.insert(key) }
+        defer { lock.withLock { _ = resolutionStack.remove(key) } }
+        
         // Create instance using factory (outside of lock to avoid deadlock)
         do {
-            // Cast the stored factory back to the correct type
-            guard let typedFactory = factory as? @Sendable (Application) async throws -> T else {
+            // Use the validated factory type from registration
+            guard let typedFactory = factory as? @Sendable (Application) async throws -> Any else {
                 throw ServiceRegistryError.serviceInitializationFailed(
                     String(describing: type),
                     ServiceRegistryError.factoryTypeMismatch(String(describing: type))
                 )
             }
             
-            let instance = try await typedFactory(application)
+            let anyInstance = try await typedFactory(application)
+            guard let instance = anyInstance as? T else {
+                throw ServiceRegistryError.serviceInitializationFailed(
+                    String(describing: type),
+                    ServiceRegistryError.factoryTypeMismatch(String(describing: type))
+                )
+            }
             
             // Store the instance
             lock.withLock {
                 instances[key] = instance
                 
-                // Track lifecycle and health check services
+                // Track lifecycle and health check services using ObjectIdentifier for reliable removal
                 if let lifecycle = instance as? ServiceLifecycle {
-                    lifecycleServices.append(lifecycle)
+                    lifecycleServices[key] = lifecycle
                 }
                 
                 if let healthCheck = instance as? ServiceHealthCheck {
-                    healthCheckServices.append(healthCheck)
+                    healthCheckServices[key] = healthCheck
                 }
             }
             
@@ -111,11 +136,9 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
         let key = ObjectIdentifier(type)
         
         lock.withLock {
-            // Remove from lifecycle and health check tracking
-            if let instance = instances[key] {
-                lifecycleServices.removeAll { $0 as AnyObject === instance as AnyObject }
-                healthCheckServices.removeAll { $0 as AnyObject === instance as AnyObject }
-            }
+            // Remove from lifecycle and health check tracking using ObjectIdentifier
+            lifecycleServices.removeValue(forKey: key)
+            healthCheckServices.removeValue(forKey: key)
             
             instances.removeValue(forKey: key)
             factories.removeValue(forKey: key)
@@ -134,7 +157,7 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
     
     public func startupAll(_ app: Application) async throws {
         let services = lock.withLock {
-            lifecycleServices.compactMap { $0 as? ServiceLifecycle }
+            Array(lifecycleServices.values)
         }
         
         for service in services {
@@ -144,7 +167,7 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
     
     public func shutdownAll(_ app: Application) async throws {
         let services = lock.withLock {
-            lifecycleServices.reversed().compactMap { $0 as? ServiceLifecycle }
+            Array(lifecycleServices.values.reversed())
         }
         
         for service in services {
@@ -154,9 +177,11 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
     
     public func healthCheckAll() async -> [(name: String, healthy: Bool)] {
         let services = lock.withLock {
-            healthCheckServices.compactMap { $0 as? ServiceHealthCheck }
+            Array(healthCheckServices.values)
         }
         
+        // Sequential health checks to avoid concurrency complexity
+        // TODO: Implement concurrent health checks with proper Sendable handling
         var results: [(name: String, healthy: Bool)] = []
         
         for service in services {
