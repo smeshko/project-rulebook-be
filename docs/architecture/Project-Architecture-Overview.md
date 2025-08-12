@@ -19,10 +19,16 @@ Application
 └── CacheAdminModule    # AI cache management (Admin only)
 ```
 
-### 2. Service-Oriented Design
-All business logic and external integrations are implemented as services with dependency injection.
+### 2. Service-Oriented Design with Advanced ServiceRegistry (Phase 4.1)
+All business logic and external integrations are implemented as services with a centralized dependency injection system powered by our custom ServiceRegistry.
 
 ```
+ServiceRegistry Architecture
+├── ServiceContainer          # Thread-safe service resolution with NIOLock
+├── ServiceLifecycle         # Startup/shutdown management
+├── ServiceHealthCheck       # Health monitoring for all services
+└── Request-based DI         # Direct service injection in controllers
+
 Services Layer
 ├── ConfigurationService    # Environment-specific configuration
 ├── EmailService           # Brevo email integration
@@ -31,6 +37,14 @@ Services Layer
 ├── SecurityServices      # AI security and validation
 └── UtilityServices       # Random generation, UUID, etc.
 ```
+
+**ServiceRegistry Features:**
+- **Thread-Safe Resolution**: Concurrent service access using NIOLock
+- **Lazy Initialization**: Services created on-demand with singleton caching
+- **Lifecycle Management**: Automatic startup/shutdown hooks
+- **Health Monitoring**: Built-in health checks for all registered services
+- **Request Integration**: Direct service resolution from Request objects
+- **Test Support**: Complete mockability for testing isolation
 
 ### 3. Repository Pattern
 Data access is abstracted through repository interfaces, enabling easy testing and data source swapping.
