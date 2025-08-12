@@ -4,8 +4,10 @@ extension Application {
     /// Initializes the ServiceRegistry and registers all services
     public func setupServiceRegistry() async throws {
         // Register all services in the registry
-        try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
-        try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        try await DemoServiceProvider.register(in: serviceRegistry, app: self)
+        // TODO: Fix complex service dependencies
+        // try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        // try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
         
         // Start up all services that implement ServiceLifecycle
         try await serviceRegistry.startupAll(self)

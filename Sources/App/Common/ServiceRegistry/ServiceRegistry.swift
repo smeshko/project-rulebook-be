@@ -20,6 +20,7 @@ public enum ServiceRegistryError: AppError {
     case serviceNotFound(String)
     case serviceInitializationFailed(String, Error)
     case circularDependency([String])
+    case factoryTypeMismatch(String)
     
     public var status: HTTPResponseStatus {
         .internalServerError
@@ -33,6 +34,8 @@ public enum ServiceRegistryError: AppError {
             return "Failed to initialize service \(type): \(error)"
         case .circularDependency(let chain):
             return "Circular dependency detected: \(chain.joined(separator: " -> "))"
+        case .factoryTypeMismatch(let type):
+            return "Factory type mismatch for service \(type)"
         }
     }
     
@@ -44,6 +47,8 @@ public enum ServiceRegistryError: AppError {
             return "service_initialization_failed"
         case .circularDependency:
             return "circular_dependency"
+        case .factoryTypeMismatch:
+            return "factory_type_mismatch"
         }
     }
     

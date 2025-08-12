@@ -5,7 +5,7 @@ import NIOConcurrencyHelpers
 public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, @unchecked Sendable {
     // Using NIOLock for thread-safe synchronization that works with async contexts
     private let lock = NIOLock()
-    private var factories: [ObjectIdentifier: @Sendable (Application) async throws -> Any] = [:]
+    private var factories: [ObjectIdentifier: Any] = [:]
     private var instances: [ObjectIdentifier: Any] = [:]
     private var lifecycleServices: [Any] = []
     private var healthCheckServices: [Any] = []
@@ -61,7 +61,15 @@ public final class ServiceContainer: ServiceRegistry, ServiceRegistryLifecycle, 
         
         // Create instance using factory (outside of lock to avoid deadlock)
         do {
-            let instance = try await (factory as! @Sendable (Application) async throws -> T)(application)
+            // Cast the stored factory back to the correct type
+            guard let typedFactory = factory as? @Sendable (Application) async throws -> T else {
+                throw ServiceRegistryError.serviceInitializationFailed(
+                    String(describing: type),
+                    ServiceRegistryError.factoryTypeMismatch(String(describing: type))
+                )
+            }
+            
+            let instance = try await typedFactory(application)
             
             // Store the instance
             lock.withLock {
