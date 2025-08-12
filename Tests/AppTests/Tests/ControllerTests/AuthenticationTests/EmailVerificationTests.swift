@@ -47,9 +47,6 @@ final class EmailVerificationTests: XCTestCase {
         })
     }
     
-    // TODO: Fix async context issue with app.test method  
-    // This test has the same pattern as testVerifyingEmailHappyPath but Swift compiler treats it differently
-    /*
     func testVerifyingEmailWithExpiredTokenFails() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await app.repositories.users.create(user)
@@ -59,10 +56,14 @@ final class EmailVerificationTests: XCTestCase {
 
         try await app.repositories.emailTokens.create(emailToken)
         
-        try app.test(.GET, "\(verifyURL)?token=\(expectedHash)", afterResponse: { res in
+        try await app.test(.GET, verifyURL, beforeRequest: { req in
+            try req.query.encode(["token": expectedHash])
+        }, afterResponse: { res in
             let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
             XCTAssertTrue(html.contains("Token expired"))
+            // Verify token was deleted after the expired check
+            let remainingToken = try await app.repositories.emailTokens.find(forUserID: user.requireID())
+            XCTAssertNil(remainingToken)
         })
     }
-    */
 }

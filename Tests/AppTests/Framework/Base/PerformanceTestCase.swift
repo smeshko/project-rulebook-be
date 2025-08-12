@@ -20,7 +20,15 @@ final class PerformanceTestCase {
     
     /// Cleans up resources when the test case is deallocated.
     deinit {
+        // Note: Using sync shutdown in deinit since async is not supported
+        // For proper async shutdown, use the shutdown() method explicitly
         app.shutdown()
+    }
+    
+    /// Properly shuts down the application with async support.
+    /// Should be called from test tearDown methods.
+    func shutdown() async throws {
+        try await app.asyncShutdown()
     }
     
     /// Access to the application instance.
@@ -127,6 +135,44 @@ struct PerformanceMetrics {
         let avg = averageTime
         let variance = times.reduce(0) { $0 + pow($1 - avg, 2) } / Double(times.count)
         return sqrt(variance)
+    }
+    
+    /// Median execution time.
+    var medianTime: TimeInterval {
+        let sorted = times.sorted()
+        let mid = sorted.count / 2
+        if sorted.count % 2 == 0 {
+            return (sorted[mid - 1] + sorted[mid]) / 2
+        } else {
+            return sorted[mid]
+        }
+    }
+    
+    /// 95th percentile execution time.
+    var p95Time: TimeInterval {
+        percentile(95)
+    }
+    
+    /// 99th percentile execution time.
+    var p99Time: TimeInterval {
+        percentile(99)
+    }
+    
+    /// Throughput (requests per second based on average time).
+    var throughput: Double {
+        1.0 / averageTime
+    }
+    
+    /// Number of samples collected.
+    var sampleCount: Int {
+        times.count
+    }
+    
+    /// Calculate percentile value.
+    private func percentile(_ p: Int) -> TimeInterval {
+        let sorted = times.sorted()
+        let index = Int(Double(sorted.count) * Double(p) / 100.0)
+        return sorted[min(index, sorted.count - 1)]
     }
     
     /// Returns a formatted string representation of the metrics.

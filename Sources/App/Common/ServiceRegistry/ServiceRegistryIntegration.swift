@@ -54,7 +54,10 @@ extension Application {
     /// - Throws: Service registration or startup errors that prevent application launch
     public func setupServiceRegistry() async throws {
         // Register all services in the registry in dependency order
-        try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        // Skip database repositories for testing environment if test repositories are already registered
+        if environment != .testing || !isTestRepositoriesRegistered() {
+            try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        }
         try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
         try await DomainServiceProvider.register(in: serviceRegistry, app: self)
         try await CQRSServiceProvider.register(in: serviceRegistry, app: self)
@@ -67,6 +70,16 @@ extension Application {
         
         // Start up all services that implement ServiceLifecycle
         try await serviceRegistry.startupAll(self)
+    }
+    
+    /// Checks if test repositories are already registered in the service registry.
+    ///
+    /// This prevents database repositories from overriding test repositories during testing.
+    private func isTestRepositoriesRegistered() -> Bool {
+        return serviceRegistry.isRegistered((any UserRepository).self) &&
+               serviceRegistry.isRegistered((any RefreshTokenRepository).self) &&
+               serviceRegistry.isRegistered((any EmailTokenRepository).self) &&
+               serviceRegistry.isRegistered((any PasswordTokenRepository).self)
     }
     
     /// Validates that all required services are properly registered.

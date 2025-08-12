@@ -15,12 +15,28 @@ extension JWKIdentifier {
 
 extension Application {
   func setupConfiguration() throws {
-    // Load .env file first if it exists
-    let envPath = DirectoryConfiguration.detect().workingDirectory + ".env"
-    if FileManager.default.fileExists(atPath: envPath) {
-      logger.info("Loading environment variables from .env file")
+    // Determine which .env file to load based on environment
+    let workingDirectory = DirectoryConfiguration.detect().workingDirectory
+    let envFilePath: String
+    
+    switch environment {
+    case .testing:
+      // Try .env.testing first, fallback to .env
+      let testingEnvPath = workingDirectory + ".env.testing"
+      if FileManager.default.fileExists(atPath: testingEnvPath) {
+        envFilePath = testingEnvPath
+      } else {
+        envFilePath = workingDirectory + ".env"
+      }
+    default:
+      envFilePath = workingDirectory + ".env"
+    }
+    
+    // Load the environment file
+    if FileManager.default.fileExists(atPath: envFilePath) {
+      logger.info("Loading environment variables from \(envFilePath.split(separator: "/").last ?? "")")
       do {
-        let envContent = try String(contentsOfFile: envPath, encoding: .utf8)
+        let envContent = try String(contentsOfFile: envFilePath, encoding: .utf8)
         for line in envContent.split(separator: "\n") {
           let trimmedLine = line.trimmingCharacters(in: .whitespaces)
           // Skip comments and empty lines
@@ -48,10 +64,10 @@ extension Application {
           }
         }
       } catch {
-        logger.warning("Could not load .env file: \(error)")
+        logger.warning("Could not load \(envFilePath): \(error)")
       }
     } else {
-      logger.info("No .env file found at \(envPath)")
+      logger.info("No environment file found at \(envFilePath)")
     }
 
     try initializeConfiguration()

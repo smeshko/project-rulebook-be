@@ -70,23 +70,14 @@ final class AuthSignupTests: XCTestCase {
     }
     
     func testRegisterFailsWithExistingEmail() async throws {
-        try await app.autoMigrate()
-        
-        do {
-
-        // Use database repositories instead of test repositories
-        app.repositories.usersService.use { app in DatabaseUserRepository(database: app.db) }
-        app.repositories.refreshTokensService.use { app in DatabaseRefreshTokenRepository(database: app.db) }
-        app.repositories.emailTokensService.use { app in DatabaseEmailTokenRepository(database: app.db) }
-        app.repositories.passwordTokensService.use { app in DatabasePasswordTokenRepository(database: app.db) }
-        
-        let user = UserAccountModel(
+        // Create a user first using the test repository
+        let existingUser = UserAccountModel(
             email: "test@test.com",
             password: "123"
         )
+        try await app.repositories.users.create(existingUser)
 
-        try await user.create(on: app.db)
-
+        // Try to register with the same email
         let registerRequest = Auth.SignUp.Request(
             email: "test@test.com",
             password: "password123",
@@ -98,15 +89,10 @@ final class AuthSignupTests: XCTestCase {
             try req.content.encode(registerRequest)
         }, afterResponse: { res async throws in
             XCTAssertResponseError(res, AuthenticationError.emailAlreadyExists)
-            let users = try await UserAccountModel.query(on: app.db).all()
+            // Verify only one user exists in the test repository
+            let users = try await app.repositories.users.all()
             XCTAssertEqual(users.count, 1)
         })
-        } catch {
-            try await app.autoRevert()
-            throw error
-        }
-        
-        try await app.autoRevert()
     }
     
     func testRegisterValidations() throws {

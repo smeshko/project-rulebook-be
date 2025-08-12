@@ -31,19 +31,19 @@ final class UserPatchTests: XCTestCase {
     func testPatchHappyPath() async throws {
         try await app.repositories.users.create(user)
                 
-        try await app.test(.PATCH, patchPath, user: user, content: request) { res in
+        try await app.test(.PATCH, patchPath, user: user, content: request, afterResponse: { res in
             XCTAssertContent(User.Update.Response.self, res) { patchContent in
                 XCTAssertEqual(patchContent.email, "new_mail@test.com")
                 XCTAssertEqual(patchContent.firstName, "New")
                 XCTAssertEqual(patchContent.lastName, "Name")
             }
-        }
+        })
     }
     
     func testPatchNotLoggedIn() async throws {
-        try await app.test(.PATCH, patchPath, content: request) { response in
+        try await app.test(.PATCH, patchPath, content: request, afterResponse: { response in
             XCTAssertEqual(response.status, .unauthorized)
-        }
+        })
     }
     
     func testPatchPartialUpdate() async throws {
@@ -56,14 +56,14 @@ final class UserPatchTests: XCTestCase {
             lastName: nil
         )
         
-        try await app.test(.PATCH, patchPath, user: user, content: partialRequest) { res in
+        try await app.test(.PATCH, patchPath, user: user, content: partialRequest, afterResponse: { res in
             XCTAssertContent(User.Update.Response.self, res) { patchContent in
                 XCTAssertEqual(patchContent.email, "updated@test.com")
                 // Original values should be preserved
                 XCTAssertEqual(patchContent.firstName, user.firstName)
                 XCTAssertEqual(patchContent.lastName, user.lastName)
             }
-        }
+        })
     }
     
     func testPatchWithEmptyValues() async throws {
@@ -76,11 +76,11 @@ final class UserPatchTests: XCTestCase {
             lastName: ""
         )
         
-        try await app.test(.PATCH, patchPath, user: user, content: emptyRequest) { res in
+        try await app.test(.PATCH, patchPath, user: user, content: emptyRequest, afterResponse: { res in
             XCTAssertContent(User.Update.Response.self, res) { patchContent in
                 // Empty values might be converted to nil or preserved - depends on implementation
                 XCTAssertEqual(patchContent.id, user.id!)
             }
-        }
+        })
     }
 }

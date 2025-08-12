@@ -29,12 +29,12 @@ final class GetCurrentUserUseCaseTests {
         let result = try await useCase.execute(GetCurrentUserUseCase.Request(user: user))
         
         // Assert - Response Structure
-        #expect(result.user.id != nil)
-        #expect(result.user.email == "test@example.com")
-        #expect(result.user.firstName == "John")
-        #expect(result.user.lastName == "Doe")
-        #expect(result.user.isAdmin == false)
-        #expect(result.user.isEmailVerified == true)
+        #expect(result.id != nil)
+        #expect(result.email == "test@example.com")
+        #expect(result.firstName == "John")
+        #expect(result.lastName == "Doe")
+        #expect(result.isAdmin == false)
+        #expect(result.isEmailVerified == true)
         
         // Assert - Sensitive data not exposed
         // Password should not be in the response (GetCurrentUserUseCase.Response.User doesn't include it)
@@ -59,11 +59,11 @@ final class GetCurrentUserUseCaseTests {
         let result = try await useCase.execute(GetCurrentUserUseCase.Request(user: minimalUser))
         
         // Assert
-        #expect(result.user.email == "minimal@example.com")
-        #expect(result.user.firstName == nil)
-        #expect(result.user.lastName == nil)
-        #expect(result.user.isEmailVerified == false)
-        #expect(result.user.isAdmin == false) // Default value
+        #expect(result.email == "minimal@example.com")
+        #expect(result.firstName == nil)
+        #expect(result.lastName == nil)
+        #expect(result.isEmailVerified == false)
+        #expect(result.isAdmin == false) // Default value
     }
     
     /// Test admin user profile.
@@ -86,8 +86,8 @@ final class GetCurrentUserUseCaseTests {
         let result = try await useCase.execute(GetCurrentUserUseCase.Request(user: adminUser))
         
         // Assert
-        #expect(result.user.isAdmin == true)
-        #expect(result.user.email == "admin@example.com")
+        #expect(result.isAdmin == true)
+        #expect(result.email == "admin@example.com")
     }
     
     /// Test that the use case is side-effect free (Query characteristic).
@@ -112,10 +112,10 @@ final class GetCurrentUserUseCaseTests {
         let result3 = try await useCase.execute(request)
         
         // Assert - Results are identical (idempotent)
-        #expect(result1.user.id == result2.user.id)
-        #expect(result1.user.id == result3.user.id)
-        #expect(result1.user.email == result2.user.email)
-        #expect(result1.user.email == result3.user.email)
+        #expect(result1.id == result2.id)
+        #expect(result1.id == result3.id)
+        #expect(result1.email == result2.email)
+        #expect(result1.email == result3.email)
         
         // Assert - No side effects on original user object
         #expect(user.email == "test@example.com") // Unchanged
@@ -141,10 +141,10 @@ final class GetCurrentUserUseCaseTests {
         let result = try await useCase.execute(GetCurrentUserUseCase.Request(user: appleUser))
         
         // Assert
-        #expect(result.user.email == "apple@icloud.com")
-        #expect(result.user.firstName == "Apple")
-        #expect(result.user.lastName == "User")
-        #expect(result.user.isEmailVerified == true)
+        #expect(result.email == "apple@icloud.com")
+        #expect(result.firstName == "Apple")
+        #expect(result.lastName == "User")
+        #expect(result.isEmailVerified == true)
         
         // Note: appleUserIdentifier is not exposed in the response for security
     }
@@ -169,14 +169,13 @@ final class GetCurrentUserUseCaseTests {
         let result = try await useCase.execute(GetCurrentUserUseCase.Request(user: user))
         
         // Assert - Expected fields present
-        #expect(result.user.id != nil)
-        #expect(result.user.email.count > 0)
-        #expect(result.user.firstName != nil)
-        #expect(result.user.lastName != nil)
+        #expect(result.id != nil)
+        #expect(result.email.count > 0)
+        #expect(result.firstName != nil)
+        #expect(result.lastName != nil)
         
         // Assert - Response type is correct
         #expect(type(of: result) == GetCurrentUserUseCase.Response.self)
-        #expect(type(of: result.user) == GetCurrentUserUseCase.Response.User.self)
     }
     
     /// Test performance characteristics of query operation.

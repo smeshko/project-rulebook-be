@@ -198,27 +198,32 @@ final class AISecurityTests: XCTestCase {
     
     // MARK: - Response Validation Tests
     
-    // TODO: Fix these tests - validateAIResponse method was refactored during Clean Architecture implementation
-    /*
     func testResponseValidationBlocksSuspiciousContent() throws {
-        let controller = RulesGenerationController()
+        let validator = DefaultAIResponseValidationService()
+        let mockLogger = Logger(label: "test")
         
         // Test malicious responses are blocked
         let maliciousResponses = [
-            "<script>alert('hack')</script>",
-            "javascript:evil()",
+            "{\"title\":\"<script>alert('hack')</script>\"}",
+            "{\"content\":\"javascript:evil()\"}",
             "{\"hack\":\"eval(malicious_code)\"}",
-            "onclick=\"hack()\"",
-            "data:text/html,<script>hack</script>"
+            "{\"title\":\"onclick=hack()\"}",
+            "{\"data\":\"data:text/html,<script>hack</script>\"}"
         ]
         
         for maliciousResponse in maliciousResponses {
-            XCTAssertThrowsError(try controller.validateAIResponse(maliciousResponse, expectedType: "test"))
+            XCTAssertThrowsError(try validator.validateGenericResponse(
+                maliciousResponse, 
+                context: "test",
+                clientIP: "127.0.0.1",
+                logger: mockLogger
+            ))
         }
     }
     
     func testResponseValidationAllowsValidJSON() throws {
-        let controller = RulesGenerationController()
+        let validator = DefaultAIResponseValidationService()
+        let mockLogger = Logger(label: "test")
         
         let validResponses = [
             "{\"title\":\"Monopoly\",\"summary\":\"A trading game\"}",
@@ -227,10 +232,59 @@ final class AISecurityTests: XCTestCase {
         ]
         
         for validResponse in validResponses {
-            XCTAssertNoThrow(try controller.validateAIResponse(validResponse, expectedType: "test"))
+            XCTAssertNoThrow(try validator.validateGenericResponse(
+                validResponse,
+                context: "test", 
+                clientIP: "127.0.0.1",
+                logger: mockLogger
+            ))
         }
     }
-    */
+    
+    func testResponseValidationEnforcesSizeLimits() throws {
+        let validator = DefaultAIResponseValidationService()
+        let mockLogger = Logger(label: "test")
+        
+        // Test response too short
+        let tooShort = "{}"
+        XCTAssertThrowsError(try validator.validateGenericResponse(
+            tooShort,
+            context: "test",
+            clientIP: "127.0.0.1", 
+            logger: mockLogger
+        ))
+        
+        // Test response too large (create a large JSON response)
+        let largeContent = String(repeating: "x", count: 60000) // Exceeds 50KB limit
+        let tooLarge = "{\"data\":\"\(largeContent)\"}"
+        XCTAssertThrowsError(try validator.validateGenericResponse(
+            tooLarge,
+            context: "test",
+            clientIP: "127.0.0.1",
+            logger: mockLogger
+        ))
+    }
+    
+    func testResponseValidationEnforcesJSONStructure() throws {
+        let validator = DefaultAIResponseValidationService()
+        let mockLogger = Logger(label: "test")
+        
+        let invalidJsonResponses = [
+            "not json at all",
+            "{invalid json}",
+            "{\"unclosed\": \"quote}",
+            "[\"array\", \"instead\", \"of\", \"object\"]"
+        ]
+        
+        for invalidResponse in invalidJsonResponses {
+            XCTAssertThrowsError(try validator.validateGenericResponse(
+                invalidResponse,
+                context: "test",
+                clientIP: "127.0.0.1",
+                logger: mockLogger
+            ))
+        }
+    }
 }
 
 // MARK: - Test Helpers

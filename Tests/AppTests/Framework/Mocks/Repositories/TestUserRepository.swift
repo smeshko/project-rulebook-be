@@ -5,6 +5,12 @@ import Fluent
 actor TestUserRepository: UserRepository, TestRepository {
     var users: [UserAccountModel]
     
+    /// Alias for consistent test interface
+    var entities: [UserAccountModel] {
+        get { users }
+        set { users = newValue }
+    }
+    
     init(users: [UserAccountModel] = []) {
         self.users = users
     }
@@ -12,6 +18,10 @@ actor TestUserRepository: UserRepository, TestRepository {
     typealias Model = UserAccountModel
     
     func create(_ model: UserAccountModel) async throws {
+        // Simulate unique email constraint like a real database
+        if users.contains(where: { $0.email == model.email }) {
+            throw Abort(.conflict, reason: "UNIQUE constraint failed: users.email")
+        }
         model.id = model.id ?? UUID()
         users.append(model)
     }
@@ -50,5 +60,9 @@ actor TestUserRepository: UserRepository, TestRepository {
     
     func reset() async {
         users.removeAll()
+    }
+    
+    nonisolated func `for`(_ req: Request) -> TestUserRepository {
+        return self
     }
 }

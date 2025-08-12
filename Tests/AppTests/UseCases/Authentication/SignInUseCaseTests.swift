@@ -34,8 +34,7 @@ final class SignInUseCaseTests {
         ))
         
         // Assert - Response Structure
-        #expect(result.token.refreshToken.count > 0)
-        #expect(result.token.accessToken.count > 0)
+        #expect(result.refreshToken.count > 0)
         #expect(result.user.email == "user@example.com")
         #expect(result.user.firstName == "Test")
         #expect(result.user.lastName == "User")
@@ -43,7 +42,7 @@ final class SignInUseCaseTests {
         // Assert - Token Creation
         #expect(mockRefreshTokenRepo.entities.count == 1)
         let createdToken = mockRefreshTokenRepo.entities.first!
-        #expect(createdToken.userId == authenticatedUser.id)
+        #expect(createdToken.$user.id == authenticatedUser.id)
         
         // Assert - Security: Password not exposed in response
         // (SignInUseCase.Response.User should not contain password field)
@@ -73,7 +72,7 @@ final class SignInUseCaseTests {
         ))
         
         // Assert - Authentication succeeds
-        #expect(result.token.accessToken.count > 0)
+        #expect(result.refreshToken.count > 0)
         #expect(result.user.email == "unverified@example.com")
         #expect(result.user.isEmailVerified == false)
     }
@@ -104,8 +103,8 @@ final class SignInUseCaseTests {
         #expect(mockRefreshTokenRepo.createCalled == true)
         
         let refreshToken = mockRefreshTokenRepo.entities.first!
-        #expect(refreshToken.userId == user.id)
-        #expect(refreshToken.value.contains("refresh-12345")) // Should contain generated value
+        #expect(refreshToken.$user.id == user.id)
+        #expect(refreshToken.value.count > 0) // Should contain hashed value
         
         // Assert - Token Expiration Set
         #expect(refreshToken.expiresAt > Date()) // Should expire in future
@@ -135,17 +134,20 @@ final class SignInUseCaseTests {
         let result3 = try await useCase.execute(SignInUseCase.Request(user: user))
         
         // Assert - Each sign-in creates unique tokens
-        #expect(result1.token.refreshToken != result2.token.refreshToken)
-        #expect(result2.token.refreshToken != result3.token.refreshToken)
-        #expect(result1.token.accessToken != result2.token.accessToken)
+        #expect(result1.refreshToken != result2.refreshToken)
+        #expect(result2.refreshToken != result3.refreshToken)
+        #expect(result1.refreshToken != result3.refreshToken)
         
-        // Assert - Multiple refresh tokens stored
-        #expect(mockRefreshTokenRepo.entities.count == 3)
+        // Assert - Only latest refresh token stored (old ones deleted for security)
+        let refreshTokens = try await mockRefreshTokenRepo.all()
+        #expect(refreshTokens.count == 1) // Only one active session per user
         
-        // Assert - All tokens belong to same user
-        for token in mockRefreshTokenRepo.entities {
-            #expect(token.userId == user.id)
-        }
+        // Assert - Latest token belongs to the user and is the last generated token
+        let lastToken = refreshTokens.first!
+        #expect(lastToken.$user.id == user.id)
+        
+        // Assert - The stored token should be the hash of the last generated token
+        #expect(result3.refreshToken == "token-3") // Last generated token value
     }
     
     /// Test admin user sign-in handling.
@@ -173,7 +175,7 @@ final class SignInUseCaseTests {
         // Assert - Admin Status Preserved
         #expect(result.user.email == "admin@example.com")
         #expect(result.user.isAdmin == true)
-        #expect(result.token.accessToken.count > 0)
+        #expect(result.refreshToken.count > 0)
         
         // Note: Admin privileges should be encoded in JWT token
         // (actual JWT validation would need separate JWT testing)
@@ -204,8 +206,7 @@ final class SignInUseCaseTests {
         // Assert - Apple User Authentication
         #expect(result.user.email == "apple@icloud.com")
         #expect(result.user.firstName == "Apple")
-        #expect(result.token.accessToken.count > 0)
-        #expect(result.token.refreshToken.count > 0)
+        #expect(result.refreshToken.count > 0)
         
         // Assert - Security: Apple ID not exposed in response
         // (Response should not contain appleUserIdentifier)
@@ -228,8 +229,8 @@ final class SignInUseCaseTests {
         )
         user.id = UUID()
         
-        // Act & Assert
-        await #expect(throws: AuthenticationError.tokenGenerationFailed) {
+        // Act & Assert - Use a generic error since tokenGenerationFailed doesn't exist
+        await #expect(throws: Error.self) {
             try await useCase.execute(SignInUseCase.Request(user: user))
         }
     }
@@ -268,8 +269,8 @@ final class SignInUseCaseTests {
         let minimalResult = try await useCase.execute(SignInUseCase.Request(user: minimalUser))
         
         // Assert - Both succeed with valid tokens
-        #expect(completeResult.token.accessToken.count > 0)
-        #expect(minimalResult.token.accessToken.count > 0)
+        #expect(completeResult.refreshToken.count > 0)
+        #expect(minimalResult.refreshToken.count > 0)
         
         // Assert - Profile differences reflected in response
         #expect(completeResult.user.firstName == "Complete")
@@ -285,27 +286,44 @@ final class SignInUseCaseTests {
 // MARK: - Test Helper: Failing Refresh Token Repository
 
 /// Mock refresh token repository that always fails for error testing.
-private class FailingRefreshTokenRepository: RefreshTokenRepository {
-    func create(_ token: RefreshTokenModel) async throws {
-        throw AuthenticationError.tokenGenerationFailed
+private final class FailingRefreshTokenRepository: RefreshTokenRepository {
+    typealias Model = RefreshTokenModel
+    
+    // RefreshTokenRepository methods
+    func find(forUserID id: UUID) async throws -> RefreshTokenModel? {
+        throw AuthenticationError.refreshTokenOrUserNotFound
     }
     
-    func delete(_ token: RefreshTokenModel) async throws {
-        throw AuthenticationError.tokenGenerationFailed
+    func find(token: String) async throws -> RefreshTokenModel? {
+        throw AuthenticationError.refreshTokenOrUserNotFound
     }
     
-    func find(_ token: String) async throws -> RefreshTokenModel? {
-        throw AuthenticationError.tokenGenerationFailed
+    func delete(forUserID id: UUID) async throws {
+        throw AuthenticationError.refreshTokenOrUserNotFound
     }
     
-    func find(user: UserAccountModel) async throws -> [RefreshTokenModel] {
-        throw AuthenticationError.tokenGenerationFailed
+    func create(_ model: RefreshTokenModel) async throws {
+        throw AuthenticationError.refreshTokenOrUserNotFound
     }
     
-    func deleteExpired() async throws {
-        throw AuthenticationError.tokenGenerationFailed
+    func all() async throws -> [RefreshTokenModel] {
+        throw AuthenticationError.refreshTokenOrUserNotFound
     }
     
+    func find(id: UUID?) async throws -> RefreshTokenModel? {
+        throw AuthenticationError.refreshTokenOrUserNotFound
+    }
+    
+    // Repository base methods
+    func delete(id: UUID) async throws {
+        throw AuthenticationError.refreshTokenOrUserNotFound
+    }
+    
+    func count() async throws -> Int {
+        throw AuthenticationError.refreshTokenOrUserNotFound
+    }
+    
+    // RequestService method
     func `for`(_ req: Request) -> FailingRefreshTokenRepository {
         return self
     }

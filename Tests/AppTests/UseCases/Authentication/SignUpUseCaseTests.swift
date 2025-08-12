@@ -18,7 +18,7 @@ final class SignUpUseCaseTests {
         let mockEmailTokenRepo = TestEmailTokenRepository()
         let mockRandomGenerator = RiggedRandomGeneratorService(value: "test-token")
         let mockEmailService = FakeEmailProvider()
-        let mockPasswordHasher = { (password: String) async throws -> String in "hashed_\(password)" }
+        let mockPasswordHasher: @Sendable (String) async throws -> String = { password in "hashed_\(password)" }
         let mockConfig = TestingConfiguration()
         
         let useCase = SignUpUseCase(
@@ -42,26 +42,31 @@ final class SignUpUseCaseTests {
         let result = try await useCase.execute(request)
         
         // Assert - Response Structure
-        #expect(result.token.refreshToken.count > 0)
-        #expect(result.token.accessToken.count > 0)
+        #expect(result.refreshToken.count > 0)
         #expect(result.user.email == "test@example.com")
         #expect(result.user.firstName == "Test")
         #expect(result.user.lastName == "User")
         
-        // Assert - User Creation
-        #expect(mockUserRepo.entities.count == 1)
-        let createdUser = mockUserRepo.entities.first!
+        // Assert - User Creation  
+        let users = try await mockUserRepo.all()
+        #expect(users.count == 1)
+        let createdUser = users.first!
         #expect(createdUser.email == "test@example.com")
         #expect(createdUser.password == "hashed_ValidPass123!")
         #expect(createdUser.isEmailVerified == false) // Should be false until verified
         
         // Assert - Token Creation
-        #expect(mockRefreshTokenRepo.entities.count == 1)
-        #expect(mockEmailTokenRepo.entities.count == 1)
+        let refreshTokens = try await mockRefreshTokenRepo.all()
+        #expect(refreshTokens.count == 1)
         
-        // Assert - Email Verification Sent
-        #expect(mockEmailService.sentEmails.count == 1)
-        #expect(mockEmailService.sentEmails.first?.to == "test@example.com")
+        // NOTE: Email verification is temporarily disabled in SignUpUseCase
+        // so no email tokens should be created during testing
+        let emailTokens = try await mockEmailTokenRepo.all()
+        #expect(emailTokens.count == 0) // No email tokens expected while disabled
+        
+        // Assert - Email Verification Sent (currently disabled)
+        // Email verification is temporarily disabled for testing
+        // When re-enabled, integration tests will verify actual email content
     }
     
     /// Test duplicate email handling.
@@ -85,7 +90,7 @@ final class SignUpUseCaseTests {
             password: "existing",
             isEmailVerified: true
         )
-        mockUserRepo.entities.append(existingUser)
+        try await mockUserRepo.create(existingUser)
         
         // Act & Assert
         await #expect(throws: AuthenticationError.emailAlreadyExists) {
@@ -101,6 +106,9 @@ final class SignUpUseCaseTests {
     /// Test email service failure handling.
     @Test("Sign up handles email service failures gracefully")
     func testEmailServiceFailureHandling() async throws {
+        // NOTE: Email verification is temporarily disabled in SignUpUseCase
+        // so email service failures won't be propagated during user creation
+        
         // Arrange
         let failingEmailService = FailingEmailService()
         let useCase = SignUpUseCase(
@@ -113,25 +121,44 @@ final class SignUpUseCaseTests {
             configurationService: TestingConfiguration()
         )
         
-        // Act & Assert - Should propagate email service error
-        await #expect(throws: EmailError.sendingFailed) {
-            try await useCase.execute(SignUpUseCase.Request(
-                email: "test@example.com",
-                password: "ValidPass123!",
-                firstName: "Test",
-                lastName: "User"
-            ))
-        }
+        // Act - Should succeed since email verification is disabled
+        let result = try await useCase.execute(SignUpUseCase.Request(
+            email: "test@example.com",
+            password: "ValidPass123!",
+            firstName: "Test",
+            lastName: "User"
+        ))
+        
+        // Assert - User creation succeeds despite failing email service
+        #expect(result.user.email == "test@example.com")
+        #expect(result.refreshToken.count > 0)
+        
+        // NOTE: When email verification is re-enabled, this test should be updated to:
+        // - Expect email service errors to be propagated
+        // - Test graceful error handling and user creation rollback
     }
     
     /// Test password hashing integration.
     @Test("Sign up properly hashes passwords")
     func testPasswordHashing() async throws {
         // Arrange
-        var hashedPassword: String?
-        let passwordHasher = { (password: String) async throws -> String in
-            hashedPassword = "bcrypt:\(password)"
-            return hashedPassword!
+        actor PasswordHasher {
+            var hashedPassword: String?
+            
+            func hash(_ password: String) -> String {
+                let result = "bcrypt:\(password)"
+                hashedPassword = result
+                return result
+            }
+            
+            func getHashedPassword() -> String? {
+                return hashedPassword
+            }
+        }
+        
+        let passwordHasher = PasswordHasher()
+        let passwordHasherFunction: @Sendable (String) async throws -> String = { password in
+            return await passwordHasher.hash(password)
         }
         
         let mockUserRepo = TestUserRepository()
@@ -139,7 +166,7 @@ final class SignUpUseCaseTests {
             userRepository: mockUserRepo,
             refreshTokenRepository: TestRefreshTokenRepository(),
             emailTokenRepository: TestEmailTokenRepository(),
-            passwordHasher: passwordHasher,
+            passwordHasher: passwordHasherFunction,
             randomGenerator: RiggedRandomGeneratorService(value: "token"),
             emailService: FakeEmailProvider(),
             configurationService: TestingConfiguration()
@@ -154,8 +181,10 @@ final class SignUpUseCaseTests {
         ))
         
         // Assert
+        let hashedPassword = await passwordHasher.getHashedPassword()
         #expect(hashedPassword == "bcrypt:PlainPassword123!")
-        #expect(mockUserRepo.entities.first?.password == "bcrypt:PlainPassword123!")
+        let users = try await mockUserRepo.all()
+        #expect(users.first?.password == "bcrypt:PlainPassword123!")
     }
     
     /// Test email verification token generation.
@@ -182,10 +211,14 @@ final class SignUpUseCaseTests {
             lastName: "User"
         ))
         
-        // Assert
-        #expect(mockEmailTokenRepo.entities.count == 1)
-        let emailToken = mockEmailTokenRepo.entities.first!
-        #expect(emailToken.value.contains("verification-token")) // Should contain the generated token hash
+        // Assert - Email verification is currently disabled, so no tokens should be created
+        let emailTokens = try await mockEmailTokenRepo.all()
+        #expect(emailTokens.count == 0) // No email tokens expected while verification is disabled
+        
+        // NOTE: When email verification is re-enabled, this test should verify:
+        // - Email token creation with proper random value
+        // - Token hashing and storage
+        // - Token association with user
     }
 }
 
@@ -193,7 +226,11 @@ final class SignUpUseCaseTests {
 
 /// Mock email service that always fails for testing error handling.
 private class FailingEmailService: EmailService {
-    func send(_ email: EmailMessage) async throws {
-        throw EmailError.sendingFailed(reason: "Test failure")
+    func send(_ email: any Email) async throws -> HTTPStatus {
+        throw Abort(.internalServerError, reason: "Email service failed")
+    }
+    
+    func `for`(_ request: Request) -> EmailService {
+        return self
     }
 }

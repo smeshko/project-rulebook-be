@@ -5,6 +5,12 @@ final class TestPasswordTokenRepository: PasswordTokenRepository, TestRepository
     var tokens: [PasswordTokenModel]
     typealias Model = PasswordTokenModel
 
+    /// Alias for consistent test interface
+    var entities: [PasswordTokenModel] {
+        get { tokens }
+        set { tokens = newValue }
+    }
+
     init(tokens: [PasswordTokenModel] = []) {
         self.tokens = tokens
     }
@@ -44,5 +50,9 @@ final class TestPasswordTokenRepository: PasswordTokenRepository, TestRepository
     
     func reset() async {
         tokens.removeAll()
+    }
+    
+    func `for`(_ req: Request) -> TestPasswordTokenRepository {
+        return self
     }
 }

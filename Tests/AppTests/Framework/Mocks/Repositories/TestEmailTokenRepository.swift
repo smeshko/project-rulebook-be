@@ -1,9 +1,15 @@
 @testable import App
 import Vapor
 
-actor TestEmailTokenRepository: EmailTokenRepository, TestRepository {
+final class TestEmailTokenRepository: EmailTokenRepository, TestRepository {
     typealias Model = EmailTokenModel
     var tokens: [EmailTokenModel]
+    
+    /// Alias for consistent test interface
+    var entities: [EmailTokenModel] {
+        get { tokens }
+        set { tokens = newValue }
+    }
     
     init(tokens: [EmailTokenModel] = []) {
         self.tokens = tokens
@@ -44,5 +50,9 @@ actor TestEmailTokenRepository: EmailTokenRepository, TestRepository {
     
     func reset() async {
         tokens.removeAll()
+    }
+    
+    func `for`(_ req: Request) -> TestEmailTokenRepository {
+        return self
     }
 }

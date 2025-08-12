@@ -65,20 +65,21 @@ final class AuthResetPasswordTests: XCTestCase {
         })
     }
 
-    // TODO: Fix async context issue with app.test method
-    // This test has the same pattern as testVerifyingEmailHappyPath but Swift compiler treats it differently
-    /*
     func testRecoverAccountWithExpiredTokenFails() async throws {
         let hashedToken = SHA256.hash("passwordtoken")
         let token = PasswordTokenModel(userID: UUID(), value: hashedToken, expiresAt: Date().addingTimeInterval(-60))
         try await app.repositories.passwordTokens.create(token)
         
-        try app.test(.GET, "reset-password?token=\(hashedToken)", afterResponse: { res in
+        try await app.test(.GET, "reset-password", beforeRequest: { req in
+            try req.query.encode(["token": hashedToken])
+        }, afterResponse: { res in
             let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
             XCTAssertTrue(html.contains("Token expired"))
+            // Verify token still exists since it was expired (not deleted)
+            let remainingToken = try await app.repositories.passwordTokens.find(token: hashedToken)
+            XCTAssertNotNil(remainingToken)
         })
     }
-    */
     
     func testRecoverAccountWithInvalidTokenFails() throws {
         try app.test(.GET, "reset-password?token=blah", afterResponse: { res in
