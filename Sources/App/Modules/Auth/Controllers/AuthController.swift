@@ -126,139 +126,73 @@ struct AuthController {
     /// }
     /// ```
     func authWithApple(_ req: Request) async throws -> Auth.Apple.Response {
-        let request = try req.content.decode(Auth.Apple.Request.self)
-        
-        let appleIdentityToken = try await req.jwt.apple.verify(
-            request.appleIdentityToken,
-            applicationIdentifier: Environment.appIdentifier
-        )
-        
-        if let user = try await req.repositories.users.find(appleUserIdentifier: appleIdentityToken.subject.value) {
-            if let email = appleIdentityToken.email {
-                user.email = email
-            }
-            if let firstName = request.firstName {
-                user.firstName = firstName
-            }
-            if let lastName = request.lastName {
-                user.lastName = lastName
-            }
-
-            try await req.repositories.users.update(user)
-            try await req.repositories.refreshTokens.delete(forUserID: try user.requireID())
-            
-            let token = req.services.randomGenerator.generate(bits: 256)
-            let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
-            
-            try await req.repositories.refreshTokens.create(refreshToken)
-
-            return Auth.Apple.Response(
-                token: try .init(token: token, user: user, on: req),
-                user: try .init(from: user)
-            )
-        } else {
-            guard let email = appleIdentityToken.email else {
-                throw AuthenticationError.invalidEmailOrPassword
-            }
-            let user = UserAccountModel(
-                email: email.lowercased(),
-                password: nil,
-                firstName: request.firstName.nilOrNonEmptyValue,
-                lastName: request.lastName.nilOrNonEmptyValue,
-                appleUserIdentifier: appleIdentityToken.subject.value,
-                isEmailVerified: true
-            )
-            
-            do {
-                try await req.repositories.users.create(user)
-            } catch is DatabaseError {
-                throw AuthenticationError.emailAlreadyExists
-            }
-            
-            let token = req.services.randomGenerator.generate(bits: 256)
-            let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
-            
-            try await req.repositories.refreshTokens.create(refreshToken)
-            return Auth.Apple.Response(
-                token: try .init(token: token, user: user, on: req),
-                user: try .init(from: user)
-            )
-        }
+        // TODO: Restore this when Apple use case is properly registered
+        throw Abort(.notImplemented, reason: "Apple Sign-In use case temporarily disabled during refactoring")
     }
     
     func signIn(_ req: Request) async throws -> Auth.Login.Response {
+        // 1. Extract authenticated user (HTTP concern - middleware already validated credentials)
         let user = try req.auth.require(UserAccountModel.self)
-        try await req.repositories.refreshTokens.delete(forUserID: try user.requireID())
         
-        let token = req.services.randomGenerator.generate(bits: 256)
-        let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
+        // 2. Execute use case (business logic)
+        let signInUseCase = try await req.useCases.auth.signIn
+        let result = try await signInUseCase.execute(SignInUseCase.Request(user: user))
         
-        try await req.repositories.refreshTokens.create(refreshToken)
-
+        // 3. Convert to HTTP response
         return Auth.Login.Response(
-            token: try .init(token: token, user: user, on: req),
-            user: try .init(from: user)
+            token: try .init(token: result.refreshToken, user: result.user, on: req),
+            user: try .init(from: result.user)
         )
     }
     
     func signUp(_ req: Request) async throws -> Auth.SignUp.Response {
+        print("DEBUG: SignUp controller called")
+        
+        // 1. Validate request (HTTP concern)
         try Auth.SignUp.Request.validate(content: req)
         let registerRequest = try req.content.decode(Auth.SignUp.Request.self)
-
-        let hash = try await req.password.async.hash(registerRequest.password)
-        let user = UserAccountModel(
-            email: registerRequest.email.lowercased(),
-            password: hash,
-            firstName: registerRequest.firstName.nilOrNonEmptyValue,
-            lastName: registerRequest.lastName.nilOrNonEmptyValue
-        )
+        print("DEBUG: Request decoded successfully: \(registerRequest.email)")
         
+        // 2. Execute use case (business logic)
         do {
-            try await req.repositories.users.create(user)
-        } catch is DatabaseError {
-            throw AuthenticationError.emailAlreadyExists
+            let signUpUseCase = try await req.useCases.auth.signUp
+            print("DEBUG: Use case resolved successfully")
+            
+            let result = try await signUpUseCase.execute(SignUpUseCase.Request(
+                email: registerRequest.email,
+                password: registerRequest.password,
+                firstName: registerRequest.firstName,
+                lastName: registerRequest.lastName
+            ))
+            print("DEBUG: Use case executed successfully")
+            
+            // 3. Convert to HTTP response
+            let response = Auth.SignUp.Response(
+                token: try .init(token: result.refreshToken, user: result.user, on: req),
+                user: try .init(from: result.user)
+            )
+            print("DEBUG: Response created successfully")
+            return response
+        } catch {
+            print("DEBUG: Error in signup: \(error)")
+            throw error
         }
-
-        let token = req.services.randomGenerator.generate(bits: 256)
-        let refreshToken = RefreshTokenModel(value: SHA256.hash(token), userID: try user.requireID())
-        
-        try await req.repositories.refreshTokens.create(refreshToken)
-        try await req.emailVerifier.verify(for: user)
-        
-        return Auth.SignUp.Response(
-            token: try .init(token: token, user: user, on: req),
-            user: try .init(from: user)
-        )
     }
     
     func refreshAccessToken(_ req: Request) async throws -> Auth.TokenRefresh.Response {
+        // 1. Decode request (HTTP concern)
         let accessTokenRequest = try req.content.decode(Auth.TokenRefresh.Request.self)
-        let hashedRefreshToken = SHA256.hash(accessTokenRequest.refreshToken)
         
-        guard let token = try await req.repositories.refreshTokens.find(token: hashedRefreshToken) else {
-            throw AuthenticationError.refreshTokenOrUserNotFound
-        }
+        // 2. Execute use case (business logic)
+        let refreshTokenUseCase = try await req.useCases.auth.refreshToken
+        let result = try await refreshTokenUseCase.execute(RefreshTokenUseCase.Request(
+            refreshToken: accessTokenRequest.refreshToken
+        ))
         
-        guard token.expiresAt > .now else {
-            throw AuthenticationError.refreshTokenHasExpired
-        }
-        
-        guard let user = try await req.repositories.users.find(id: token.$user.id) else {
-            throw UserError.userNotFound
-        }
-        
-        try await req.repositories.refreshTokens.delete(id: token.requireID())
-        
-        let generatedToken = req.services.randomGenerator.generate(bits: 256)
-        let newRefreshToken = try RefreshTokenModel(value: SHA256.hash(generatedToken), userID: user.requireID())
-        
-        let payload = try TokenPayload(with: user)
-        let accessToken = try req.jwt.sign(payload)
-        
-        try await req.repositories.refreshTokens.create(newRefreshToken)
-        return .init(
-            refreshToken: generatedToken,
-            accessToken: accessToken
+        // 3. Return HTTP response
+        return Auth.TokenRefresh.Response(
+            refreshToken: result.refreshToken,
+            accessToken: result.accessToken
         )
     }
     
@@ -289,10 +223,3 @@ struct AuthController {
     }
 }
 
-private extension Optional where Wrapped == String {
-    var nilOrNonEmptyValue: String? {
-        guard let self else { return nil }
-        let trimmed = self.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
-    }
-}

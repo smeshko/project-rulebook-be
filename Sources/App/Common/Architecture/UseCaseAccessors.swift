@@ -38,8 +38,32 @@ struct AuthUseCases {
         }
     }
     
-    // Future authentication use cases will be added here:
-    // var signUp: SignUpUseCase { get async throws { ... } }
-    // var signIn: SignInUseCase { get async throws { ... } }
-    // var refreshToken: RefreshTokenUseCase { get async throws { ... } }
+    /// Sign-up use case for handling user registration.
+    var signUp: SignUpUseCase {
+        get async throws {
+            try await request.resolveService(SignUpUseCase.self)
+        }
+    }
+    
+    /// Sign-in use case for handling user authentication.
+    var signIn: SignInUseCase {
+        get async throws {
+            try await request.resolveService(SignInUseCase.self)
+        }
+    }
+    
+    /// Apple Sign-In use case for handling Apple authentication.
+    // TODO: Restore when Apple JWT verification is fixed
+    // var appleSignIn: AppleSignInUseCase {
+    //     get async throws {
+    //         try await request.resolveService(AppleSignInUseCase.self)
+    //     }
+    // }
+    
+    /// Refresh token use case for handling JWT token refresh.
+    var refreshToken: RefreshTokenUseCase {
+        get async throws {
+            try await request.resolveService(RefreshTokenUseCase.self)
+        }
+    }
 }

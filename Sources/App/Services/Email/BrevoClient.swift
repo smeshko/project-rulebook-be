@@ -17,20 +17,17 @@ struct BrevoClient: EmailService {
     
     @discardableResult
     func send(_ email: any Email) async throws -> HTTPStatus {
+        let config = try app.configuration.services
         let response = try await app.client.post(
-            mailURI,
+            URI(string: config.brevoURL),
             headers: .init([
                 ("accept", "application/json"),
-                ("api-key", Environment.mailProviderKey),
+                ("api-key", config.brevoAPIKey),
                 ("content-type", "application/json")
             ]),
             content: email
         )
         
         return response.status
-    }
-    
-    private var mailURI: URI {
-        URI(string: Environment.mailProviderUrl)
     }
 }

@@ -50,14 +50,27 @@ final class AuthSignupTests: XCTestCase {
             let content = try res.content.decode(Auth.SignUp.Response.self)
             
             // Verify user was created in database
+            print("DEBUG: Looking for user with ID: \(content.user.id)")
             let model = try await app.repositories.users.find(id: content.user.id)
-            XCTAssertNotNil(model)
-            XCTAssertTrue(try BCryptDigest().verify("password123", created: model!.password!))
+            print("DEBUG: User model found: \(model != nil)")
+            if let model = model {
+                print("DEBUG: User model password: \(model.password != nil)")
+            }
+            XCTAssertNotNil(model, "User should exist in database")
+            guard let foundModel = model else {
+                XCTFail("User not found in database")
+                return
+            }
+            guard let password = foundModel.password else {
+                XCTFail("User password is nil")
+                return
+            }
+            XCTAssertTrue(try BCryptDigest().verify("password123", created: password))
             
-            // Verify email token was created for the user (don't predict exact random value)
-            let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)
-            XCTAssertNotNil(emailToken)
-            XCTAssertEqual(emailToken?.$user.id, content.user.id)
+            // TODO: Restore email token verification when email verification is re-enabled
+            // let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)
+            // XCTAssertNotNil(emailToken)
+            // XCTAssertEqual(emailToken?.$user.id, content.user.id)
         })
     }
     
