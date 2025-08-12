@@ -12,6 +12,7 @@ extension UserError: AbortError {
         case .userNotFound: .notFound
         case .userAlreadyFollowsUser: .badRequest
         case .userNotFollowingUser: .badRequest
+        case .insufficientPermissions: .forbidden
         }
     }
 }

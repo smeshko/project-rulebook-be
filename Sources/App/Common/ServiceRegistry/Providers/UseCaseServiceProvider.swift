@@ -100,5 +100,33 @@ public struct UseCaseServiceProvider: ServiceProvider {
                 rulesOrchestrationService: try await app.serviceRegistry.resolveRequired(RulesOrchestrationService.self)
             )
         }
+        
+        // MARK: - User Management Use Cases
+        
+        /// Get current user use case for retrieving authenticated user profile business logic
+        registry.register(GetCurrentUserUseCase.self) { app in
+            GetCurrentUserUseCase()
+        }
+        
+        /// Update user profile use case for modifying user profile data business logic
+        registry.register(UpdateUserProfileUseCase.self) { app in
+            UpdateUserProfileUseCase(
+                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
+            )
+        }
+        
+        /// Delete user account use case for removing user accounts business logic
+        registry.register(DeleteUserAccountUseCase.self) { app in
+            DeleteUserAccountUseCase(
+                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
+            )
+        }
+        
+        /// List users use case for admin user listing business logic
+        registry.register(ListUsersUseCase.self) { app in
+            ListUsersUseCase(
+                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
+            )
+        }
     }
 }

@@ -27,8 +27,10 @@ struct UseCases {
         RulesUseCases(request: request)
     }
     
-    // Future namespaces will be added here:
-    // var user: UserUseCases { UserUseCases(request: request) }
+    /// User management-related use cases.
+    var user: UserUseCases {
+        UserUseCases(request: request)
+    }
 }
 
 /// Namespace for authentication-related use cases.
@@ -87,6 +89,39 @@ struct RulesUseCases {
     var generateRules: GenerateRulesUseCase {
         get async throws {
             try await request.resolveService(GenerateRulesUseCase.self)
+        }
+    }
+}
+
+/// Namespace for user management-related use cases.
+struct UserUseCases {
+    let request: Request
+    
+    /// Get current user use case for retrieving authenticated user profile.
+    var getCurrentUser: GetCurrentUserUseCase {
+        get async throws {
+            try await request.resolveService(GetCurrentUserUseCase.self)
+        }
+    }
+    
+    /// Update user profile use case for modifying user profile data.
+    var updateProfile: UpdateUserProfileUseCase {
+        get async throws {
+            try await request.resolveService(UpdateUserProfileUseCase.self)
+        }
+    }
+    
+    /// Delete user account use case for removing user accounts.
+    var deleteAccount: DeleteUserAccountUseCase {
+        get async throws {
+            try await request.resolveService(DeleteUserAccountUseCase.self)
+        }
+    }
+    
+    /// List users use case for admin user listing.
+    var listUsers: ListUsersUseCase {
+        get async throws {
+            try await request.resolveService(ListUsersUseCase.self)
         }
     }
 }
