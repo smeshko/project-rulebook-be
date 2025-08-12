@@ -23,8 +23,7 @@ extension Application {
     /// ```swift
     /// try await setupServiceRegistry()
     /// // Registers services from:
-    /// // - DemoServiceProvider (basic services)
-    /// // - RepositoryServiceProvider (data access)
+    /// // - RepositoryServiceProvider (data access layer)
     /// // - ExternalServiceProvider (third-party integrations)
     /// ```
     ///
