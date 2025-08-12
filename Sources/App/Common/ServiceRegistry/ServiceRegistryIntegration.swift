@@ -54,14 +54,53 @@ extension Application {
     ///
     /// - Throws: Service registration or startup errors that prevent application launch
     public func setupServiceRegistry() async throws {
-        // Register all services in the registry
+        // Register all services in the registry in dependency order
         try await DemoServiceProvider.register(in: serviceRegistry, app: self)
-        // TODO: Fix complex service dependencies
-        // try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
-        // try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
+        try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        
+        // Validate all services are properly registered
+        try await validateServiceRegistration()
         
         // Start up all services that implement ServiceLifecycle
         try await serviceRegistry.startupAll(self)
+    }
+    
+    /// Validates that all required services are properly registered.
+    ///
+    /// This method performs comprehensive validation of service registration to catch
+    /// configuration issues early during application startup rather than at runtime.
+    ///
+    /// ## Validation Benefits
+    /// - **Early Detection**: Catches service registration issues during startup
+    /// - **Dependency Verification**: Ensures all service dependencies are satisfied
+    /// - **Configuration Validation**: Verifies proper service provider configuration
+    /// - **Error Prevention**: Prevents runtime service resolution failures
+    ///
+    /// ## Validated Services
+    /// This method validates registration of:
+    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens)
+    /// - All external services (email, llm, aiCache, generators, validators)
+    /// - All utility services (randomGenerator, uuidGenerator, ipExtractor)
+    ///
+    /// - Throws: Service registration errors if any required service is missing
+    private func validateServiceRegistration() async throws {
+        // Validate repositories are registered
+        _ = try await serviceRegistry.resolveRequired((any UserRepository).self)
+        _ = try await serviceRegistry.resolveRequired((any EmailTokenRepository).self)
+        _ = try await serviceRegistry.resolveRequired((any RefreshTokenRepository).self)
+        _ = try await serviceRegistry.resolveRequired((any PasswordTokenRepository).self)
+        
+        // Validate services are registered
+        _ = try await serviceRegistry.resolveRequired(EmailService.self)
+        _ = try await serviceRegistry.resolveRequired(LLMService.self)
+        _ = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
+        _ = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
+        _ = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
+        _ = try await serviceRegistry.resolveRequired(IPExtractorService.self)
+        _ = try await serviceRegistry.resolveRequired(PromptSanitizerServiceInterface.self)
+        _ = try await serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self)
+        _ = try await serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
     }
     
     /// Gracefully shuts down all services in the registry.

@@ -2,17 +2,7 @@ import Vapor
 
 public struct ExternalServiceProvider: ServiceProvider {
     public static func register(in registry: ServiceContainer, app: Application) async throws {
-        // TODO: Fix service instantiation with proper dependencies
-        
-        // Email Service
-        registry.register(EmailService.self) { app in
-            BrevoClient(app: app)
-        }
-        
-        // LLM Service  
-        registry.register(LLMService.self) { app in
-            OpenAIService(app: app)
-        }
+        // Foundation Services (no dependencies)
         
         // Random Generator Service
         registry.register(RandomGeneratorService.self) { app in
@@ -29,27 +19,52 @@ public struct ExternalServiceProvider: ServiceProvider {
             DefaultIPExtractorService(app: app)
         }
         
-        // TODO: These services have complex dependencies that need to be resolved
-        // through the ServiceRegistry dependency resolution mechanism
+        // Cache Key Generator Service (no dependencies)
+        registry.register(CacheKeyGeneratorServiceInterface.self) { app in
+            DefaultCacheKeyGeneratorService(app: app)
+        }
         
-        // AI Cache Service - requires CacheConfiguration, Logger, CacheKeyGeneratorServiceInterface
-        // registry.register(AICacheServiceInterface.self) { app in
-        //     InMemoryAICacheService(configuration: config, logger: logger, keyGenerator: keyGen)
-        // }
+        // Prompt Sanitizer Service (no dependencies)
+        registry.register(PromptSanitizerServiceInterface.self) { app in
+            DefaultPromptSanitizerService(app: app)
+        }
         
-        // Prompt Sanitizer Service
-        // registry.register(PromptSanitizerServiceInterface.self) { app in
-        //     DefaultPromptSanitizerService(app: app)
-        // }
+        // AI Input Validator Service (no dependencies)
+        registry.register(AIInputValidatorServiceInterface.self) { app in
+            DefaultAIInputValidatorService(app: app)
+        }
         
-        // AI Input Validator Service
-        // registry.register(AIInputValidatorServiceInterface.self) { app in
-        //     DefaultAIInputValidatorService(app: app)
-        // }
+        // Services with dependencies resolved through ServiceRegistry
         
-        // Cache Key Generator Service
-        // registry.register(CacheKeyGeneratorServiceInterface.self) { app in
-        //     DefaultCacheKeyGeneratorService(app: app)
-        // }
+        // AI Cache Service - requires configuration, logger, and key generator
+        registry.register(AICacheServiceInterface.self) { app in
+            let cacheConfig = try app.configuration.cache
+            let keyGenerator = try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
+            
+            // Convert CacheConfig to CacheConfiguration
+            let configuration = CacheConfiguration(
+                maxEntries: cacheConfig.maxEntries,
+                rulesGenerationTTL: cacheConfig.rulesGenerationTTL,
+                imageAnalysisTTL: cacheConfig.imageAnalysisTTL,
+                cleanupInterval: cacheConfig.cleanupInterval,
+                enableLogging: cacheConfig.enableLogging
+            )
+            
+            return InMemoryAICacheService(
+                configuration: configuration,
+                logger: app.logger,
+                keyGenerator: keyGenerator
+            )
+        }
+        
+        // Email Service
+        registry.register(EmailService.self) { app in
+            BrevoClient(app: app)
+        }
+        
+        // LLM Service - requires configuration and other services
+        registry.register(LLMService.self) { app in
+            OpenAIService(app: app)
+        }
     }
 }

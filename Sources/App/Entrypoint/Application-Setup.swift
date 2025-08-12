@@ -174,17 +174,7 @@ extension Application {
       DatabasePasswordTokenRepository(database: app.db)
     }
 
-    services.email.use(.brevo)
-    services.randomGenerator.use(.random)
-    services.uuidGenerator.use(.random)
-    services.llm.use(.openAI)
-    services.ipExtractor.use(.default)
-    services.aiCache.use(.inMemory)
-    services.promptSanitizer.use(.default)
-    services.aiInputValidator.use(.default)
-    services.cacheKeyGenerator.use(.default)
-    
-    // New ServiceRegistry setup (running in parallel)
+    // ServiceRegistry setup (replaces old Vapor DI system)
     Task {
       try await setupServiceRegistry()
     }
