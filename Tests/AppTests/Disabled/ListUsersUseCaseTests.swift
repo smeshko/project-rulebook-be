@@ -30,7 +30,9 @@ final class ListUsersUseCaseTests {
             user.isAdmin = i == 1 // First user is admin
             return user
         }
-        mockUserRepo.entities.append(contentsOf: users)
+        for user in users {
+            try await mockUserRepo.create(user)
+        }
         
         let adminUser = UserAccountModel(
             email: "admin@example.com",
@@ -113,7 +115,9 @@ final class ListUsersUseCaseTests {
             user.id = UUID()
             return user
         }
-        mockUserRepo.entities.append(contentsOf: users)
+        for user in users {
+            try await mockUserRepo.create(user)
+        }
         
         let adminUser = UserAccountModel(
             email: "admin@example.com",
@@ -269,7 +273,7 @@ final class ListUsersUseCaseTests {
         adminUser.id = UUID()
         
         // Act & Assert
-        await #expect(throws: UserError.queryFailed) {
+        await #expect(throws: UserError.userNotFound) {
             try await useCase.execute(ListUsersUseCase.Request(
                 requestingUser: adminUser,
                 page: 1,
@@ -344,9 +348,9 @@ final class ListUsersUseCaseTests {
             UserAccountModel(email: "alice.williams@example.com", password: "hashed", firstName: "Alice", lastName: "Williams", isEmailVerified: true)
         ]
         
-        users.forEach { user in
+        for user in users {
             user.id = UUID()
-            mockUserRepo.entities.append(user)
+            try await mockUserRepo.create(user)
         }
         
         let adminUser = UserAccountModel(
@@ -466,7 +470,7 @@ final class ListUsersUseCaseTests {
             isEmailVerified: true
         )
         sensitiveUser.id = UUID()
-        mockUserRepo.entities.append(sensitiveUser)
+        try await mockUserRepo.create(sensitiveUser)
         
         let adminUser = UserAccountModel(
             email: "admin@example.com",
@@ -534,3 +538,40 @@ Administrative query collections differ from simple queries by:
 - Need for concurrent access safety
 - Administrative audit and compliance requirements
 */
+
+// MARK: - Test Support Classes
+
+/// Mock repository that simulates database failures for error testing.
+actor FailingUserRepository: UserRepository {
+    func create(_ model: UserAccountModel) async throws {
+        throw UserError.userNotFound
+    }
+
+    func delete(id: UUID) async throws {
+        throw UserError.userNotFound
+    }
+    
+    func find(email: String) async throws -> UserAccountModel? {
+        throw UserError.userNotFound
+    }
+
+    func find(id: UUID) async throws -> UserAccountModel? {
+        throw UserError.userNotFound
+    }
+
+    func find(appleUserIdentifier: String) async throws -> UserAccountModel? {
+        throw UserError.userNotFound
+    }
+    
+    func all() async throws -> [UserAccountModel] {
+        throw UserError.userNotFound
+    }
+    
+    func update(_ model: UserAccountModel) async throws {
+        throw UserError.userNotFound
+    }
+    
+    func count() async throws -> Int {
+        throw UserError.userNotFound
+    }
+}
