@@ -128,5 +128,48 @@ public struct UseCaseServiceProvider: ServiceProvider {
                 userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
             )
         }
+        
+        // MARK: - Cache Administration Use Cases
+        
+        /// Get cache statistics use case for retrieving cache performance metrics business logic
+        registry.register(GetCacheStatsUseCase.self) { app in
+            GetCacheStatsUseCase(
+                aiCacheService: app.serviceCache.aiCacheService,
+                logger: app.logger
+            )
+        }
+        
+        /// Clear cache use case for removing all cache entries business logic
+        registry.register(ClearCacheUseCase.self) { app in
+            ClearCacheUseCase(
+                aiCacheService: app.serviceCache.aiCacheService,
+                logger: app.logger
+            )
+        }
+        
+        /// Get cache entries use case for listing cached entries with metadata business logic
+        registry.register(GetCacheEntriesUseCase.self) { app in
+            GetCacheEntriesUseCase(
+                aiCacheService: app.serviceCache.aiCacheService,
+                logger: app.logger
+            )
+        }
+        
+        /// Manual cleanup use case for triggering expired entries cleanup business logic
+        registry.register(ManualCleanupUseCase.self) { app in
+            ManualCleanupUseCase(
+                aiCacheService: app.serviceCache.aiCacheService,
+                logger: app.logger
+            )
+        }
+        
+        /// Get cache health use case for assessing cache performance and health status business logic
+        registry.register(GetCacheHealthUseCase.self) { app in
+            GetCacheHealthUseCase(
+                aiCacheService: app.serviceCache.aiCacheService,
+                configurationService: app.configuration,
+                logger: app.logger
+            )
+        }
     }
 }
