@@ -1,7 +1,23 @@
 import XCTVapor
 @testable import App
 
-final class CorrelationIDAspectTests: IntegrationTestCase {
+final class CorrelationIDAspectTests: XCTestCase {
+    
+    var app: Application!
+    
+    override func setUp() async throws {
+        app = try await Application.make(.testing)
+        try configure(app)
+        
+        // Add test routes
+        app.get("test") { _ in
+            return HTTPStatus.ok
+        }
+    }
+    
+    override func tearDown() async throws {
+        try await app.asyncShutdown()
+    }
     
     // MARK: - Correlation ID Generation Tests
     
@@ -197,5 +213,9 @@ private struct MockUUIDGenerator: UUIDGeneratorService {
     
     func generate() -> UUID {
         return fixedUUID
+    }
+    
+    func `for`(_ request: Request) -> UUIDGeneratorService {
+        return self
     }
 }

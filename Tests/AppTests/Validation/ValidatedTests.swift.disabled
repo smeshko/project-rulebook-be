@@ -230,7 +230,7 @@ final class ValidatedTests: XCTestCase {
     
     func testValidatedCodable() throws {
         struct User: Codable {
-            @Validated(rules: [EmailRule()])
+            @Validated(wrappedValue: "", rules: [EmailRule()])
             var email: String
             
             init(email: String = "") {
@@ -256,7 +256,7 @@ final class ValidatedTests: XCTestCase {
     
     func testValidatedEquatable() {
         struct Model: Equatable {
-            @Validated(rules: [MinLengthRule(3)])
+            @Validated(wrappedValue: "", rules: [MinLengthRule(3)])
             var value: String
             
             init(value: String) {
@@ -274,7 +274,7 @@ final class ValidatedTests: XCTestCase {
     
     func testValidatedHashable() {
         struct Model: Hashable {
-            @Validated(rules: [MinLengthRule(3)])
+            @Validated(wrappedValue: "", rules: [MinLengthRule(3)])
             var value: String
             
             init(value: String) {

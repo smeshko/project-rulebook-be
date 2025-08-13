@@ -227,15 +227,15 @@ final class AspectMiddlewareTests: XCTestCase {
 
 private struct TestAspect: Aspect {
     let name: String
-    var onBefore: ((Request, inout AspectContext) async throws -> Void)?
-    var onAfter: ((Request, Response, AspectContext) async throws -> Response?)?
-    var onError: ((Request, Error, AspectContext) async throws -> Void)?
+    var onBefore: (@Sendable (Request, inout AspectContext) async throws -> Void)?
+    var onAfter: (@Sendable (Request, Response, AspectContext) async throws -> Response?)?
+    var onError: (@Sendable (Request, Error, AspectContext) async throws -> Void)?
     
     init(
         name: String,
-        onBefore: ((Request, inout AspectContext) async throws -> Void)? = nil,
-        onAfter: ((Request, Response, AspectContext) async throws -> Response?)? = nil,
-        onError: ((Request, Error, AspectContext) async throws -> Void)? = nil
+        onBefore: (@Sendable (Request, inout AspectContext) async throws -> Void)? = nil,
+        onAfter: (@Sendable (Request, Response, AspectContext) async throws -> Response?)? = nil,
+        onError: (@Sendable (Request, Error, AspectContext) async throws -> Void)? = nil
     ) {
         self.name = name
         self.onBefore = onBefore
