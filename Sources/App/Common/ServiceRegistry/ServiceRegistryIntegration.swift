@@ -58,7 +58,10 @@ extension Application {
         if environment != .testing || !isTestRepositoriesRegistered() {
             try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
         }
-        try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        // Skip external services for testing environment if test services are already registered
+        if environment != .testing || !isTestServicesRegistered() {
+            try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
+        }
         try await DomainServiceProvider.register(in: serviceRegistry, app: self)
         try await CQRSServiceProvider.register(in: serviceRegistry, app: self)
         
@@ -80,6 +83,15 @@ extension Application {
                serviceRegistry.isRegistered((any RefreshTokenRepository).self) &&
                serviceRegistry.isRegistered((any EmailTokenRepository).self) &&
                serviceRegistry.isRegistered((any PasswordTokenRepository).self)
+    }
+    
+    /// Checks if test external services are already registered in the service registry.
+    ///
+    /// This prevents production external services from overriding test/mock services during testing.
+    private func isTestServicesRegistered() -> Bool {
+        return serviceRegistry.isRegistered(EmailService.self) ||
+               serviceRegistry.isRegistered(LLMService.self) ||
+               serviceRegistry.isRegistered(AICacheServiceInterface.self)
     }
     
     /// Validates that all required services are properly registered.

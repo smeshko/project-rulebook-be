@@ -14,8 +14,9 @@ final class PerformanceTestCase {
     ///
     /// - Throws: Configuration or setup errors
     init() async throws {
-        self.app = try await Application.make(.testing)
-        try setupPerformanceConfiguration()
+        self.app = try TestWorld.makeTestAppSync()
+        // Performance configuration is now handled by TestWorld with ServiceRegistry
+        // No additional setup needed
     }
     
     /// Cleans up resources when the test case is deallocated.
@@ -94,19 +95,6 @@ final class PerformanceTestCase {
         )
     }
     
-    /// Sets up configuration optimized for performance testing.
-    private func setupPerformanceConfiguration() throws {
-        // Use in-memory database for consistent performance
-        app.databases.use(.sqlite(.memory), as: .sqlite)
-        
-        // Minimal service setup for performance testing
-        app.services.randomGenerator.use(.random)
-        app.services.uuidGenerator.use(.random)
-        app.services.email.use(.fake)
-        
-        // Configure JWT
-        try app.jwt.signers.use(.es256(key: .generate()))
-    }
 }
 
 /// Performance metrics collected from test runs.

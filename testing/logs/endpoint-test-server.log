@@ -1,0 +1,91 @@
+warning: 'project-rulebook': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/AspectMiddlewareTests.swift.disabled
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/CorrelationIDAspectTests.swift.disabled
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Validation/ValidatedTests.swift.disabled
+warning: 'jwt': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/A1E6E98/Developer/vapor/project-rulebook/.build/checkouts/jwt/Sources/JWT/Docs.docc
+[0/1] Planning build
+Building for debugging...
+[0/4] Write swift-version--58304C5D6DBC2206.txt
+[1/3] Linking App
+[2/3] Applying App
+Build of product 'App' complete! (10.54s)
+[ INFO ] Loading environment variables from .env
+[ INFO ] Configuration loaded for environment: development
+[ INFO ] Database host: localhost
+[ INFO ] Services configured: Brevo, OpenAI
+[ INFO ] AI Cache Service initialized [image_ttl: 1800.0s, max_entries: 500, rules_ttl: 3600.0s]
+[ INFO ] ServiceCache created with all services pre-resolved for synchronous access
+[ INFO ] Registered 3 aspects for cross-cutting concerns
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.UserMigrations.v1]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.UserMigrations.v1]
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.UserMigrations.seed]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.UserMigrations.seed]
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.AuthMigrations.v1]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.AuthMigrations.v1]
+[ NOTICE ] Server started on http://127.0.0.1:8080
+[ INFO ] Request started [correlation_id: 1327FD3D-0CBE-47E6-8CE4-0CF766CB8B68, has_existing_id: false, method: GET, path: /, request-id: 581FEDF3-CA2C-41FF-964C-02E43921436F]
+[ INFO ] Request completed [correlation_id: 1327FD3D-0CBE-47E6-8CE4-0CF766CB8B68, request-id: 581FEDF3-CA2C-41FF-964C-02E43921436F, status: 404]
+[ INFO ] Request started [correlation_id: 7620A778-0A59-4C67-9E65-394F87083950, has_existing_id: false, method: GET, path: /, request-id: 59D4690E-A980-4E2F-9EF8-0EC07C26008F]
+[ INFO ] Request completed [correlation_id: 7620A778-0A59-4C67-9E65-394F87083950, request-id: 59D4690E-A980-4E2F-9EF8-0EC07C26008F, status: 404]
+[ INFO ] Request started [correlation_id: 545FB49A-F906-4C33-B444-68AD984FB966, has_existing_id: false, method: GET, path: /nonexistent, request-id: 18A584FB-6CC1-4C27-90AE-BE1DC2EE2DA0]
+[ INFO ] Request completed [correlation_id: 545FB49A-F906-4C33-B444-68AD984FB966, request-id: 18A584FB-6CC1-4C27-90AE-BE1DC2EE2DA0, status: 404]
+[ INFO ] Request started [correlation_id: 8B4F0BB6-E103-41E7-87F2-CF7DA361B8FC, has_existing_id: false, method: POST, path: /api/auth/sign-up, request-id: 2103E0D8-30F9-4F28-92E8-2C306EB42EB2]
+[ INFO ] Request completed [correlation_id: 8B4F0BB6-E103-41E7-87F2-CF7DA361B8FC, request-id: 2103E0D8-30F9-4F28-92E8-2C306EB42EB2, status: 200]
+[ INFO ] Request started [correlation_id: 110CFC11-5C70-4831-A4D8-070235DDEC6B, has_existing_id: false, method: POST, path: /api/auth/reset-password, request-id: 8BB7D2B5-EE07-4D4B-AAD4-371B713FDAC9]
+[ INFO ] Request completed [correlation_id: 110CFC11-5C70-4831-A4D8-070235DDEC6B, request-id: 8BB7D2B5-EE07-4D4B-AAD4-371B713FDAC9, status: 200]
+[ INFO ] Request started [correlation_id: AD042B1D-2EB7-43B5-9EE9-F37D336CAA12, has_existing_id: false, method: POST, path: /api/auth/apple-auth, request-id: F660CADA-1841-4C60-A747-0E9826654F82]
+[ WARNING ] Abort.501: Apple Sign-In use case temporarily disabled during refactoring [correlation_id: AD042B1D-2EB7-43B5-9EE9-F37D336CAA12, request-id: F660CADA-1841-4C60-A747-0E9826654F82]
+[ INFO ] Request completed [correlation_id: AD042B1D-2EB7-43B5-9EE9-F37D336CAA12, request-id: F660CADA-1841-4C60-A747-0E9826654F82, status: 501]
+[ INFO ] Request started [correlation_id: 56B54E97-7E97-4405-860A-7F1A7C8DB369, has_existing_id: false, method: POST, path: /api/auth/refresh, request-id: 55B63894-2E5E-4080-A71E-DD1D6BF774B0]
+[ WARNING ] AuthenticationError.refresh_token_or_user_not_found: User or refresh token was not found [correlation_id: 56B54E97-7E97-4405-860A-7F1A7C8DB369, request-id: 55B63894-2E5E-4080-A71E-DD1D6BF774B0]
+[ INFO ] Request completed [correlation_id: 56B54E97-7E97-4405-860A-7F1A7C8DB369, request-id: 55B63894-2E5E-4080-A71E-DD1D6BF774B0, status: 404]
+[ INFO ] Request started [correlation_id: 30C08532-D255-407D-9D3E-447A446C73EB, has_existing_id: false, method: POST, path: /api/auth/logout, request-id: 80C2538E-1EDC-4029-BC92-958F670AFAE8]
+[ WARNING ] AuthenticationError.user_not_authorized: User is not authorized for the requested action [correlation_id: 30C08532-D255-407D-9D3E-447A446C73EB, request-id: 80C2538E-1EDC-4029-BC92-958F670AFAE8]
+[ INFO ] Request completed [correlation_id: 30C08532-D255-407D-9D3E-447A446C73EB, request-id: 80C2538E-1EDC-4029-BC92-958F670AFAE8, status: 401]
+[ INFO ] Request started [correlation_id: 582FA6C2-EAD5-4CB3-A4AA-C7FBF7AF1138, has_existing_id: false, method: GET, path: /api/user/me, request-id: 16DE455F-6E6C-476A-A0B7-D90310D8FC9E]
+[ WARNING ] AuthenticationError.user_not_authorized: User is not authorized for the requested action [correlation_id: 582FA6C2-EAD5-4CB3-A4AA-C7FBF7AF1138, request-id: 16DE455F-6E6C-476A-A0B7-D90310D8FC9E]
+[ INFO ] Request completed [correlation_id: 582FA6C2-EAD5-4CB3-A4AA-C7FBF7AF1138, request-id: 16DE455F-6E6C-476A-A0B7-D90310D8FC9E, status: 401]
+[ INFO ] Request started [correlation_id: B6DE9597-D65D-4080-B916-33C4084FB56D, has_existing_id: false, method: PATCH, path: /api/user/update, request-id: 3AB9D826-107B-44FC-A35F-EC5A8E69B56A]
+[ WARNING ] AuthenticationError.user_not_authorized: User is not authorized for the requested action [correlation_id: B6DE9597-D65D-4080-B916-33C4084FB56D, request-id: 3AB9D826-107B-44FC-A35F-EC5A8E69B56A]
+[ INFO ] Request completed [correlation_id: B6DE9597-D65D-4080-B916-33C4084FB56D, request-id: 3AB9D826-107B-44FC-A35F-EC5A8E69B56A, status: 401]
+[ INFO ] Request started [correlation_id: 785DF640-E92D-49DE-B3C9-10A0333AC416, has_existing_id: false, method: DELETE, path: /api/user/delete, request-id: 8F9699A3-31C0-4783-9031-9C45C018DC17]
+[ WARNING ] AuthenticationError.user_not_authorized: User is not authorized for the requested action [correlation_id: 785DF640-E92D-49DE-B3C9-10A0333AC416, request-id: 8F9699A3-31C0-4783-9031-9C45C018DC17]
+[ INFO ] Request completed [correlation_id: 785DF640-E92D-49DE-B3C9-10A0333AC416, request-id: 8F9699A3-31C0-4783-9031-9C45C018DC17, status: 401]
+[ INFO ] Request started [correlation_id: C7788CE7-5A42-4AD0-A80B-1E072B516F8F, has_existing_id: false, method: GET, path: /api/user/list, request-id: A2D46314-C0C8-4340-8A3E-39FD5B336DA9]
+[ WARNING ] AuthenticationError.user_not_authorized: User is not authorized for the requested action [correlation_id: C7788CE7-5A42-4AD0-A80B-1E072B516F8F, request-id: A2D46314-C0C8-4340-8A3E-39FD5B336DA9]
+[ INFO ] Request completed [correlation_id: C7788CE7-5A42-4AD0-A80B-1E072B516F8F, request-id: A2D46314-C0C8-4340-8A3E-39FD5B336DA9, status: 401]
+[ INFO ] Request started [correlation_id: 13AE6A3C-9DAA-4869-9DDB-9D1FB2889E10, has_existing_id: false, method: POST, path: /api/rules-generation/game-box-analysis, request-id: 9013685E-ACB2-4C0C-9605-20A7D42F1982]
+[ INFO ] Game identification service initiated [client_ip: 127.0.0.1, correlation_id: 13AE6A3C-9DAA-4869-9DDB-9D1FB2889E10, image_size: 23 bytes, request-id: 9013685E-ACB2-4C0C-9605-20A7D42F1982, request_id: 9013685E-ACB2-4C0C-9605-20A7D42F1982, timestamp: 2025-08-13T10:30:06Z]
+[ WARNING ] Invalid image format - unrecognized header [client_ip: 127.0.0.1, correlation_id: 13AE6A3C-9DAA-4869-9DDB-9D1FB2889E10, data_size: 23 bytes, header_bytes: 7B 22 69 6E, request-id: 9013685E-ACB2-4C0C-9605-20A7D42F1982, request_id: 9013685E-ACB2-4C0C-9605-20A7D42F1982]
+[ WARNING ] Invalid image format - must be valid base64 encoded image [correlation_id: 13AE6A3C-9DAA-4869-9DDB-9D1FB2889E10, request-id: 9013685E-ACB2-4C0C-9605-20A7D42F1982]
+[ INFO ] Request completed [correlation_id: 13AE6A3C-9DAA-4869-9DDB-9D1FB2889E10, request-id: 9013685E-ACB2-4C0C-9605-20A7D42F1982, status: 400]
+[ INFO ] Request started [correlation_id: F688C967-2D08-4463-B45A-0B856E2F00B1, has_existing_id: false, method: POST, path: /api/rules-generation/rules-summary, request-id: 9AC88C96-F9A5-4322-B71F-6DEB85DCE527]
+[ WARNING ] Invalid JSON in rules generation request [correlation_id: F688C967-2D08-4463-B45A-0B856E2F00B1, error: The data couldn’t be read because it is missing., request-id: 9AC88C96-F9A5-4322-B71F-6DEB85DCE527]
+[ WARNING ] Abort.400: Invalid request format [correlation_id: F688C967-2D08-4463-B45A-0B856E2F00B1, request-id: 9AC88C96-F9A5-4322-B71F-6DEB85DCE527]
+[ INFO ] Request completed [correlation_id: F688C967-2D08-4463-B45A-0B856E2F00B1, request-id: 9AC88C96-F9A5-4322-B71F-6DEB85DCE527, status: 400]
+[ INFO ] Request started [correlation_id: 312ADEE1-3F04-471F-9D74-91010AF9F1E4, has_existing_id: false, method: POST, path: /api/rules-generation/rules-summary, request-id: 28CFB7FB-4911-4B8C-A449-897D5E55FFF1]
+[ WARNING ] Invalid JSON in rules generation request [correlation_id: 312ADEE1-3F04-471F-9D74-91010AF9F1E4, error: The data couldn’t be read because it is missing., request-id: 28CFB7FB-4911-4B8C-A449-897D5E55FFF1]
+[ WARNING ] Abort.400: Invalid request format [correlation_id: 312ADEE1-3F04-471F-9D74-91010AF9F1E4, request-id: 28CFB7FB-4911-4B8C-A449-897D5E55FFF1]
+[ INFO ] Request completed [correlation_id: 312ADEE1-3F04-471F-9D74-91010AF9F1E4, request-id: 28CFB7FB-4911-4B8C-A449-897D5E55FFF1, status: 400]
+[ INFO ] Request started [correlation_id: 969BAA24-F537-41AF-AC2D-A476D2CB31B3, has_existing_id: false, method: GET, path: /api/admin/cache/stats, request-id: FC7F509A-E1E7-4FCB-A4BC-71334DE34951]
+[ ERROR ] Request is missing JWT bearer header [correlation_id: 969BAA24-F537-41AF-AC2D-A476D2CB31B3, request-id: FC7F509A-E1E7-4FCB-A4BC-71334DE34951]
+[ WARNING ] Abort.401: Unauthorized [correlation_id: 969BAA24-F537-41AF-AC2D-A476D2CB31B3, request-id: FC7F509A-E1E7-4FCB-A4BC-71334DE34951]
+[ INFO ] Request completed [correlation_id: 969BAA24-F537-41AF-AC2D-A476D2CB31B3, request-id: FC7F509A-E1E7-4FCB-A4BC-71334DE34951, status: 401]
+[ INFO ] Request started [correlation_id: B5188069-BAFC-4A4B-A912-5A7775191BB4, has_existing_id: false, method: GET, path: /api/admin/cache/health, request-id: 69DBC349-0F63-4AE6-BCE3-C5FD9B3BA110]
+[ ERROR ] Request is missing JWT bearer header [correlation_id: B5188069-BAFC-4A4B-A912-5A7775191BB4, request-id: 69DBC349-0F63-4AE6-BCE3-C5FD9B3BA110]
+[ WARNING ] Abort.401: Unauthorized [correlation_id: B5188069-BAFC-4A4B-A912-5A7775191BB4, request-id: 69DBC349-0F63-4AE6-BCE3-C5FD9B3BA110]
+[ INFO ] Request completed [correlation_id: B5188069-BAFC-4A4B-A912-5A7775191BB4, request-id: 69DBC349-0F63-4AE6-BCE3-C5FD9B3BA110, status: 401]
+[ INFO ] Request started [correlation_id: EEE39AA7-0D7E-4E45-A512-DF49BC0C1CAC, has_existing_id: false, method: GET, path: /api/admin/cache/entries, request-id: 30444900-E8A4-48CC-ADA9-43D6D8CAFF90]
+[ ERROR ] Request is missing JWT bearer header [correlation_id: EEE39AA7-0D7E-4E45-A512-DF49BC0C1CAC, request-id: 30444900-E8A4-48CC-ADA9-43D6D8CAFF90]
+[ WARNING ] Abort.401: Unauthorized [correlation_id: EEE39AA7-0D7E-4E45-A512-DF49BC0C1CAC, request-id: 30444900-E8A4-48CC-ADA9-43D6D8CAFF90]
+[ INFO ] Request completed [correlation_id: EEE39AA7-0D7E-4E45-A512-DF49BC0C1CAC, request-id: 30444900-E8A4-48CC-ADA9-43D6D8CAFF90, status: 401]
+[ INFO ] Request started [correlation_id: 8764C659-A638-4919-82C4-244CD0D47AF4, has_existing_id: false, method: DELETE, path: /api/admin/cache, request-id: 4A5E0283-DAA5-4F97-B1EF-0E5E80E2ECAA]
+[ ERROR ] Request is missing JWT bearer header [correlation_id: 8764C659-A638-4919-82C4-244CD0D47AF4, request-id: 4A5E0283-DAA5-4F97-B1EF-0E5E80E2ECAA]
+[ WARNING ] Abort.401: Unauthorized [correlation_id: 8764C659-A638-4919-82C4-244CD0D47AF4, request-id: 4A5E0283-DAA5-4F97-B1EF-0E5E80E2ECAA]
+[ INFO ] Request completed [correlation_id: 8764C659-A638-4919-82C4-244CD0D47AF4, request-id: 4A5E0283-DAA5-4F97-B1EF-0E5E80E2ECAA, status: 401]
+[ INFO ] Request started [correlation_id: C3406CAD-EBED-4E39-B49D-DF09956E008C, has_existing_id: false, method: POST, path: /api/admin/cache/cleanup, request-id: B4ADED49-500A-4CF9-87C6-A2F0C723A9D6]
+[ ERROR ] Request is missing JWT bearer header [correlation_id: C3406CAD-EBED-4E39-B49D-DF09956E008C, request-id: B4ADED49-500A-4CF9-87C6-A2F0C723A9D6]
+[ WARNING ] Abort.401: Unauthorized [correlation_id: C3406CAD-EBED-4E39-B49D-DF09956E008C, request-id: B4ADED49-500A-4CF9-87C6-A2F0C723A9D6]
+[ INFO ] Request completed [correlation_id: C3406CAD-EBED-4E39-B49D-DF09956E008C, request-id: B4ADED49-500A-4CF9-87C6-A2F0C723A9D6, status: 401]
+

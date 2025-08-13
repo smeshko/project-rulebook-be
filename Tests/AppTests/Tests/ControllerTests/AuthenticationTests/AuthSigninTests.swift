@@ -81,7 +81,7 @@ final class AuthSigninTests: XCTestCase {
         try await app.repositories.users.create(user)
         
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
-        let token = app.services.randomGenerator.service.generate(bits: 256)
+        let token = "test_random_value"  // Use hardcoded value since we're using rigged generator
         
         let refreshToken = try RefreshTokenModel(value: SHA256.hash(token), userID: user.requireID())
         try await app.repositories.refreshTokens.create(refreshToken)

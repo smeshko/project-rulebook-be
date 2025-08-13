@@ -17,8 +17,8 @@ final class UnitTestCase {
     ///
     /// - Throws: Configuration or setup errors
     init() async throws {
-        self.app = try await Application.make(.testing)
-        try setupMinimalConfiguration()
+        self.app = try TestWorld.makeTestAppSync()
+        // Configuration is handled by TestWorld
     }
     
     /// Cleans up resources and shuts down the application.
@@ -48,20 +48,4 @@ final class UnitTestCase {
         )
     }
     
-    /// Sets up minimal configuration required for unit testing.
-    ///
-    /// This configures only the essential services and repositories needed
-    /// for unit testing, without the full application stack.
-    private func setupMinimalConfiguration() throws {
-        // Configure SQLite in-memory database for testing
-        app.databases.use(.sqlite(.memory), as: .sqlite)
-        
-        // Set up JWT for authentication tests (if needed)
-        try app.jwt.signers.use(.es256(key: .generate()))
-        
-        // Configure basic services with test implementations
-        app.services.randomGenerator.use(.random)
-        app.services.uuidGenerator.use(.random)
-        app.services.email.use(.fake)
-    }
 }
