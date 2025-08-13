@@ -55,17 +55,15 @@ public struct CorrelationIDAspect: Aspect {
         // Add to logger metadata
         request.logger[metadataKey: "correlation_id"] = .string(correlationID)
         
-        // Update request ID if not already set
-        if request.id == "vapor" || request.id.isEmpty {
-            request.id = correlationID
-        }
+        // Note: request.id is immutable in Vapor, so we can't update it directly
+        // The correlation ID is stored in the context and logger metadata instead
         
         // Log the request with correlation ID
         request.logger.info("Request started", metadata: [
             "method": .string(request.method.rawValue),
             "path": .string(request.url.path),
             "correlation_id": .string(correlationID),
-            "has_existing_id": .bool(extractCorrelationID(from: request) != nil)
+            "has_existing_id": .string(extractCorrelationID(from: request) != nil ? "true" : "false")
         ])
     }
     

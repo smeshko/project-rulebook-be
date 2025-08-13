@@ -28,7 +28,7 @@ import Foundation
 /// ```
 public struct ErrorHandlingAspect: Aspect {
     /// Configuration for error handling behavior.
-    public struct Configuration {
+    public struct Configuration: Sendable {
         /// Whether to include stack traces in logs.
         public let includeStackTrace: Bool
         
@@ -126,6 +126,7 @@ public struct ErrorHandlingAspect: Aspect {
     }
     
     public func onError(request: Request, error: Error, context: AspectContext) async throws {
+        var mutableContext = context
         // Get correlation ID from context or request
         let correlationID = context.get(CorrelationIDKey.self) ?? request.id
         
@@ -173,11 +174,12 @@ public struct ErrorHandlingAspect: Aspect {
             metadata["request_body"] = .string(requestBody)
         }
         
-        // Add user context if authenticated
-        if let userPayload = request.auth.get(Payload.self) {
-            metadata["user_id"] = .string(userPayload.id.uuidString)
-            metadata["user_email"] = .string(userPayload.email)
-        }
+        // Add user context if authenticated (commented out as Payload may not be available in all contexts)
+        // TODO: Uncomment when Payload is available in the module
+        // if let userPayload = request.auth.get(Payload.self) {
+        //     metadata["user_id"] = .string(userPayload.id.uuidString)
+        //     metadata["user_email"] = .string(userPayload.email)
+        // }
         
         // Log the error with appropriate level
         logError(
@@ -198,7 +200,10 @@ public struct ErrorHandlingAspect: Aspect {
         }
         
         // Store error info in context for response enhancement
-        context.set(errorInfo, for: ErrorInfoKey.self)
+        mutableContext.set(errorInfo, for: ErrorInfoKey.self)
+        
+        // Update request's aspect context with the modified one
+        request.aspectContext = mutableContext
         
         // Rethrow the error for normal processing
         throw error
@@ -380,7 +385,7 @@ public extension Response {
     ///
     /// This can be called by error middleware to add tracking headers
     /// based on the error handling aspect's classification.
-    mutating func addErrorTrackingHeaders(from request: Request) {
+    func addErrorTrackingHeaders(from request: Request) {
         if let errorInfo = request.aspectContext.get(ErrorInfoKey.self) {
             headers.add(name: "X-Error-Type", value: errorInfo.type.rawValue)
             headers.add(name: "X-Error-Category", value: errorInfo.category.rawValue)

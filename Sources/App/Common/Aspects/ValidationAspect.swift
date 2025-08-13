@@ -18,7 +18,7 @@ import Vapor
 /// ```
 public struct ValidationAspect: Aspect {
     /// Configuration for the validation aspect.
-    public struct Configuration {
+    public struct Configuration: Sendable {
         /// Whether to validate request content.
         public let validateContent: Bool
         
@@ -71,7 +71,7 @@ public struct ValidationAspect: Aspect {
     }
     
     public func before(request: Request, context: inout AspectContext) async throws {
-        var validationErrors: [ValidationError] = []
+        var validationErrors: [AspectValidationError] = []
         
         // Validate content if present and configured
         if configuration.validateContent,
@@ -123,20 +123,20 @@ public struct ValidationAspect: Aspect {
     }
     
     /// Validates request content.
-    private func validateContent(_ request: Request) async -> [ValidationError] {
+    private func validateContent(_ request: Request) async -> [AspectValidationError] {
         // This would integrate with Vapor's existing validation system
         // For now, we'll return empty as content validation is handled by Vapor
         return []
     }
     
     /// Validates query parameters.
-    private func validateQuery(_ request: Request) -> [ValidationError] {
-        var errors: [ValidationError] = []
+    private func validateQuery(_ request: Request) -> [AspectValidationError] {
+        var errors: [AspectValidationError] = []
         
         // Example: Validate common query parameters
         if let page = request.query[String.self, at: "page"] {
             if let pageNum = Int(page), pageNum < 1 {
-                errors.append(ValidationError(
+                errors.append(AspectValidationError(
                     field: "page",
                     message: "Page number must be greater than 0"
                 ))
@@ -146,7 +146,7 @@ public struct ValidationAspect: Aspect {
         if let limit = request.query[String.self, at: "limit"] {
             if let limitNum = Int(limit) {
                 if limitNum < 1 || limitNum > 100 {
-                    errors.append(ValidationError(
+                    errors.append(AspectValidationError(
                         field: "limit",
                         message: "Limit must be between 1 and 100"
                     ))
@@ -158,8 +158,8 @@ public struct ValidationAspect: Aspect {
     }
     
     /// Validates request headers.
-    private func validateHeaders(_ request: Request) -> [ValidationError] {
-        var errors: [ValidationError] = []
+    private func validateHeaders(_ request: Request) -> [AspectValidationError] {
+        var errors: [AspectValidationError] = []
         
         // Example: Validate custom headers if needed
         // This is typically used for API versioning, client identification, etc.
@@ -177,25 +177,25 @@ public struct ValidationAspect: Aspect {
 ///
 /// ## Example
 /// ```swift
-/// struct CreateUserRequest: Content, Validatable {
+/// struct CreateUserRequest: Content, AspectValidatable {
 ///     @Validated(rules: [EmailRule()])
 ///     var email: String
 ///     
 ///     @Validated(rules: [MinLengthRule(8)])
 ///     var password: String
 ///     
-///     func validate() -> [ValidationError] {
-///         var errors: [ValidationError] = []
+///     func validateAspect() -> [AspectValidationError] {
+///         var errors: [AspectValidationError] = []
 ///         
 ///         if !$email.isValid {
-///             errors.append(ValidationError(
+///             errors.append(AspectValidationError(
 ///                 field: "email",
 ///                 message: $email.errors.first ?? "Invalid email"
 ///             ))
 ///         }
 ///         
 ///         if !$password.isValid {
-///             errors.append(ValidationError(
+///             errors.append(AspectValidationError(
 ///                 field: "password",
 ///                 message: $password.errors.first ?? "Invalid password"
 ///             ))
@@ -205,17 +205,17 @@ public struct ValidationAspect: Aspect {
 ///     }
 /// }
 /// ```
-public protocol Validatable {
+public protocol AspectValidatable {
     /// Validates the instance and returns any validation errors.
     ///
     /// - Returns: Array of validation errors, empty if valid
-    func validate() -> [ValidationError]
+    func validateAspect() -> [AspectValidationError]
 }
 
 // MARK: - Validation Error Types
 
 /// Represents a validation error for a specific field.
-public struct ValidationError: CustomStringConvertible, Sendable {
+public struct AspectValidationError: CustomStringConvertible, Sendable {
     /// The field that failed validation.
     public let field: String
     
@@ -240,7 +240,7 @@ public struct ValidationError: CustomStringConvertible, Sendable {
 /// Error thrown when validation fails in the ValidationAspect.
 public struct ValidationAspectError: Error {
     /// The validation errors.
-    public let errors: [ValidationError]
+    public let errors: [AspectValidationError]
     
     /// The HTTP status to return.
     public let status: HTTPStatus
@@ -250,7 +250,7 @@ public struct ValidationAspectError: Error {
     
     /// Creates a new validation aspect error.
     public init(
-        errors: [ValidationError],
+        errors: [AspectValidationError],
         status: HTTPStatus = .badRequest,
         includeDetails: Bool = true
     ) {
@@ -264,7 +264,7 @@ public struct ValidationAspectError: Error {
 
 /// Context key for storing validation errors.
 private struct ValidationErrorsKey: AspectContextKey {
-    typealias Value = [ValidationError]
+    typealias Value = [AspectValidationError]
 }
 
 // MARK: - AbortError Conformance
@@ -287,12 +287,12 @@ extension ValidationAspectError: AbortError {
 // MARK: - Request Extensions
 
 public extension Request {
-    /// Validates the request content if it conforms to Validatable.
+    /// Validates the request content if it conforms to AspectValidatable.
     ///
     /// - Throws: ValidationAspectError if validation fails
-    func validateContent<T: Validatable>(_ type: T.Type) async throws -> T {
+    func validateContent<T: AspectValidatable & Content>(_ type: T.Type) async throws -> T {
         let content = try await self.content.decode(type)
-        let errors = content.validate()
+        let errors = content.validateAspect()
         
         if !errors.isEmpty {
             throw ValidationAspectError(errors: errors)
