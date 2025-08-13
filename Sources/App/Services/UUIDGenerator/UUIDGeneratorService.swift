@@ -1,7 +1,7 @@
 import Vapor
 import Foundation
 
-protocol UUIDGeneratorService {
+public protocol UUIDGeneratorService: Sendable {
     func generate() -> UUID
     
     func `for`(_ request: Request) -> UUIDGeneratorService

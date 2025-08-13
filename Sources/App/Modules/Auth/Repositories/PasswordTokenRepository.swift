@@ -57,11 +57,7 @@ struct DatabasePasswordTokenRepository: PasswordTokenRepository, DatabaseReposit
 
 extension Application.Repositories {
     var passwordTokens: any PasswordTokenRepository {
-        passwordTokensService.service
-    }
-
-    var passwordTokensService: Application.Service<any PasswordTokenRepository> {
-        .init(application: application)
+        application.serviceCache.passwordTokenRepository
     }
 }
 

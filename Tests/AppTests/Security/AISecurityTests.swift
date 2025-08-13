@@ -36,8 +36,8 @@ final class AISecurityTests: XCTestCase {
                 on: app.eventLoopGroup.next()
             )
             
-            XCTAssertNoThrow(try request.services.promptSanitizer.sanitizeGameTitle(title))
-            let sanitized = try request.services.promptSanitizer.sanitizeGameTitle(title)
+            XCTAssertNoThrow(try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(title))
+            let sanitized = try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(title)
             XCTAssertFalse(sanitized.isEmpty)
         }
     }
@@ -67,7 +67,7 @@ final class AISecurityTests: XCTestCase {
         )
         
         for maliciousInput in maliciousInputs {
-            XCTAssertThrowsError(try request.services.promptSanitizer.sanitizeGameTitle(maliciousInput)) { error in
+            XCTAssertThrowsError(try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(maliciousInput)) { error in
                 XCTAssert(error is ValidationError || error is AIValidationError)
             }
         }
@@ -83,7 +83,7 @@ final class AISecurityTests: XCTestCase {
         
         // Test length limits
         let tooLong = String(repeating: "a", count: 101)
-        XCTAssertThrowsError(try request.services.promptSanitizer.sanitizeGameTitle(tooLong)) { error in
+        XCTAssertThrowsError(try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(tooLong)) { error in
             if case ValidationError.gameTitleTooLong = error {
                 // Expected error
             } else {
@@ -92,7 +92,7 @@ final class AISecurityTests: XCTestCase {
         }
         
         // Empty input
-        XCTAssertThrowsError(try request.services.promptSanitizer.sanitizeGameTitle("")) { error in
+        XCTAssertThrowsError(try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle("")) { error in
             if case ValidationError.emptyGameTitle = error {
                 // Expected error
             } else {
@@ -111,7 +111,7 @@ final class AISecurityTests: XCTestCase {
         
         // Dangerous characters should be removed/sanitized
         let inputWithDangerousChars = "Ticket\"to{Ride}"
-        let sanitized = try request.services.promptSanitizer.sanitizeGameTitle(inputWithDangerousChars)
+        let sanitized = try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(inputWithDangerousChars)
         
         // Dangerous characters should be removed
         XCTAssertFalse(sanitized.contains("\""))
@@ -142,7 +142,7 @@ final class AISecurityTests: XCTestCase {
         )
         
         for title in validTitles {
-            XCTAssertNoThrow(try request.services.aiInputValidator.validateGameTitle(title))
+            XCTAssertNoThrow(try request.application.serviceCache.aiInputValidatorService.validateGameTitle(title))
         }
     }
     
@@ -166,7 +166,7 @@ final class AISecurityTests: XCTestCase {
         )
         
         for attempt in advancedInjectionAttempts {
-            XCTAssertThrowsError(try request.services.aiInputValidator.validateGameTitle(attempt)) { error in
+            XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateGameTitle(attempt)) { error in
                 XCTAssert(error is AIValidationError)
             }
         }
@@ -182,16 +182,16 @@ final class AISecurityTests: XCTestCase {
         
         // Valid base64 image data should pass (needs proper data URL format)
         let validImageData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-        XCTAssertNoThrow(try request.services.aiInputValidator.validateImageData(validImageData))
+        XCTAssertNoThrow(try request.application.serviceCache.aiInputValidatorService.validateImageData(validImageData))
         
         // Empty data should fail
-        XCTAssertThrowsError(try request.services.aiInputValidator.validateImageData(""))
+        XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateImageData(""))
         
         // Invalid base64 should fail
-        XCTAssertThrowsError(try request.services.aiInputValidator.validateImageData("invalid!!!"))
+        XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateImageData("invalid!!!"))
         
         // Suspicious content should fail
-        XCTAssertThrowsError(try request.services.aiInputValidator.validateImageData("system:hack"))
+        XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateImageData("system:hack"))
     }
     
     // MARK: - Unit Tests (Integration tests are skipped due to test framework issues)

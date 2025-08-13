@@ -1,0 +1,27 @@
+warning: 'project-rulebook': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/AspectMiddlewareTests.swift.disabled
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/CorrelationIDAspectTests.swift.disabled
+    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Validation/ValidatedTests.swift.disabled
+warning: 'jwt': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/A1E6E98/Developer/vapor/project-rulebook/.build/checkouts/jwt/Sources/JWT/Docs.docc
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version--58304C5D6DBC2206.txt
+Build of product 'App' complete! (3.03s)
+[ INFO ] Loading environment variables from .env
+[ INFO ] Configuration loaded for environment: development
+[ INFO ] Database host: localhost
+[ INFO ] Services configured: Brevo, OpenAI
+[ INFO ] AI Cache Service initialized [image_ttl: 1800.0s, max_entries: 500, rules_ttl: 3600.0s]
+[ INFO ] ServiceCache created with all services pre-resolved for synchronous access
+[ INFO ] Registered 3 aspects for cross-cutting concerns
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.UserMigrations.v1]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.UserMigrations.v1]
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.UserMigrations.seed]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.UserMigrations.seed]
+[ INFO ] [Migrator] Starting prepare [database-id: sqlite, migration: App.AuthMigrations.v1]
+[ INFO ] [Migrator] Finished prepare [database-id: sqlite, migration: App.AuthMigrations.v1]
+[ NOTICE ] Server started on http://127.0.0.1:8080
+[ INFO ] Request started [correlation_id: 18C9CE97-5F11-40F8-950D-C29A5C7258B3, has_existing_id: false, method: GET, path: /, request-id: D0B5344D-1099-440B-BD03-209587395401]
+[ INFO ] Request completed [correlation_id: 18C9CE97-5F11-40F8-950D-C29A5C7258B3, request-id: D0B5344D-1099-440B-BD03-209587395401, status: 404]
+

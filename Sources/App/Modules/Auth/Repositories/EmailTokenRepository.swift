@@ -59,11 +59,7 @@ struct DatabaseEmailTokenRepository: EmailTokenRepository, DatabaseRepository {
 
 extension Application.Repositories {
     var emailTokens: any EmailTokenRepository {
-        emailTokensService.service
-    }
-
-    var emailTokensService: Application.Service<any EmailTokenRepository> {
-        .init(application: application)
+        application.serviceCache.emailTokenRepository
     }
 }
 

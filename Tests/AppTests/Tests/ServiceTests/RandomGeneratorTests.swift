@@ -7,21 +7,21 @@ struct RandomGeneratorTests {
     let testWorld: TestWorld
     
     init() async throws {
-        self.app = try await Application.make(.testing)
+        self.app = try TestWorld.makeTestAppSync()
         self.testWorld = try .init(app: app)
     }
     
     @Test("Random generator service is properly configured")
-    func serviceConfiguration() throws {
-        let defaultGenerator = app.services.randomGenerator.service
+    func serviceConfiguration() async throws {
+        let defaultGenerator = try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
         
         // In testing environment, we expect a rigged generator for predictable tests
         #expect(type(of: defaultGenerator) == RiggedRandomGeneratorService.self)
     }
     
     @Test("Random generator can generate tokens of specified bit lengths")
-    func generateTokensWithDifferentBitLengths() throws {
-        let generator = app.services.randomGenerator.service
+    func generateTokensWithDifferentBitLengths() async throws {
+        let generator = try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
         
         // Test different bit lengths
         let token64 = generator.generate(bits: 64)
@@ -41,7 +41,7 @@ struct RandomGeneratorTests {
     }
     
     @Test("Random generator produces consistent behavior for request context")
-    func requestContextBehavior() throws {
+    func requestContextBehavior() async throws {
         let request = Request(
             application: app,
             method: .GET,
@@ -49,7 +49,7 @@ struct RandomGeneratorTests {
             on: app.eventLoopGroup.next()
         )
         
-        let generator = app.services.randomGenerator.service.for(request)
+        let generator = try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
         let token = generator.generate(bits: 128)
         
         #expect(!token.isEmpty)

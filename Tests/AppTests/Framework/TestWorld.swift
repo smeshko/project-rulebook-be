@@ -46,6 +46,24 @@ private class TestWorldPreConfiguration {
         app.serviceRegistry.register((any EmailTokenRepository).self) { _ in shared.emailTokenRepository }
         app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in shared.passwordTokenRepository }
     }
+    
+    func setupTestServices() {
+        // Register test/mock external services in service registry BEFORE it gets finalized
+        // This ensures ExternalServiceProvider doesn't override them
+        
+        // Mock/Test implementations for key services
+        app.serviceRegistry.register(EmailService.self) { _ in FakeEmailProvider() }
+        app.serviceRegistry.register(LLMService.self) { app in FakeLLMService(app: app) }
+        app.serviceRegistry.register(AICacheServiceInterface.self) { app in MockAICacheService(app: app) }
+        app.serviceRegistry.register(RandomGeneratorService.self) { _ in RiggedRandomGeneratorService(value: "test_random_value") }
+        app.serviceRegistry.register(UUIDGeneratorService.self) { app in ConstantUUIDGeneratorService(app: app) }
+        
+        // Use production implementations for utility services (safe for testing)
+        app.serviceRegistry.register(IPExtractorService.self) { app in DefaultIPExtractorService(app: app) }
+        app.serviceRegistry.register(CacheKeyGeneratorServiceInterface.self) { app in DefaultCacheKeyGeneratorService(app: app) }
+        app.serviceRegistry.register(PromptSanitizerServiceInterface.self) { app in DefaultPromptSanitizerService(app: app) }
+        app.serviceRegistry.register(AIInputValidatorServiceInterface.self) { app in DefaultAIInputValidatorService(app: app) }
+    }
 }
 
 /// Enhanced test world for comprehensive testing with mock services and repositories.
@@ -93,7 +111,7 @@ class TestWorld: @unchecked Sendable {
         
         try setupJWT()
         setupRepositories()
-        setupServices()
+        // Services are now registered in ServiceRegistry during makeTestAppSync()
     }
     
     // MARK: - Public Access to Mock Services
@@ -191,27 +209,11 @@ class TestWorld: @unchecked Sendable {
     }
     
     private func setupRepositories() {
-        // Override old Vapor service system repositories
-        app.repositories.refreshTokensService.use { _ in self.sharedRepositories.tokenRepository }
-        app.repositories.usersService.use { _ in self.sharedRepositories.userRepository }
-        app.repositories.emailTokensService.use { _ in self.sharedRepositories.emailTokenRepository }
-        app.repositories.passwordTokensService.use { _ in self.sharedRepositories.passwordTokenRepository }
-        
-        // Note: Service registry repositories are already set up in TestWorldPreConfiguration
-        // before configure() runs, so we don't need to register them again here
+        // Repository setup is now handled through the serviceCache in TestWorldPreConfiguration
+        // The serviceCache is created with test repositories before configure() runs
+        // No additional repository setup needed here
     }
     
-    private func setupServices() {
-        // Mock external services
-        app.services.email.use(.fake)
-        app.services.llm.use(.fake)
-        app.services.aiCache.use(.mock)
-        app.services.uuidGenerator.use(.constant)
-        app.services.randomGenerator.use(.rigged(value: "test_random_value"))
-        
-        // Additional services can be configured here as needed
-        // app.services.ipExtractor.use(.mock) // If we create a mock IP extractor
-    }
     
     // MARK: - Static Helpers for Application Creation
     
@@ -238,10 +240,11 @@ class TestWorld: @unchecked Sendable {
     static func makeTestAppSync() throws -> Application {
         let app = Application(.testing)
         
-        // Pre-configure test repositories BEFORE running configure()
-        // This ensures the service registry uses test repositories
+        // Pre-configure test repositories and services BEFORE running configure()
+        // This ensures the service registry uses test implementations
         let testWorld = try TestWorldPreConfiguration(app: app)
         testWorld.setupTestRepositories()
+        testWorld.setupTestServices()
         
         try configure(app)
         return app

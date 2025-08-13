@@ -145,7 +145,7 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         // Convert binary image data to base64 with data URL prefix
         let base64String = imageData.base64EncodedString()
         
-        // Determine MIME type from image data headers
+        // Validate image format by checking headers - reject invalid data
         let mimeType: String
         if imageData.count >= 4 {
             let header = imageData.prefix(4)
@@ -155,11 +155,44 @@ final class DefaultGameIdentificationService: GameIdentificationService {
                 mimeType = "image/png"
             } else if header.starts(with: [0x47, 0x49, 0x46]) {
                 mimeType = "image/gif"
+            } else if header.starts(with: [0x52, 0x49, 0x46, 0x46]) {
+                // WebP format check (RIFF container)
+                if imageData.count >= 12 {
+                    let webpHeader = imageData.prefix(12)
+                    if webpHeader[8..<12].elementsEqual([0x57, 0x45, 0x42, 0x50]) {
+                        mimeType = "image/webp"
+                    } else {
+                        context.logger.warning("Invalid image format - unrecognized RIFF container", metadata: [
+                            "client_ip": .string(context.clientIP),
+                            "request_id": .string(context.requestID),
+                            "data_size": .string("\(imageData.count) bytes")
+                        ])
+                        throw AIValidationError.invalidImageFormat
+                    }
+                } else {
+                    context.logger.warning("Invalid image format - truncated RIFF header", metadata: [
+                        "client_ip": .string(context.clientIP),
+                        "request_id": .string(context.requestID),
+                        "data_size": .string("\(imageData.count) bytes")
+                    ])
+                    throw AIValidationError.invalidImageFormat
+                }
             } else {
-                mimeType = "image/png" // Default fallback
+                context.logger.warning("Invalid image format - unrecognized header", metadata: [
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                    "header_bytes": .string(Array(header).map { String(format: "%02X", $0) }.joined(separator: " ")),
+                    "data_size": .string("\(imageData.count) bytes")
+                ])
+                throw AIValidationError.invalidImageFormat
             }
         } else {
-            mimeType = "image/png"
+            context.logger.warning("Invalid image format - insufficient data", metadata: [
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID),
+                "data_size": .string("\(imageData.count) bytes")
+            ])
+            throw AIValidationError.invalidImageFormat
         }
         
         // Create data URL format for validation

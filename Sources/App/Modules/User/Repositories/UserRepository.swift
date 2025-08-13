@@ -49,11 +49,7 @@ struct DatabaseUserRepository: UserRepository, DatabaseRepository {
 
 extension Application.Repositories {
     var users: any UserRepository {
-        usersService.service
-    }
-
-    var usersService: Application.Service<any UserRepository> {
-        .init(application: application)
+        application.serviceCache.userRepository
     }
 }
 

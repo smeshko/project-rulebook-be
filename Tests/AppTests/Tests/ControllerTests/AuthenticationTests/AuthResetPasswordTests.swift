@@ -21,8 +21,6 @@ final class AuthResetPasswordTests: XCTestCase {
     }
     
     func testResetPassword() async throws {
-        app.services.randomGenerator.use(.rigged(value: "passwordtoken"))
-        
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await app.repositories.users.create(user)
         
