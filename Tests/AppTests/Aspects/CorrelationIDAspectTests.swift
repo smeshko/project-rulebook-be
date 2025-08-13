@@ -1,0 +1,201 @@
+import XCTVapor
+@testable import App
+
+final class CorrelationIDAspectTests: IntegrationTestCase {
+    
+    // MARK: - Correlation ID Generation Tests
+    
+    func testGeneratesCorrelationIDWhenMissing() async throws {
+        // Given
+        let aspect = CorrelationIDAspect()
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("test") { request in
+            return ["correlation_id": request.correlationID]
+        }
+        
+        // When
+        try await app.test(.GET, "/test") { response in
+            // Then
+            XCTAssertEqual(response.status, .ok)
+            XCTAssertNotNil(response.headers["X-Correlation-ID"].first)
+            
+            let content = try response.content.decode([String: String].self)
+            XCTAssertFalse(content["correlation_id"]?.isEmpty ?? true)
+        }
+    }
+    
+    func testPreservesExistingCorrelationID() async throws {
+        // Given
+        let existingID = "existing-correlation-id"
+        let aspect = CorrelationIDAspect()
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("test") { request in
+            return ["correlation_id": request.correlationID]
+        }
+        
+        // When
+        try await app.test(.GET, "/test", headers: ["X-Correlation-ID": existingID]) { response in
+            // Then
+            XCTAssertEqual(response.headers["X-Correlation-ID"].first, existingID)
+            
+            let content = try response.content.decode([String: String].self)
+            XCTAssertEqual(content["correlation_id"], existingID)
+        }
+    }
+    
+    func testRecognizesAlternativeHeaders() async throws {
+        // Given
+        let testCases = [
+            ("X-Request-ID", "request-id-value"),
+            ("X-Trace-ID", "trace-id-value"),
+            ("X-B3-TraceId", "b3-trace-value")
+        ]
+        
+        let aspect = CorrelationIDAspect()
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("test") { request in
+            return ["correlation_id": request.correlationID]
+        }
+        
+        // When/Then
+        for (headerName, headerValue) in testCases {
+            try await app.test(.GET, "/test", headers: [headerName: headerValue]) { response in
+                XCTAssertEqual(response.headers["X-Correlation-ID"].first, headerValue)
+                
+                let content = try response.content.decode([String: String].self)
+                XCTAssertEqual(content["correlation_id"], headerValue)
+            }
+        }
+    }
+    
+    // MARK: - UUID Generator Integration Tests
+    
+    func testUsesProvidedUUIDGenerator() async throws {
+        // Given
+        let fixedUUID = UUID()
+        let mockGenerator = MockUUIDGenerator(fixedUUID: fixedUUID)
+        let aspect = CorrelationIDAspect(uuidGenerator: mockGenerator)
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("test") { request in
+            return ["correlation_id": request.correlationID]
+        }
+        
+        // When
+        try await app.test(.GET, "/test") { response in
+            // Then
+            XCTAssertEqual(response.headers["X-Correlation-ID"].first, fixedUUID.uuidString)
+            
+            let content = try response.content.decode([String: String].self)
+            XCTAssertEqual(content["correlation_id"], fixedUUID.uuidString)
+        }
+    }
+    
+    // MARK: - Logging Tests
+    
+    func testAddsCorrelationIDToLoggerMetadata() async throws {
+        // Given
+        let correlationID = "test-correlation-123"
+        let aspect = CorrelationIDAspect()
+        var context = AspectContext()
+        
+        app.get("log-test") { request in
+            // Verify logger has correlation ID in metadata
+            let metadata = request.logger[metadataKey: "correlation_id"]
+            return ["has_metadata": metadata != nil ? "true" : "false"]
+        }
+        
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        // When
+        try await app.test(.GET, "/log-test", headers: ["X-Correlation-ID": correlationID]) { response in
+            // Then
+            let content = try response.content.decode([String: String].self)
+            XCTAssertEqual(content["has_metadata"], "true")
+        }
+    }
+    
+    // MARK: - Middleware Wrapper Tests
+    
+    func testCorrelationIDMiddlewareWrapper() async throws {
+        // Given
+        let middleware = CorrelationIDMiddleware()
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("test") { request in
+            return ["id": request.id]
+        }
+        
+        // When
+        try await app.test(.GET, "/test") { response in
+            // Then
+            XCTAssertNotNil(response.headers["X-Correlation-ID"].first)
+            XCTAssertEqual(response.status, .ok)
+        }
+    }
+    
+    // MARK: - RequestContext Integration Tests
+    
+    func testRequestContextWithCorrelation() async throws {
+        // Given
+        let correlationID = "context-correlation-456"
+        let aspect = CorrelationIDAspect()
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("context-test") { request in
+            let context = RequestContext.fromWithCorrelation(request)
+            return [
+                "request_id": context.requestID,
+                "has_logger": context.logger[metadataKey: "correlation_id"] != nil ? "true" : "false"
+            ]
+        }
+        
+        // When
+        try await app.test(.GET, "/context-test", headers: ["X-Correlation-ID": correlationID]) { response in
+            // Then
+            let content = try response.content.decode([String: String].self)
+            XCTAssertEqual(content["request_id"], correlationID)
+            XCTAssertEqual(content["has_logger"], "true")
+        }
+    }
+    
+    // MARK: - Error Handling Tests
+    
+    func testCorrelationIDInErrorScenario() async throws {
+        // Given
+        let correlationID = "error-correlation-789"
+        let aspect = CorrelationIDAspect()
+        let middleware = AspectMiddleware(aspects: [aspect])
+        app.middleware.use(middleware, at: .beginning)
+        
+        app.get("error-test") { request throws -> String in
+            throw Abort(.badRequest, reason: "Test error")
+        }
+        
+        // When
+        try await app.test(.GET, "/error-test", headers: ["X-Correlation-ID": correlationID]) { response in
+            // Then
+            XCTAssertEqual(response.status, .badRequest)
+            XCTAssertEqual(response.headers["X-Correlation-ID"].first, correlationID)
+        }
+    }
+}
+
+// MARK: - Test Helpers
+
+private struct MockUUIDGenerator: UUIDGeneratorService {
+    let fixedUUID: UUID
+    
+    func generate() -> UUID {
+        return fixedUUID
+    }
+}

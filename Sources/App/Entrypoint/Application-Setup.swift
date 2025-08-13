@@ -101,6 +101,12 @@ extension Application {
       ]
     )
     middleware.use(CORSMiddleware(configuration: corsConfiguration))
+    
+    // Setup Aspect-Oriented Middleware for cross-cutting concerns
+    setupAspects()
+    
+    // Add AspectMiddleware with registered aspects
+    middleware.use(aspectRegistry.middleware())
 
     // Unified Rate Limiting with operation-specific limits
     let rateLimitConfig =
@@ -122,6 +128,33 @@ extension Application {
 
     // Authentication
     middleware.use(UserPayloadAuthenticator())
+  }
+  
+  func setupAspects() {
+    // Register aspects in priority order (higher priority = runs first)
+    
+    // Correlation ID should run first to ensure all logs have correlation ID
+    aspectRegistry.register(
+      CorrelationIDAspect(uuidGenerator: services.uuidGenerator.service),
+      priority: 1000
+    )
+    
+    // Validation runs early to reject invalid requests quickly
+    let validationConfig = environment == .production
+      ? ValidationAspect.Configuration.production
+      : ValidationAspect.Configuration.development
+    aspectRegistry.register(
+      ValidationAspect(configuration: validationConfig),
+      priority: 500
+    )
+    
+    // Error handling runs last to catch all errors
+    aspectRegistry.register(
+      ErrorHandlingAspect(environment: environment),
+      priority: 100
+    )
+    
+    logger.info("Registered \(aspectRegistry.all().count) aspects for cross-cutting concerns")
   }
 
   func setupModules() throws {
