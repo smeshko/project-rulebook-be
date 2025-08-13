@@ -97,7 +97,7 @@ final class ConfigurationServiceTests {
     @Test("Configuration service loads development settings")
     func testDevelopmentConfiguration() async throws {
         let request = testCase.makeMockRequest()
-        let configService = request.services.configuration
+        let configService = try await request.resolveService(ConfigurationService.self)
         
         let config = try await configService.getDevelopmentConfiguration()
         
@@ -136,7 +136,7 @@ final class CachePerformanceTests {
             iterations: 1000
         ) {
             // Simulate cache operation
-            let request = testCase.application.services.aiCache.service
+            let request = try await testCase.application.serviceRegistry.resolveRequired(AICacheService.self)
             _ = await request.get("test-key", as: String.self)
         }
         
@@ -894,7 +894,7 @@ func testServiceBehavior() async throws {
 ```swift
 func testServiceWithInvalidInputThrowsError() async throws {
     let testCase = try UnitTestCase()
-    let service = testCase.application.services.targetService.service
+    let service = try await testCase.application.serviceRegistry.resolveRequired(TargetService.self)
     
     await XCTAssertThrowsError(
         try await service.processInvalidInput(),
@@ -912,9 +912,8 @@ func testAsyncServiceOperation() async throws {
     let request = testCase.makeMockRequest()
     
     let result = try await request.application
-        .services
-        .asyncService
-        .service
+        .serviceRegistry
+        .resolveRequired(AsyncService.self)
         .performAsyncOperation()
     
     XCTAssertNotNil(result)
