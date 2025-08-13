@@ -219,3 +219,50 @@ struct CacheConfig: Sendable {
     /// to avoid log noise.
     let enableLogging: Bool
 }
+
+/// Redis cache configuration for high-performance distributed caching.
+///
+/// This configuration defines connection parameters and behavior for Redis,
+/// which provides persistent, distributed caching capabilities that scale
+/// beyond in-memory caching limitations.
+///
+/// ## Use Cases
+/// - LLM response caching across multiple server instances
+/// - Session storage for user authentication
+/// - Rate limiting counters and statistics
+/// - Real-time data caching for improved performance
+struct RedisConfig: Sendable {
+    /// Redis server hostname or IP address.
+    let host: String
+    
+    /// Redis server port number (default: 6379).
+    let port: Int
+    
+    /// Optional password for Redis authentication.
+    let password: String?
+    
+    /// Redis database number to use (0-15, default: 0).
+    let database: Int
+    
+    /// Maximum number of connections in the connection pool.
+    ///
+    /// Higher values allow better concurrency but consume more resources.
+    /// Recommended: 10-20 for most applications.
+    let poolSize: Int
+    
+    /// Connection timeout in seconds.
+    ///
+    /// Time to wait for a connection to be established before failing.
+    let connectionTimeout: TimeInterval
+    
+    /// Command timeout in seconds.
+    ///
+    /// Maximum time to wait for a Redis command to complete.
+    let commandTimeout: TimeInterval
+    
+    /// Whether to enable Redis operation logging.
+    ///
+    /// When enabled, logs Redis commands, performance metrics, and errors.
+    /// Useful for debugging and performance monitoring.
+    let enableLogging: Bool
+}

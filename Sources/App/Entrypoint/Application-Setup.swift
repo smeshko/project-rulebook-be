@@ -107,6 +107,14 @@ extension Application {
     
     // Add AspectMiddleware with registered aspects
     middleware.use(aspectRegistry.middleware())
+    
+    // Query performance monitoring (only in development/staging)
+    if environment != .production {
+        let queryConfig = environment == .development 
+            ? QueryPerformanceMiddleware.Configuration.development 
+            : QueryPerformanceMiddleware.Configuration.production
+        middleware.use(QueryPerformanceMiddleware(configuration: queryConfig))
+    }
 
     // Unified Rate Limiting with operation-specific limits
     let rateLimitConfig =
@@ -205,7 +213,13 @@ extension Application {
       database: db.name,
       tls: tlsConnectionConfiguration
     )
-    databases.use(.postgres(configuration: postgresConfig), as: .psql)
+    
+    // Configure connection pool settings for optimal performance
+    databases.use(.postgres(
+      configuration: postgresConfig,
+      maxConnectionsPerEventLoop: 2,
+      connectionPoolTimeout: .seconds(30)
+    ), as: .psql)
   }
 
   func setupJWT() throws {

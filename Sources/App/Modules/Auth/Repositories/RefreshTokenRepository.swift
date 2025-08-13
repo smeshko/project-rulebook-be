@@ -17,12 +17,14 @@ struct DatabaseRefreshTokenRepository: RefreshTokenRepository, DatabaseRepositor
     func find(forUserID id: UUID) async throws -> RefreshTokenModel? {
         try await RefreshTokenModel.query(on: database)
             .filter(\.$user.$id == id)
+            .with(\.$user)
             .first()
     }
 
     func find(token: String) async throws -> RefreshTokenModel? {
         try await RefreshTokenModel.query(on: database)
             .filter(\.$value == token)
+            .with(\.$user)
             .first()
     }
     
