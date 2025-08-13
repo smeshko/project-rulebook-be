@@ -1,9 +1,0 @@
-warning: 'project-rulebook': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
-    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Validation/ValidatedTests.swift.disabled
-    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/AspectMiddlewareTests.swift.disabled
-    /Users/A1E6E98/Developer/vapor/project-rulebook/Tests/AppTests/Aspects/CorrelationIDAspectTests.swift.disabled
-warning: 'jwt': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
-    /Users/A1E6E98/Developer/vapor/project-rulebook/.build/checkouts/jwt/Sources/JWT/Docs.docc
-[0/1] Planning build
-Building for debugging...
-[0/3] Write swift-version--58304C5D6DBC2206.txt
