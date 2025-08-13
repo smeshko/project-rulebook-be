@@ -6,47 +6,14 @@ import NIO
 /// Redis-based cache service for high-performance caching
 public final class RedisCacheService: CacheService, @unchecked Sendable {
     
-    public struct Configuration: Sendable {
-        public let host: String
-        public let port: Int
-        public let password: String?
-        public let database: Int
-        public let poolSize: Int
-        
-        public init(
-            host: String = "localhost",
-            port: Int = 6379,
-            password: String? = nil,
-            database: Int = 0,
-            poolSize: Int = 10
-        ) {
-            self.host = host
-            self.port = port
-            self.password = password
-            self.database = database
-            self.poolSize = poolSize
-        }
-        
-        public static let development = Configuration(
-            host: "localhost",
-            port: 6379,
-            poolSize: 5
-        )
-        
-        public static let production = Configuration(
-            host: "localhost", // Override from environment
-            port: 6379,
-            poolSize: 20
-        )
-    }
     
     private let redis: RedisClient
-    private let configuration: Configuration
+    private let configuration: RedisConfig
     private let logger: Logger
     
     public init(
         redis: RedisClient,
-        configuration: Configuration,
+        configuration: RedisConfig,
         logger: Logger
     ) {
         self.redis = redis
