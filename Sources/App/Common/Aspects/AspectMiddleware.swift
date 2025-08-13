@@ -66,6 +66,9 @@ public struct AspectMiddleware: AsyncMiddleware {
                 try await aspect.before(request: request, context: &context)
             }
             
+            // Store the context on the request for access by route handlers
+            request.aspectContext = context
+            
             // Execute the main handler
             var response = try await next.respond(to: request)
             

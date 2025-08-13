@@ -94,11 +94,14 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     func testUsesProvidedUUIDGenerator() throws {
         // Given
-        let fixedUUID = UUID()
+        let fixedUUID = UUID(uuidString: "12345678-1234-1234-1234-123456789012")!
         let mockGenerator = MockUUIDGenerator(fixedUUID: fixedUUID)
         let aspect = CorrelationIDAspect(uuidGenerator: mockGenerator)
+        
+        // Clear existing middleware and use only our test middleware
+        app.middleware = Middlewares()
         let middleware = AspectMiddleware(aspects: [aspect])
-        app.middleware.use(middleware, at: .beginning)
+        app.middleware.use(middleware)
         
         app.get("test") { request in
             return ["correlation_id": request.correlationID]
