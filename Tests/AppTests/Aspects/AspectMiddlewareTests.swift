@@ -1,7 +1,23 @@
 import XCTVapor
 @testable import App
 
-final class AspectMiddlewareTests: IntegrationTestCase {
+final class AspectMiddlewareTests: XCTestCase {
+    
+    var app: Application!
+    
+    override func setUp() async throws {
+        app = try await Application.make(.testing)
+        try configure(app)
+        
+        // Add test routes
+        app.get("test") { _ in
+            return HTTPStatus.ok
+        }
+    }
+    
+    override func tearDown() async throws {
+        try await app.asyncShutdown()
+    }
     
     // MARK: - Aspect Execution Order Tests
     
@@ -12,14 +28,14 @@ final class AspectMiddlewareTests: IntegrationTestCase {
         let aspect1 = TestAspect(
             name: "Aspect1",
             onBefore: { _, _ in executionOrder.append("Aspect1-before") },
-            onAfter: { _, _, _ in executionOrder.append("Aspect1-after"); return nil },
+            onAfter: { _, response, _ in executionOrder.append("Aspect1-after"); return response },
             onError: { _, _, _ in executionOrder.append("Aspect1-error") }
         )
         
         let aspect2 = TestAspect(
             name: "Aspect2",
             onBefore: { _, _ in executionOrder.append("Aspect2-before") },
-            onAfter: { _, _, _ in executionOrder.append("Aspect2-after"); return nil },
+            onAfter: { _, response, _ in executionOrder.append("Aspect2-after"); return response },
             onError: { _, _, _ in executionOrder.append("Aspect2-error") }
         )
         
@@ -53,9 +69,9 @@ final class AspectMiddlewareTests: IntegrationTestCase {
         var retrievedValue: String?
         let getAspect = TestAspect(
             name: "GetAspect",
-            onAfter: { _, _, context in
+            onAfter: { _, response, context in
                 retrievedValue = context.get(TestContextKey.self)
-                return nil
+                return response
             }
         )
         
