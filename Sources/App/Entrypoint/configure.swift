@@ -10,11 +10,11 @@ public func configure(_ app: Application) throws {
     // Initialize configuration first
     try app.setupConfiguration()
     
-    try app.setupMiddleware()
     try app.setupDB()
     try app.setupJWT()
+    try app.setupServices()  // Services must be set up before aspects
+    try app.setupMiddleware() // Now middleware can access services
     try app.setupModules()
-    try app.setupServices()
 
     try app.autoMigrate().wait()
 }

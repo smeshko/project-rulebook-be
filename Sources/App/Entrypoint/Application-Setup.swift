@@ -134,8 +134,10 @@ extension Application {
     // Register aspects in priority order (higher priority = runs first)
     
     // Correlation ID should run first to ensure all logs have correlation ID
+    // Note: UUIDGeneratorService will be available at runtime via service registry
+    // For now, CorrelationIDAspect will fall back to system UUID generation
     aspectRegistry.register(
-      CorrelationIDAspect(uuidGenerator: services.uuidGenerator.service),
+      CorrelationIDAspect(uuidGenerator: nil),
       priority: 1000
     )
     
