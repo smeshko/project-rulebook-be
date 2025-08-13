@@ -207,7 +207,7 @@ public extension RequestContext {
     /// - Parameter request: The Vapor request
     /// - Returns: A RequestContext with correlation ID
     static func fromWithCorrelation(_ request: Request) -> RequestContext {
-        let clientIP = request.application.services.ipExtractor.service.extractClientIP(from: request)
+        let clientIP = request.application.serviceCache.ipExtractorService.extractClientIP(from: request)
         
         // Use correlation ID from aspect if available, otherwise request ID
         let correlationID = request.correlationID

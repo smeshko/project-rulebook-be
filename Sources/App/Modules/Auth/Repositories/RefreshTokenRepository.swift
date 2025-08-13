@@ -47,11 +47,7 @@ struct DatabaseRefreshTokenRepository: RefreshTokenRepository, DatabaseRepositor
 
 extension Application.Repositories {
     var refreshTokens: any RefreshTokenRepository {
-        refreshTokensService.service
-    }
-
-    var refreshTokensService: Application.Service<any RefreshTokenRepository> {
-        .init(application: application)
+        application.serviceCache.refreshTokenRepository
     }
 }
 
