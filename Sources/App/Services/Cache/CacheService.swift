@@ -71,10 +71,10 @@ extension Application.Services {
     }
 }
 
-extension Request.Services {
-    var cache: CacheService {
-        // TODO: Implement proper service registration for CacheService
-        // For now, return a placeholder - this will be implemented in service registry
-        fatalError("CacheService not yet registered in service cache")
-    }
-}
+// MARK: - Service Registration (TODO: Complete in next phase)
+// extension Request.Services {
+//     var cache: CacheService {
+//         // TODO: Implement proper service registration for CacheService
+//         // This will be completed when integrating with the service registry
+//     }
+// }
