@@ -32,8 +32,8 @@
 
 # Script directory detection for proper log paths
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
-LOGS_DIR="$PROJECT_ROOT/testing/logs"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+LOGS_DIR="$SCRIPT_DIR/../logs"
 
 # Ensure logs directory exists
 mkdir -p "$LOGS_DIR"

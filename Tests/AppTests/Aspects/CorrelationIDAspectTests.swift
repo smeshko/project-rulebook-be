@@ -21,7 +21,7 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - Correlation ID Generation Tests
     
-    func testGeneratesCorrelationIDWhenMissing() async throws {
+    func testGeneratesCorrelationIDWhenMissing() throws {
         // Given
         let aspect = CorrelationIDAspect()
         let middleware = AspectMiddleware(aspects: [aspect])
@@ -32,7 +32,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
             XCTAssertEqual(response.status, .ok)
             XCTAssertNotNil(response.headers["X-Correlation-ID"].first)
@@ -42,7 +42,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
     }
     
-    func testPreservesExistingCorrelationID() async throws {
+    func testPreservesExistingCorrelationID() throws {
         // Given
         let existingID = "existing-correlation-id"
         let aspect = CorrelationIDAspect()
@@ -54,7 +54,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/test", headers: ["X-Correlation-ID": existingID]) { response in
+        try app.test(.GET, "/test", headers: ["X-Correlation-ID": existingID]) { response in
             // Then
             XCTAssertEqual(response.headers["X-Correlation-ID"].first, existingID)
             
@@ -63,7 +63,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
     }
     
-    func testRecognizesAlternativeHeaders() async throws {
+    func testRecognizesAlternativeHeaders() throws {
         // Given
         let testCases = [
             ("X-Request-ID", "request-id-value"),
@@ -81,7 +81,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         
         // When/Then
         for (headerName, headerValue) in testCases {
-            try await app.test(.GET, "/test", headers: [headerName: headerValue]) { response in
+            try app.test(.GET, "/test", headers: [headerName: headerValue]) { response in
                 XCTAssertEqual(response.headers["X-Correlation-ID"].first, headerValue)
                 
                 let content = try response.content.decode([String: String].self)
@@ -92,7 +92,7 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - UUID Generator Integration Tests
     
-    func testUsesProvidedUUIDGenerator() async throws {
+    func testUsesProvidedUUIDGenerator() throws {
         // Given
         let fixedUUID = UUID()
         let mockGenerator = MockUUIDGenerator(fixedUUID: fixedUUID)
@@ -105,7 +105,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
             XCTAssertEqual(response.headers["X-Correlation-ID"].first, fixedUUID.uuidString)
             
@@ -116,11 +116,11 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - Logging Tests
     
-    func testAddsCorrelationIDToLoggerMetadata() async throws {
+    func testAddsCorrelationIDToLoggerMetadata() throws {
         // Given
         let correlationID = "test-correlation-123"
         let aspect = CorrelationIDAspect()
-        var context = AspectContext()
+        // var context = AspectContext() // Unused variable removed
         
         app.get("log-test") { request in
             // Verify logger has correlation ID in metadata
@@ -132,7 +132,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         app.middleware.use(middleware, at: .beginning)
         
         // When
-        try await app.test(.GET, "/log-test", headers: ["X-Correlation-ID": correlationID]) { response in
+        try app.test(.GET, "/log-test", headers: ["X-Correlation-ID": correlationID]) { response in
             // Then
             let content = try response.content.decode([String: String].self)
             XCTAssertEqual(content["has_metadata"], "true")
@@ -141,7 +141,7 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - Middleware Wrapper Tests
     
-    func testCorrelationIDMiddlewareWrapper() async throws {
+    func testCorrelationIDMiddlewareWrapper() throws {
         // Given
         let middleware = CorrelationIDMiddleware()
         app.middleware.use(middleware, at: .beginning)
@@ -151,7 +151,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
             XCTAssertNotNil(response.headers["X-Correlation-ID"].first)
             XCTAssertEqual(response.status, .ok)
@@ -160,7 +160,7 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - RequestContext Integration Tests
     
-    func testRequestContextWithCorrelation() async throws {
+    func testRequestContextWithCorrelation() throws {
         // Given
         let correlationID = "context-correlation-456"
         let aspect = CorrelationIDAspect()
@@ -176,7 +176,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/context-test", headers: ["X-Correlation-ID": correlationID]) { response in
+        try app.test(.GET, "/context-test", headers: ["X-Correlation-ID": correlationID]) { response in
             // Then
             let content = try response.content.decode([String: String].self)
             XCTAssertEqual(content["request_id"], correlationID)
@@ -186,7 +186,7 @@ final class CorrelationIDAspectTests: XCTestCase {
     
     // MARK: - Error Handling Tests
     
-    func testCorrelationIDInErrorScenario() async throws {
+    func testCorrelationIDInErrorScenario() throws {
         // Given
         let correlationID = "error-correlation-789"
         let aspect = CorrelationIDAspect()
@@ -198,7 +198,7 @@ final class CorrelationIDAspectTests: XCTestCase {
         }
         
         // When
-        try await app.test(.GET, "/error-test", headers: ["X-Correlation-ID": correlationID]) { response in
+        try app.test(.GET, "/error-test", headers: ["X-Correlation-ID": correlationID]) { response in
             // Then
             XCTAssertEqual(response.status, .badRequest)
             XCTAssertEqual(response.headers["X-Correlation-ID"].first, correlationID)

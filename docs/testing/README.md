@@ -1,15 +1,18 @@
 # Testing Infrastructure
 
-This directory contains all testing-related assets for the Project Rulebook Vapor backend, including automated test scripts, API collections, logs, and testing reports.
+This directory contains all testing-related assets for the Project Rulebook Vapor backend, including automated test scripts, API collections, logs, testing reports, and comprehensive testing documentation.
 
 ## Directory Structure
 
 ```
-testing/
+docs/testing/
 ├── scripts/          # Automated testing scripts
 ├── logs/            # Test execution logs
 ├── collections/     # API testing collections (Postman, etc.)
-└── reports/         # Test execution reports and metrics
+├── reports/         # Test execution reports and metrics
+├── Testing-Organization-Summary.md    # Overview of testing organization
+├── Testing-Standards-and-Patterns.md  # Testing standards and best practices
+└── README.md        # This file
 ```
 
 ## Scripts
@@ -27,10 +30,10 @@ Comprehensive endpoint testing script that validates all API endpoints for stabi
 **Usage:**
 ```bash
 # Run from project root
-./testing/scripts/test-endpoints.sh
+./docs/testing/scripts/test-endpoints.sh
 
 # Or from testing directory
-cd testing
+cd docs/testing
 ./scripts/test-endpoints.sh
 ```
 
@@ -78,20 +81,16 @@ To prevent log files from growing too large, consider implementing these practic
 rm -f testing/logs/*.log
 ```
 
-2. **Archive Old Logs**:
+2. **Use the cleanup script**:
 ```bash
-# Create archive directory if it doesn't exist
-mkdir -p testing/logs/archive
+# Archive logs older than 7 days
+./docs/testing/scripts/cleanup-logs.sh
 
-# Move logs older than 7 days
-find testing/logs -name "*.log" -mtime +7 -exec mv {} testing/logs/archive/ \;
-```
+# Archive and compress logs older than 30 days
+./docs/testing/scripts/cleanup-logs.sh -d 30 -c
 
-3. **Compress Archives**:
-```bash
-# Compress archived logs
-tar -czf testing/logs/archive/logs-$(date +%Y%m%d).tar.gz testing/logs/archive/*.log
-rm testing/logs/archive/*.log
+# Force delete all logs (use with caution!)
+./docs/testing/scripts/cleanup-logs.sh -f
 ```
 
 ## Reports
@@ -122,15 +121,18 @@ swift test --enable-code-coverage
 swift run App serve --hostname 0.0.0.0 --port 8080
 
 # In another terminal, run endpoint tests
-./testing/scripts/test-endpoints.sh
+./docs/testing/scripts/test-endpoints.sh
+
+# Or run all tests with the comprehensive runner
+./docs/testing/scripts/run-all-tests.sh
 ```
 
 ### 3. API Testing with Postman
 ```bash
 # Using Newman (Postman CLI)
 npm install -g newman
-newman run testing/collections/Project-Rulebook-API-Testing.postman_collection.json \
-  --environment testing/collections/environment.json
+newman run docs/testing/collections/Project-Rulebook-API-Testing.postman_collection.json \
+  --environment docs/testing/collections/environment.json
 ```
 
 ### 4. Load Testing
@@ -146,7 +148,9 @@ wrk -t4 -c100 -d30s http://localhost:8080/
 
 1. **Always run tests before committing**
    ```bash
-   swift test && ./testing/scripts/test-endpoints.sh
+   swift test && ./docs/testing/scripts/test-endpoints.sh
+   # Or use the comprehensive test runner
+   ./docs/testing/scripts/run-all-tests.sh
    ```
 
 2. **Keep logs organized**
@@ -173,13 +177,13 @@ For CI/CD pipelines, use these commands:
 - name: Run Tests
   run: |
     swift test
-    ./testing/scripts/test-endpoints.sh
+    ./docs/testing/scripts/test-endpoints.sh
     
 - name: Archive Test Results
   uses: actions/upload-artifact@v2
   with:
     name: test-logs
-    path: testing/logs/
+    path: docs/testing/logs/
 ```
 
 ## Troubleshooting
@@ -198,15 +202,16 @@ For CI/CD pipelines, use these commands:
    ```
 
 3. **Server Won't Start**
-   - Check logs in `testing/logs/`
+   - Check logs in `docs/testing/logs/`
    - Ensure database is running (if using PostgreSQL)
    - Verify environment variables are set
 
 ## Contributing
 
 When adding new test scripts or collections:
-1. Place scripts in `testing/scripts/`
-2. Store collections in `testing/collections/`
+1. Place scripts in `docs/testing/scripts/`
+2. Store collections in `docs/testing/collections/`
 3. Update this README with usage instructions
 4. Ensure scripts are executable (`chmod +x`)
 5. Add appropriate error handling and logging
+6. Review and follow patterns in `Testing-Standards-and-Patterns.md`

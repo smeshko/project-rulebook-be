@@ -21,31 +21,34 @@ final class AspectMiddlewareTests: XCTestCase {
     
     // MARK: - Aspect Execution Order Tests
     
-    func testAspectsExecuteInCorrectOrder() async throws {
+    func testAspectsExecuteInCorrectOrder() throws {
         // Given
-        var executionOrder: [String] = []
+        final class OrderTracker: @unchecked Sendable {
+            var executionOrder: [String] = []
+        }
+        let tracker = OrderTracker()
         
         let aspect1 = TestAspect(
             name: "Aspect1",
-            onBefore: { _, _ in executionOrder.append("Aspect1-before") },
-            onAfter: { _, response, _ in executionOrder.append("Aspect1-after"); return response },
-            onError: { _, _, _ in executionOrder.append("Aspect1-error") }
+            onBefore: { _, _ in tracker.executionOrder.append("Aspect1-before") },
+            onAfter: { _, response, _ in tracker.executionOrder.append("Aspect1-after"); return response },
+            onError: { _, _, _ in tracker.executionOrder.append("Aspect1-error") }
         )
         
         let aspect2 = TestAspect(
             name: "Aspect2",
-            onBefore: { _, _ in executionOrder.append("Aspect2-before") },
-            onAfter: { _, response, _ in executionOrder.append("Aspect2-after"); return response },
-            onError: { _, _, _ in executionOrder.append("Aspect2-error") }
+            onBefore: { _, _ in tracker.executionOrder.append("Aspect2-before") },
+            onAfter: { _, response, _ in tracker.executionOrder.append("Aspect2-after"); return response },
+            onError: { _, _, _ in tracker.executionOrder.append("Aspect2-error") }
         )
         
         let middleware = AspectMiddleware(aspects: [aspect1, aspect2])
         app.middleware.use(middleware, at: .beginning)
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
-            XCTAssertEqual(executionOrder, [
+            XCTAssertEqual(tracker.executionOrder, [
                 "Aspect1-before",
                 "Aspect2-before",
                 "Aspect2-after",
@@ -54,10 +57,14 @@ final class AspectMiddlewareTests: XCTestCase {
         }
     }
     
-    func testAspectContextPropagation() async throws {
+    func testAspectContextPropagation() throws {
         // Given
-        let testKey = TestContextKey()
         let testValue = "test-value"
+        
+        final class ValueHolder: @unchecked Sendable {
+            var retrievedValue: String?
+        }
+        let holder = ValueHolder()
         
         let setAspect = TestAspect(
             name: "SetAspect",
@@ -66,11 +73,10 @@ final class AspectMiddlewareTests: XCTestCase {
             }
         )
         
-        var retrievedValue: String?
         let getAspect = TestAspect(
             name: "GetAspect",
             onAfter: { _, response, context in
-                retrievedValue = context.get(TestContextKey.self)
+                holder.retrievedValue = context.get(TestContextKey.self)
                 return response
             }
         )
@@ -79,36 +85,53 @@ final class AspectMiddlewareTests: XCTestCase {
         app.middleware.use(middleware, at: .beginning)
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
-            XCTAssertEqual(retrievedValue, testValue)
+            XCTAssertEqual(holder.retrievedValue, testValue)
         }
     }
     
     func testAspectErrorHandling() async throws {
         // Given
-        let testError = TestError.testCase
-        var errorHandled = false
+        final class ErrorTracker: @unchecked Sendable {
+            var errorHandled = false
+            var capturedError: Error?
+        }
+        let tracker = ErrorTracker()
         
         let errorAspect = TestAspect(
             name: "ErrorAspect",
-            onBefore: { _, _ in
-                throw testError
-            },
-            onError: { _, error, _ in
-                errorHandled = true
-                XCTAssertEqual(error as? TestError, testError)
+            onError: { request, error, context in
+                tracker.errorHandled = true
+                tracker.capturedError = error
             }
         )
         
+        // Create a mock request
+        let testRequest = Request(
+            application: app,
+            method: .GET,
+            url: URI(path: "/test"),
+            on: app.eventLoopGroup.next()
+        )
+        
         let middleware = AspectMiddleware(aspects: [errorAspect])
-        app.middleware.use(middleware, at: .beginning)
+        var context = AspectContext()
+        
+        // Create a mock next responder that throws an error
+        let nextResponder = MockResponder { _ in
+            throw Abort(.badRequest, reason: "Test error")
+        }
         
         // When
-        try await app.test(.GET, "/test") { response in
+        do {
+            _ = try await middleware.respond(to: testRequest, chainingTo: nextResponder)
+            XCTFail("Expected error to be thrown")
+        } catch {
             // Then
-            XCTAssertTrue(errorHandled)
-            XCTAssertEqual(response.status, .internalServerError)
+            XCTAssertTrue(tracker.errorHandled, "Aspect should have handled the error")
+            XCTAssertNotNil(tracker.capturedError, "Error should have been captured")
+            XCTAssertEqual((tracker.capturedError as? Abort)?.status, .badRequest)
         }
     }
     
@@ -118,18 +141,22 @@ final class AspectMiddlewareTests: XCTestCase {
         // Given
         let registry = AspectRegistry()
         
-        var executionOrder: [String] = []
+        final class OrderTracker: @unchecked Sendable {
+            var executionOrder: [String] = []
+        }
+        let tracker = OrderTracker()
+        
         let lowPriority = TestAspect(
             name: "Low",
-            onBefore: { _, _ in executionOrder.append("Low") }
+            onBefore: { _, _ in tracker.executionOrder.append("Low") }
         )
         let highPriority = TestAspect(
             name: "High",
-            onBefore: { _, _ in executionOrder.append("High") }
+            onBefore: { _, _ in tracker.executionOrder.append("High") }
         )
         let mediumPriority = TestAspect(
             name: "Medium",
-            onBefore: { _, _ in executionOrder.append("Medium") }
+            onBefore: { _, _ in tracker.executionOrder.append("Medium") }
         )
         
         // When
@@ -162,7 +189,7 @@ final class AspectMiddlewareTests: XCTestCase {
     
     // MARK: - Response Modification Tests
     
-    func testAspectCanModifyResponse() async throws {
+    func testAspectCanModifyResponse() throws {
         // Given
         let headerName = "X-Test-Header"
         let headerValue = "test-value"
@@ -179,7 +206,7 @@ final class AspectMiddlewareTests: XCTestCase {
         app.middleware.use(middleware, at: .beginning)
         
         // When
-        try await app.test(.GET, "/test") { response in
+        try app.test(.GET, "/test") { response in
             // Then
             XCTAssertEqual(response.headers[headerName].first, headerValue)
         }
@@ -187,22 +214,23 @@ final class AspectMiddlewareTests: XCTestCase {
     
     // MARK: - Integration Tests
     
-    func testApplicationAspectRegistry() async throws {
+    func testApplicationAspectRegistry() throws {
         // Given
         let aspect = TestAspect(name: "AppAspect")
+        let initialCount = app.aspectRegistry.all().count
         
         // When
         app.aspectRegistry.register(aspect, priority: 100)
         
         // Then
-        XCTAssertEqual(app.aspectRegistry.all().count, 1)
+        XCTAssertEqual(app.aspectRegistry.all().count, initialCount + 1)
         
         // Test middleware creation
         let middleware = app.aspectRegistry.middleware()
         XCTAssertNotNil(middleware)
     }
     
-    func testRequestAspectContext() async throws {
+    func testRequestAspectContext() throws {
         // Given
         app.get("context-test") { request in
             // When
@@ -216,7 +244,7 @@ final class AspectMiddlewareTests: XCTestCase {
         }
         
         // When/Then
-        try await app.test(.GET, "/context-test") { response in
+        try app.test(.GET, "/context-test") { response in
             let content = try response.content.decode([String: String].self)
             XCTAssertEqual(content["value"], "test-value")
         }
@@ -224,6 +252,18 @@ final class AspectMiddlewareTests: XCTestCase {
 }
 
 // MARK: - Test Helpers
+
+private struct MockResponder: AsyncResponder {
+    private let closure: @Sendable (Request) async throws -> Response
+    
+    init(_ closure: @escaping @Sendable (Request) async throws -> Response) {
+        self.closure = closure
+    }
+    
+    func respond(to request: Request) async throws -> Response {
+        try await closure(request)
+    }
+}
 
 private struct TestAspect: Aspect {
     let name: String

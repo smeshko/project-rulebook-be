@@ -33,8 +33,8 @@ set -e
 
 # Script directory detection
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
-TESTING_DIR="$PROJECT_ROOT/testing"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+TESTING_DIR="$SCRIPT_DIR/.."
 REPORTS_DIR="$TESTING_DIR/reports"
 
 # Ensure reports directory exists
@@ -207,7 +207,7 @@ run_endpoint_tests() {
     cd "$PROJECT_ROOT"
     
     # Build command based on options
-    local test_cmd="$TESTING_DIR/scripts/test-endpoints.sh"
+    local test_cmd="$SCRIPT_DIR/test-endpoints.sh"
     
     if [[ "$SKIP_SERVER" == true ]]; then
         test_cmd="$test_cmd --skip-server"
@@ -272,7 +272,7 @@ generate_summary() {
     echo "Reports Location:"
     echo "────────────────────────────────────"
     echo "  Logs:           $TESTING_DIR/logs/"
-    echo "  Reports:        $REPORTS_DIR/"
+    echo "  Reports:        $TESTING_DIR/reports/"
     
     # Determine overall result
     local overall_passed=true
