@@ -1,5 +1,6 @@
 import Vapor
 import NIOCore
+import NIOConcurrencyHelpers
 
 /// Middleware that applies aspects to incoming requests.
 ///
@@ -90,9 +91,9 @@ public struct AspectMiddleware: AsyncMiddleware {
                         error: currentError,
                         context: context
                     )
-                } catch newError {
+                } catch let transformedError {
                     // Update the error if the aspect transforms it
-                    currentError = newError
+                    currentError = transformedError
                 }
             }
             
@@ -186,7 +187,7 @@ private struct AspectRegistryKey: StorageKey {
 }
 
 /// Storage key for AspectContext in Request.
-private struct AspectContextKey: StorageKey {
+private struct RequestAspectContextKey: StorageKey {
     typealias Value = AspectContext
 }
 
@@ -215,10 +216,10 @@ public extension Request {
     /// The current aspect context for this request.
     var aspectContext: AspectContext {
         get {
-            storage[AspectContextKey.self] ?? AspectContext()
+            storage[RequestAspectContextKey.self] ?? AspectContext()
         }
         set {
-            storage[AspectContextKey.self] = newValue
+            storage[RequestAspectContextKey.self] = newValue
         }
     }
 }

@@ -35,13 +35,13 @@ public struct CorrelationIDAspect: Aspect {
     private let outgoingHeader = "X-Correlation-ID"
     
     /// Service for generating UUIDs.
-    private let uuidGenerator: UUIDGeneratorService?
+    private let uuidGenerator: (any UUIDGeneratorService)?
     
     /// Creates a new CorrelationIDAspect.
     ///
     /// - Parameter uuidGenerator: Optional UUID generator service.
     ///   If nil, uses system UUID generation.
-    public init(uuidGenerator: UUIDGeneratorService? = nil) {
+    public init(uuidGenerator: (any UUIDGeneratorService)? = nil) {
         self.uuidGenerator = uuidGenerator
     }
     
@@ -154,7 +154,7 @@ public struct CorrelationIDMiddleware: AsyncMiddleware {
     /// Creates a new CorrelationIDMiddleware.
     ///
     /// - Parameter uuidGenerator: Optional UUID generator service
-    public init(uuidGenerator: UUIDGeneratorService? = nil) {
+    public init(uuidGenerator: (any UUIDGeneratorService)? = nil) {
         self.aspect = CorrelationIDAspect(uuidGenerator: uuidGenerator)
     }
     
