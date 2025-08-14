@@ -80,9 +80,26 @@ public struct ExternalServiceProvider: ServiceProvider {
         }
         
         if !registry.isRegistered(LLMService.self) {
-            // LLM Service - requires configuration and other services
+            // LLM Service - wrapped with Redis caching for performance optimization
             registry.register(LLMService.self) { app in
-                OpenAIService(app: app)
+                // Create the base OpenAI service
+                let openAIService = OpenAIService(app: app)
+                
+                // Get the Redis cache service for caching LLM responses
+                let cacheService = try await app.serviceRegistry.resolveRequired(CacheService.self)
+                
+                // Configure caching based on environment
+                let cacheConfig = app.environment == .production 
+                    ? CachedLLMService.Configuration.standard
+                    : CachedLLMService.Configuration.development
+                
+                // Wrap with caching decorator
+                return CachedLLMService(
+                    wrappedService: openAIService,
+                    cacheService: cacheService,
+                    configuration: cacheConfig,
+                    logger: app.logger
+                )
             }
         }
         
