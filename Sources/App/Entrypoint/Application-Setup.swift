@@ -198,8 +198,8 @@ extension Application {
       let nioSSLContext = try NIOSSLContext(configuration: tlsConfig)
       tlsConnectionConfiguration = .require(nioSSLContext)
     case .development:
-      databases.use(.sqlite(.memory), as: .sqlite)
-      return
+      // Development uses PostgreSQL without TLS for local development
+      tlsConnectionConfiguration = .disable
     default:
       break
     }
@@ -214,11 +214,15 @@ extension Application {
       tls: tlsConnectionConfiguration
     )
     
-    // Configure connection pool settings for optimal performance
+    // Configure connection pool settings based on environment
+    let (maxConnections, poolTimeout) = environment == .development 
+      ? (1, TimeAmount.seconds(10))  // Lighter settings for development
+      : (2, TimeAmount.seconds(30))  // Production-ready settings
+    
     databases.use(.postgres(
       configuration: postgresConfig,
-      maxConnectionsPerEventLoop: 2,
-      connectionPoolTimeout: .seconds(30)
+      maxConnectionsPerEventLoop: maxConnections,
+      connectionPoolTimeout: poolTimeout
     ), as: .psql)
   }
 

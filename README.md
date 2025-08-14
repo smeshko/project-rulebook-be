@@ -41,7 +41,8 @@ A sophisticated Vapor 4 Swift web application that leverages AI to analyze board
 
 ### Prerequisites
 - Swift 5.9+ and Xcode 15+
-- PostgreSQL (for production) or SQLite (auto-configured for development)
+- Docker and Docker Compose (for local development database)
+- PostgreSQL 15.4+ and Redis 7.2+ (provided via Docker for development)
 - OpenAI API key for AI features
 
 ### Installation
@@ -54,23 +55,35 @@ cd project-rulebook
 cp .env.example .env
 # Edit .env with your actual API keys
 
-# Build and run
+# Start development database services
+docker-compose -f docker-compose.dev.yml up -d
+
+# Build and run the application
 swift build
 swift run App serve --hostname 0.0.0.0 --port 8080
 ```
 
-### Docker Development
+### Development Database Setup
 ```bash
-# Build and run with Docker Compose
-docker-compose up --build
+# Start PostgreSQL and Redis for development
+docker-compose -f docker-compose.dev.yml up -d
 
-# Run database only
-docker-compose up db
+# Stop development services
+docker-compose -f docker-compose.dev.yml down
+
+# Reset development database (removes all data)
+docker-compose -f docker-compose.dev.yml down -v
+docker-compose -f docker-compose.dev.yml up -d
+
+# View service logs
+docker-compose -f docker-compose.dev.yml logs -f postgres
+docker-compose -f docker-compose.dev.yml logs -f redis
 ```
 
 ### Development Setup
-- **VS Code**: See [VS Code Setup Guide](.claude/docs/development/VSCODE_SETUP.md)
-- **Xcode**: See [Xcode Setup Guide](.claude/docs/development/XCODE_SETUP.md)
+- **Docker Development**: See [Docker Development Guide](docs/development/Docker-Development-Guide.md)
+- **VS Code**: See [VS Code Setup Guide](docs/development/VSCODE_SETUP.md)
+- **Xcode**: See [Xcode Setup Guide](docs/development/XCODE_SETUP.md)
 
 ## 🔌 API Endpoints
 
@@ -235,8 +248,9 @@ Request → Security Headers → CORS → Rate Limiting → Auth → Controllers
 - **Cache Statistics**: Real-time monitoring of hit rates and performance
 
 ### Database Optimization
-- **Environment-Specific**: SQLite in-memory (dev), PostgreSQL (production)
-- **Connection Pooling**: Optimized database connection management
+- **Environment-Specific**: PostgreSQL + Redis (dev), SQLite in-memory (testing), PostgreSQL + Redis (production)
+- **Connection Pooling**: Optimized database connection management for PostgreSQL
+- **Redis Caching**: High-performance caching layer for improved response times
 - **Query Optimization**: Efficient repository patterns with proper indexing
 - **Migration Management**: Version-controlled database schema evolution
 
@@ -314,10 +328,10 @@ export ENVIRONMENT=production
 ### Environment Configuration
 The application automatically adapts to different environments:
 
-- **Development**: SQLite, relaxed rate limits, detailed logging
-- **Testing**: Isolated SQLite, disabled external services, fast tests
-- **Staging**: PostgreSQL, production-like config, comprehensive logging
-- **Production**: PostgreSQL with TLS, strict rate limits, security headers
+- **Development**: PostgreSQL + Redis (via Docker), relaxed rate limits, detailed logging
+- **Testing**: Isolated SQLite in-memory, disabled external services, fast tests
+- **Staging**: PostgreSQL + Redis with TLS, production-like config, comprehensive logging
+- **Production**: PostgreSQL + Redis with TLS, strict rate limits, security headers
 
 ### Docker Deployment
 ```dockerfile
@@ -335,12 +349,22 @@ JWT_KEY=your_jwt_secret_key_minimum_32_characters
 BASE_URL=http://localhost:8080
 APPLICATION_IDENTIFIER=com.yourcompany.app
 
-# Database (Production)
-DATABASE_HOST=your-postgres-host
-DATABASE_NAME=project_rulebook  
+# Database (Development uses Docker Compose services)
+DATABASE_HOST=localhost
+DATABASE_NAME=project_rulebook_dev
 DATABASE_USERNAME=vapor
-DATABASE_PASSWORD=your-secure-password
+DATABASE_PASSWORD=password
 DATABASE_PORT=5432
+
+# Redis Cache (Development)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DATABASE=0
+REDIS_POOL_SIZE=5
+REDIS_CONNECTION_TIMEOUT=5.0
+REDIS_COMMAND_TIMEOUT=10.0
+REDIS_ENABLE_LOGGING=true
 
 # External Services
 OPENAI_KEY=your_openai_api_key
@@ -416,6 +440,28 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support & Troubleshooting
 
 ### Common Issues
+
+#### Development Services Not Starting
+```bash
+# Check if Docker services are running
+docker-compose -f docker-compose.dev.yml ps
+
+# View service logs
+docker-compose -f docker-compose.dev.yml logs postgres
+docker-compose -f docker-compose.dev.yml logs redis
+
+# Restart services if needed
+docker-compose -f docker-compose.dev.yml restart
+```
+
+#### Database Connection Issues
+```bash
+# Test PostgreSQL connection
+docker exec -it project_rulebook_postgres_dev psql -U vapor -d project_rulebook_dev
+
+# Test Redis connection
+docker exec -it project_rulebook_redis_dev redis-cli ping
+```
 
 #### Authentication Problems
 ```bash
