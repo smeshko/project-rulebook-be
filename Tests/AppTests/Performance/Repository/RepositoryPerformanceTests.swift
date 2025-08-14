@@ -484,7 +484,7 @@ extension TestDataFactory {
     func createRefreshToken(for user: UserAccountModel, token: String) async throws -> RefreshTokenModel {
         let refreshToken = RefreshTokenModel()
         refreshToken.id = UUID()
-        refreshToken.token = token
+        refreshToken.value = token
         refreshToken.$user.id = user.id!
         refreshToken.expiresAt = Date().addingTimeInterval(86400 * 30) // 30 days
         refreshToken.createdAt = Date()
