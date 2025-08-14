@@ -68,6 +68,21 @@ struct TestingConfiguration: ConfigurationService {
       )
     }
   }
+  
+  var redis: RedisConfig {
+    get throws {
+      RedisConfig(
+        host: "localhost",
+        port: 6379,
+        password: nil,
+        database: 1,  // Use different database for tests
+        poolSize: 2,
+        connectionTimeout: 5.0,
+        commandTimeout: 10.0,
+        enableLogging: false  // Disabled for tests
+      )
+    }
+  }
 
   func validate() throws {
     // Minimal validation for tests - all values are hardcoded and valid

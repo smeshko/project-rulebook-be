@@ -58,10 +58,8 @@ extension Application {
         if environment != .testing || !isTestRepositoriesRegistered() {
             try await RepositoryServiceProvider.register(in: serviceRegistry, app: self)
         }
-        // Skip external services for testing environment if test services are already registered
-        if environment != .testing || !isTestServicesRegistered() {
-            try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
-        }
+        // Always register external services - provider handles individual service registration logic
+        try await ExternalServiceProvider.register(in: serviceRegistry, app: self)
         try await DomainServiceProvider.register(in: serviceRegistry, app: self)
         try await CQRSServiceProvider.register(in: serviceRegistry, app: self)
         
@@ -85,14 +83,6 @@ extension Application {
                serviceRegistry.isRegistered((any PasswordTokenRepository).self)
     }
     
-    /// Checks if test external services are already registered in the service registry.
-    ///
-    /// This prevents production external services from overriding test/mock services during testing.
-    private func isTestServicesRegistered() -> Bool {
-        return serviceRegistry.isRegistered(EmailService.self) ||
-               serviceRegistry.isRegistered(LLMService.self) ||
-               serviceRegistry.isRegistered(AICacheServiceInterface.self)
-    }
     
     /// Validates that all required services are properly registered.
     ///
@@ -123,6 +113,7 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(EmailService.self)
         _ = try await serviceRegistry.resolveRequired(LLMService.self)
         _ = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
+        _ = try await serviceRegistry.resolveRequired(CacheService.self)
         _ = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
         _ = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
         
@@ -185,6 +176,7 @@ extension Application {
         let emailService = try await serviceRegistry.resolveRequired(EmailService.self)
         let llmService = try await serviceRegistry.resolveRequired(LLMService.self)
         let aiCacheService = try await serviceRegistry.resolveRequired(AICacheServiceInterface.self)
+        let cacheService = try await serviceRegistry.resolveRequired(CacheService.self)
         let randomGeneratorService = try await serviceRegistry.resolveRequired(RandomGeneratorService.self)
         let uuidGeneratorService = try await serviceRegistry.resolveRequired(UUIDGeneratorService.self)
         let ipExtractorService = try await serviceRegistry.resolveRequired(IPExtractorService.self)
@@ -201,6 +193,7 @@ extension Application {
             emailService: emailService,
             llmService: llmService,
             aiCacheService: aiCacheService,
+            cacheService: cacheService,
             randomGeneratorService: randomGeneratorService,
             uuidGeneratorService: uuidGeneratorService,
             ipExtractorService: ipExtractorService,

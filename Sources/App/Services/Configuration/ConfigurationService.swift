@@ -75,6 +75,18 @@ protocol ConfigurationService: Sendable {
   /// - Returns: Cache configuration with TTL settings and limits
   /// - Throws: ``ConfigurationError`` if cache settings are invalid
   var cache: CacheConfig { get throws }
+  
+  /// Redis cache configuration for distributed caching.
+  ///
+  /// Provides configuration for Redis-based caching which offers:
+  /// - Persistent cache storage across server restarts
+  /// - Distributed caching for multi-instance deployments  
+  /// - Higher performance than in-memory caching for large datasets
+  /// - Advanced features like atomic operations and pub/sub
+  ///
+  /// - Returns: Redis configuration with connection and pooling settings
+  /// - Throws: ``ConfigurationError`` if Redis settings are invalid
+  var redis: RedisConfig { get throws }
 
   /// Validates all configuration settings for the current environment.
   ///

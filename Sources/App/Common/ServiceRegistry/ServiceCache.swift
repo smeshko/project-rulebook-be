@@ -47,6 +47,9 @@ final class ServiceCache: @unchecked Sendable {
     /// Cached AI cache service for immediate synchronous access.
     private let _aiCacheService: AICacheServiceInterface
     
+    /// Cached general cache service for immediate synchronous access.
+    private let _cacheService: CacheService
+    
     /// Cached random generator service for immediate synchronous access.
     private let _randomGeneratorService: RandomGeneratorService
     
@@ -87,6 +90,7 @@ final class ServiceCache: @unchecked Sendable {
     ///   - emailService: Pre-resolved email service
     ///   - llmService: Pre-resolved LLM service
     ///   - aiCacheService: Pre-resolved AI cache service
+    ///   - cacheService: Pre-resolved general cache service
     ///   - randomGeneratorService: Pre-resolved random generator service
     ///   - uuidGeneratorService: Pre-resolved UUID generator service
     ///   - ipExtractorService: Pre-resolved IP extractor service
@@ -101,6 +105,7 @@ final class ServiceCache: @unchecked Sendable {
         emailService: EmailService,
         llmService: LLMService,
         aiCacheService: AICacheServiceInterface,
+        cacheService: CacheService,
         randomGeneratorService: RandomGeneratorService,
         uuidGeneratorService: UUIDGeneratorService,
         ipExtractorService: IPExtractorService,
@@ -115,6 +120,7 @@ final class ServiceCache: @unchecked Sendable {
         self._emailService = emailService
         self._llmService = llmService
         self._aiCacheService = aiCacheService
+        self._cacheService = cacheService
         self._randomGeneratorService = randomGeneratorService
         self._uuidGeneratorService = uuidGeneratorService
         self._ipExtractorService = ipExtractorService
@@ -178,6 +184,13 @@ final class ServiceCache: @unchecked Sendable {
     /// - Returns: The cached AI cache service instance
     var aiCacheService: AICacheServiceInterface {
         _aiCacheService
+    }
+    
+    /// Returns the cached general cache service for immediate synchronous access.
+    ///
+    /// - Returns: The cached general cache service instance
+    var cacheService: CacheService {
+        _cacheService
     }
     
     /// Returns the cached random generator service for immediate synchronous access.

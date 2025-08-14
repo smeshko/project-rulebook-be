@@ -74,6 +74,21 @@ struct DevelopmentConfiguration: ConfigurationService {
       )
     }
   }
+  
+  var redis: RedisConfig {
+    get throws {
+      RedisConfig(
+        host: Environment.get("REDIS_HOST") ?? "localhost",
+        port: Int(Environment.get("REDIS_PORT") ?? "6379") ?? 6379,
+        password: Environment.get("REDIS_PASSWORD"),
+        database: Int(Environment.get("REDIS_DATABASE") ?? "0") ?? 0,
+        poolSize: Int(Environment.get("REDIS_POOL_SIZE") ?? "5") ?? 5,
+        connectionTimeout: Double(Environment.get("REDIS_CONNECTION_TIMEOUT") ?? "5.0") ?? 5.0,
+        commandTimeout: Double(Environment.get("REDIS_COMMAND_TIMEOUT") ?? "10.0") ?? 10.0,
+        enableLogging: Environment.get("REDIS_ENABLE_LOGGING")?.lowercased() != "false"
+      )
+    }
+  }
 
   func validate() throws {
     let db = try database
