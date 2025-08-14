@@ -16,6 +16,9 @@ struct CacheAdminRouter: RouteCollection {
         adminAPI.get("health", use: controller.getCacheHealth)
         adminAPI.get("entries", use: controller.getCacheEntries)
         
+        // Redis-specific health monitoring
+        adminAPI.get("redis", "health", use: controller.getRedisHealth)
+        
         // Cache management operations
         adminAPI.delete(use: controller.clearCache)
         adminAPI.post("cleanup", use: controller.manualCleanup)

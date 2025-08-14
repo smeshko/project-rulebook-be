@@ -238,6 +238,14 @@ public struct CQRSServiceProvider: ServiceProvider {
                 logger: app.logger
             )
         }
+        
+        // Redis health query
+        registry.register(GetRedisHealthUseCase.self) { app in
+            GetRedisHealthUseCase(
+                cacheService: try await app.serviceRegistry.resolveRequired(CacheService.self),
+                logger: app.logger
+            )
+        }
     }
     
     /// Content-related queries for AI analysis operations.
