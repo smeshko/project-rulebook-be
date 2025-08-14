@@ -8,16 +8,20 @@ import Testing
 /// Orchestrates all performance tests and generates comprehensive reports
 /// to validate Phase 5 optimization targets: 80% API cost reduction,
 /// >70% cache hit rate, <200ms P95 response time, and N+1 query prevention.
-final class Phase5PerformanceTestSuite: PerformanceTestCase {
+final class Phase5PerformanceTestSuite: XCTestCase {
     
+    var application: Application!
     var testWorld: TestWorld!
     var performanceData: PerformanceDataCollector!
+    private var performanceTester: PerformanceTestCase!
     
     override func setUp() async throws {
         try await super.setUp()
+        application = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: application)
         testWorld.configureForAITesting()
         performanceData = PerformanceDataCollector()
+        performanceTester = try await PerformanceTestCase()
         
         print("=== Phase 5 Performance Test Suite Starting ===")
         print("Testing Phase 5 optimization targets:")
@@ -34,6 +38,8 @@ final class Phase5PerformanceTestSuite: PerformanceTestCase {
         try await savePerformanceReport(report)
         
         await testWorld.resetAll()
+        try await performanceTester.shutdown()
+        try await application.asyncShutdown()
         try await super.tearDown()
         
         print("=== Phase 5 Performance Test Suite Complete ===")
@@ -224,7 +230,7 @@ final class Phase5PerformanceTestSuite: PerformanceTestCase {
         // Test end-to-end performance with all optimizations enabled
         print("  🎯 Testing end-to-end optimized performance...")
         
-        let endToEndMetrics = try await measure(
+        let endToEndMetrics = try await performanceTester.measure(
             "End-to-End Optimized Workflow",
             iterations: 50
         ) {
@@ -259,7 +265,7 @@ final class Phase5PerformanceTestSuite: PerformanceTestCase {
         
         let cachedService = CachedLLMService(
             wrappedService: testWorld.llm,
-            cacheService: testWorld.aiCache,
+            cacheService: testWorld.aiCache as CacheService,
             configuration: .development,
             logger: application.logger
         )
@@ -533,7 +539,7 @@ final class Phase5PerformanceTestSuite: PerformanceTestCase {
         requests: Int,
         concurrency: Int,
         testName: String,
-        setupRequest: @escaping (inout TestRequest) throws -> Void
+        setupRequest: @escaping (String) throws -> Void
     ) async throws -> PerformanceTestUtilities.LoadTestResults {
         
         var responseTimes: [TimeInterval] = []

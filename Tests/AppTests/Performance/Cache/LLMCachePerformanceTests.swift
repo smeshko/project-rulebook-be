@@ -7,14 +7,17 @@ import Testing
 /// 
 /// Tests the CachedLLMService and RedisCacheService performance characteristics
 /// to validate the 80% API cost reduction target and >70% cache hit rate goal.
-final class LLMCachePerformanceTests: PerformanceTestCase {
+final class LLMCachePerformanceTests: XCTestCase {
     
+    var application: Application!
     var testWorld: TestWorld!
     var cachedLLMService: CachedLLMService!
     var mockRequest: Request!
+    private var performanceTester: PerformanceTestCase!
     
     override func setUp() async throws {
         try await super.setUp()
+        application = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: application)
         testWorld.configureForAITesting()
         mockRequest = Request(
@@ -30,14 +33,18 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
         
         cachedLLMService = CachedLLMService(
             wrappedService: wrappedService,
-            cacheService: cacheService,
+            cacheService: cacheService as CacheService,
             configuration: .development, // Shorter TTLs for testing
             logger: application.logger
         )
+        
+        performanceTester = try await PerformanceTestCase()
     }
     
     override func tearDown() async throws {
         await testWorld.resetAll()
+        try await performanceTester.shutdown()
+        try await application.asyncShutdown()
         try await super.tearDown()
     }
     
@@ -107,7 +114,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
         }
         
         // Measure cached response times
-        let cachedMetrics = try await measure(
+        let cachedMetrics = try await performanceTester.measure(
             "Cached LLM Response",
             iterations: 100
         ) {
@@ -117,7 +124,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
         
         // Measure uncached response times
         testWorld.aiCache.configureForceMiss(true)
-        let uncachedMetrics = try await measure(
+        let uncachedMetrics = try await performanceTester.measure(
             "Uncached LLM Response",
             iterations: 20 // Fewer iterations for slower uncached requests
         ) {
@@ -163,7 +170,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
             _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
             
             // Count actual API calls (cache misses)
-            if !await testWorld.aiCache.exists(key: "llm:gen:\(prompt.hashValue)") {
+            if !(await testWorld.aiCache.exists(key: "llm:gen:\(prompt.hashValue)")) {
                 apiCallCount += 1
             }
         }
@@ -296,7 +303,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
         
         // Get final cache statistics
         let cacheStats = await testWorld.aiCache.getStatistics()
-        let finalResults = LoadTestResults(
+        let finalResults = LLMLoadTestResults(
             testName: loadTestResults.testName,
             totalRequests: loadTestResults.totalRequests,
             concurrentUsers: loadTestResults.concurrentUsers,
@@ -332,7 +339,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
         }
         
         // Measure eviction performance when adding new entries
-        let evictionMetrics = try await measure(
+        let evictionMetrics = try await performanceTester.measure(
             "Cache Eviction",
             iterations: 50
         ) {
@@ -355,8 +362,7 @@ final class LLMCachePerformanceTests: PerformanceTestCase {
 
 // MARK: - Helper Extensions
 
-private extension PerformanceTestUtilities {
-    struct LoadTestResults {
+private struct LLMLoadTestResults {
         let testName: String
         let totalRequests: Int
         let concurrentUsers: Int
@@ -389,4 +395,3 @@ private extension PerformanceTestUtilities {
             """
         }
     }
-}

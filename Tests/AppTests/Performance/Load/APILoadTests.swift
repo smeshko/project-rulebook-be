@@ -8,22 +8,26 @@ import Testing
 /// 
 /// Tests API endpoints under realistic load conditions to validate P95 response time
 /// targets and overall system performance with caching optimizations.
-final class APILoadTests: PerformanceTestCase {
+final class APILoadTests: XCTestCase {
     
+    var application: Application!
     var testWorld: TestWorld!
-    var testUser: UserWithTokens!
+    var testUser: UserAccountModel!
     
     override func setUp() async throws {
         try await super.setUp()
+        application = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: application)
         testWorld.configureForAITesting()
         
         // Create authenticated test user
-        testUser = try testWorld.createUserWithTokens()
+        let userWithTokens = try testWorld.createUserWithTokens()
+        testUser = userWithTokens.user
     }
     
     override func tearDown() async throws {
         await testWorld.resetAll()
+        try await application.asyncShutdown()
         try await super.tearDown()
     }
     
@@ -66,18 +70,12 @@ final class APILoadTests: PerformanceTestCase {
                         let requestStartTime = Date()
                         
                         do {
-                            try await self.application.test(.POST, "/api/rules/generate") { request in
-                                request.headers.bearerAuthorization = BearerAuthorization(token: self.testUser.accessToken)
-                                try request.content.encode(requestBody)
-                            } content: { response in
-                                let responseTime = Date().timeIntervalSince(requestStartTime)
-                                
-                                if response.status == .ok {
-                                    return (responseTime, true)
-                                } else {
-                                    return (responseTime, false)
-                                }
+                            var success = false
+                            try await self.application.test(.POST, "/api/rules/generate", user: self.testUser, content: requestBody) { response in
+                                success = response.status == .ok
                             }
+                            let responseTime = Date().timeIntervalSince(requestStartTime)
+                            return (responseTime, success)
                         } catch {
                             let responseTime = Date().timeIntervalSince(requestStartTime)
                             return (responseTime, false)
@@ -430,14 +428,16 @@ final class APILoadTests: PerformanceTestCase {
         let requestStartTime = Date()
         
         do {
-            try await application.test(method, endpoint) { request in
-                request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                if !(requestBody is EmptyContent) {
-                    try request.content.encode(requestBody)
+            if requestBody is EmptyContent {
+                try await application.test(method, endpoint, user: testUser) { response in
+                    let responseTime = Date().timeIntervalSince(requestStartTime)
+                    return (responseTime, response.status.code >= 200 && response.status.code < 300)
                 }
-            } content: { response in
-                let responseTime = Date().timeIntervalSince(requestStartTime)
-                return (responseTime, response.status.code >= 200 && response.status.code < 300)
+            } else {
+                try await application.test(method, endpoint, user: testUser, content: requestBody) { response in
+                    let responseTime = Date().timeIntervalSince(requestStartTime)
+                    return (responseTime, response.status.code >= 200 && response.status.code < 300)
+                }
             }
         } catch {
             let responseTime = Date().timeIntervalSince(requestStartTime)
@@ -543,10 +543,8 @@ final class APILoadTests: PerformanceTestCase {
         do {
             switch operation {
             case "profile":
-                try await application.test(.GET, "/api/users/current") { request in
-                    request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                } content: { response in
-                    return response.status == .ok
+                return try await application.test(.GET, "/api/users/current", user: testUser) { response in
+                    response.status == .ok
                 }
                 
             case "rules":
@@ -560,18 +558,13 @@ final class APILoadTests: PerformanceTestCase {
                     complexityLevel: "easy"
                 )
                 
-                try await application.test(.POST, "/api/rules/generate") { request in
-                    request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                    try request.content.encode(rulesRequest)
-                } content: { response in
-                    return response.status == .ok
+                return try await application.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest) { response in
+                    response.status == .ok
                 }
                 
             case "cache_stats":
-                try await application.test(.GET, "/api/cache/stats") { request in
-                    request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                } content: { response in
-                    return response.status == .ok
+                return try await application.test(.GET, "/api/cache/stats", user: testUser) { response in
+                    response.status == .ok
                 }
                 
             case "analyze":
@@ -580,18 +573,13 @@ final class APILoadTests: PerformanceTestCase {
                     analysisType: "components"
                 )
                 
-                try await application.test(.POST, "/api/rules/analyze-box") { request in
-                    request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                    try request.content.encode(analyzeRequest)
-                } content: { response in
-                    return response.status == .ok
+                return try await application.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest) { response in
+                    response.status == .ok
                 }
                 
             case "health":
-                try await application.test(.GET, "/api/cache/health") { request in
-                    request.headers.bearerAuthorization = BearerAuthorization(token: testUser.accessToken)
-                } content: { response in
-                    return response.status == .ok
+                return try await application.test(.GET, "/api/cache/health", user: testUser) { response in
+                    response.status == .ok
                 }
                 
             default:
@@ -620,7 +608,7 @@ final class APILoadTests: PerformanceTestCase {
 
 private struct EmptyContent: Codable {}
 
-private struct GenerateRulesRequest: Codable {
+private struct GenerateRulesRequest: Content {
     let gameTitle: String
     let gameDescription: String
     let playerCount: String
@@ -630,12 +618,12 @@ private struct GenerateRulesRequest: Codable {
     let complexityLevel: String
 }
 
-private struct AnalyzeGameBoxRequest: Codable {
+private struct AnalyzeGameBoxRequest: Content {
     let imageData: String
     let analysisType: String
 }
 
-private struct SignUpRequest: Codable {
+private struct SignUpRequest: Content {
     let name: String
     let email: String
     let password: String

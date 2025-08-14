@@ -8,19 +8,23 @@ import Testing
 /// 
 /// Tests the N+1 query prevention through eager loading in UserRepository
 /// and validates database query reduction targets.
-final class RepositoryPerformanceTests: PerformanceTestCase {
+final class RepositoryPerformanceTests: XCTestCase {
     
+    var application: Application!
     var testWorld: TestWorld!
     var database: Database!
-    var userRepository: any UserRepository!
+    var userRepository: (any UserRepository)!
     var dataFactory: TestDataFactory!
+    private var performanceTester: PerformanceTestCase!
     
     override func setUp() async throws {
         try await super.setUp()
+        application = try TestWorld.makeTestAppSync()
         testWorld = try TestWorld(app: application)
         database = application.db
         userRepository = application.repositories.users
         dataFactory = testWorld.dataFactory
+        performanceTester = try await PerformanceTestCase()
         
         // Setup test data for realistic performance testing
         try await setupTestData()
@@ -28,6 +32,8 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
     
     override func tearDown() async throws {
         await testWorld.resetAll()
+        try await performanceTester.shutdown()
+        try await application.asyncShutdown()
         try await super.tearDown()
     }
     
@@ -160,7 +166,7 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
             .compactMap { $0.id }
         
         // Benchmark sequential approach
-        let sequentialMetrics = try await measure(
+        let sequentialMetrics = try await performanceTester.measure(
             "Sequential User + Refresh Tokens",
             iterations: 10
         ) {
@@ -175,7 +181,7 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
         }
         
         // Benchmark optimized eager loading
-        let optimizedMetrics = try await measure(
+        let optimizedMetrics = try await performanceTester.measure(
             "Optimized User + Refresh Tokens",
             iterations: 10
         ) {
@@ -279,14 +285,14 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
         let testUsers = PerformanceTestUtilities.generateTestUsers(count: userCount)
         
         // Test bulk create performance
-        let bulkCreateMetrics = try await measure(
+        let bulkCreateMetrics = try await performanceTester.measure(
             "Bulk User Creation",
             iterations: 5
         ) {
             for userData in testUsers.prefix(20) {
                 let user = UserAccountModel()
                 user.email = "\(userData.email)_bulk_\(UUID().uuidString.prefix(8))"
-                user.name = userData.name
+                user.firstName = userData.name
                 user.isEmailVerified = true
                 try await user.create(on: self.database)
             }
@@ -297,7 +303,7 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
             .all()
             .compactMap { $0.id }
         
-        let bulkRetrievalMetrics = try await measure(
+        let bulkRetrievalMetrics = try await performanceTester.measure(
             "Bulk User Retrieval",
             iterations: 10
         ) {
@@ -328,7 +334,7 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
         let testEmails = (0..<100).map { "indexed_user_\($0)@example.com" }
         
         // Test email lookup performance (should use email index)
-        let emailLookupMetrics = try await measure(
+        let emailLookupMetrics = try await performanceTester.measure(
             "Email Index Lookup",
             iterations: 50
         ) {
@@ -342,7 +348,7 @@ final class RepositoryPerformanceTests: PerformanceTestCase {
             .all()
             .compactMap { $0.id }
         
-        let idLookupMetrics = try await measure(
+        let idLookupMetrics = try await performanceTester.measure(
             "ID Index Lookup",
             iterations: 100
         ) {
@@ -467,11 +473,10 @@ extension TestDataFactory {
         let user = UserAccountModel()
         user.id = UUID()
         user.email = email
-        user.name = name
-        user.passwordHash = "hashed_password"
+        user.firstName = name
+        user.password = "hashed_password"
         user.isEmailVerified = isVerified
-        user.createdAt = Date()
-        user.updatedAt = Date()
+        user.isAdmin = false
         return user
     }
     
