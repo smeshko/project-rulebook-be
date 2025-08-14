@@ -495,10 +495,9 @@ extension TestDataFactory {
     func createEmailToken(for user: UserAccountModel, token: String) async throws -> EmailTokenModel {
         let emailToken = EmailTokenModel()
         emailToken.id = UUID()
-        emailToken.token = token
+        emailToken.value = token
         emailToken.$user.id = user.id!
         emailToken.expiresAt = Date().addingTimeInterval(3600) // 1 hour
-        emailToken.createdAt = Date()
         return emailToken
     }
     
@@ -506,10 +505,9 @@ extension TestDataFactory {
     func createPasswordToken(for user: UserAccountModel, token: String) async throws -> PasswordTokenModel {
         let passwordToken = PasswordTokenModel()
         passwordToken.id = UUID()
-        passwordToken.token = token
+        passwordToken.value = token
         passwordToken.$user.id = user.id!
         passwordToken.expiresAt = Date().addingTimeInterval(1800) // 30 minutes
-        passwordToken.createdAt = Date()
         return passwordToken
     }
 }

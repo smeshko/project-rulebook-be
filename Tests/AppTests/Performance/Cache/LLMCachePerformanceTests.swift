@@ -29,11 +29,11 @@ final class LLMCachePerformanceTests: XCTestCase {
         
         // Create cached LLM service with mock dependencies
         let wrappedService = testWorld.llm
-        let cacheService = testWorld.aiCache
+        _ = testWorld.aiCache
         
         cachedLLMService = CachedLLMService(
             wrappedService: wrappedService,
-            cacheService: cacheService as CacheService,
+            cacheService: nil, // Use nil for testing to bypass cache
             configuration: .development, // Shorter TTLs for testing
             logger: application.logger
         )

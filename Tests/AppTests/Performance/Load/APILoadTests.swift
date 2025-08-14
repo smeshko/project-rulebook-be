@@ -543,9 +543,11 @@ final class APILoadTests: XCTestCase {
         do {
             switch operation {
             case "profile":
-                return try await application.test(.GET, "/api/users/current", user: testUser) { response in
-                    response.status == .ok
+                var success = false
+                try await application.test(.GET, "/api/users/current", user: testUser) { response in
+                    success = response.status == .ok
                 }
+                return success
                 
             case "rules":
                 let rulesRequest = GenerateRulesRequest(
@@ -558,14 +560,18 @@ final class APILoadTests: XCTestCase {
                     complexityLevel: "easy"
                 )
                 
-                return try await application.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest) { response in
-                    response.status == .ok
+                var success = false
+                try await application.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest) { response in
+                    success = response.status == .ok
                 }
+                return success
                 
             case "cache_stats":
-                return try await application.test(.GET, "/api/cache/stats", user: testUser) { response in
-                    response.status == .ok
+                var success = false
+                try await application.test(.GET, "/api/cache/stats", user: testUser) { response in
+                    success = response.status == .ok
                 }
+                return success
                 
             case "analyze":
                 let analyzeRequest = AnalyzeGameBoxRequest(
@@ -573,14 +579,18 @@ final class APILoadTests: XCTestCase {
                     analysisType: "components"
                 )
                 
-                return try await application.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest) { response in
-                    response.status == .ok
+                var success = false
+                try await application.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest) { response in
+                    success = response.status == .ok
                 }
+                return success
                 
             case "health":
-                return try await application.test(.GET, "/api/cache/health", user: testUser) { response in
-                    response.status == .ok
+                var success = false
+                try await application.test(.GET, "/api/cache/health", user: testUser) { response in
+                    success = response.status == .ok
                 }
+                return success
                 
             default:
                 return false

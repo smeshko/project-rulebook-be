@@ -254,21 +254,21 @@ final class PerformanceTestUtilities {
     // MARK: - Performance Assertion Helpers
     
     /// Assert cache hit rate meets target
-    static func assertCacheHitRate(_ metrics: CachePerformanceMetrics, file: StaticString = #file, line: UInt = #line) {
+    static func assertCacheHitRate(_ metrics: CachePerformanceMetrics, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertGreaterThan(metrics.hitRate, PerformanceTargets.cacheHitRate, 
             "Cache hit rate (\(String(format: "%.1f", metrics.hitRatePercentage))%) below target (\(String(format: "%.1f", PerformanceTargets.cacheHitRate * 100))%)",
             file: file, line: line)
     }
     
     /// Assert P95 response time meets target
-    static func assertP95ResponseTime(_ responseTime: TimeInterval, target: TimeInterval = PerformanceTargets.p95ResponseTime, file: StaticString = #file, line: UInt = #line) {
+    static func assertP95ResponseTime(_ responseTime: TimeInterval, target: TimeInterval = PerformanceTargets.p95ResponseTime, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertLessThan(responseTime, target,
             "P95 response time (\(String(format: "%.2f", responseTime * 1000))ms) exceeds target (\(String(format: "%.2f", target * 1000))ms)",
             file: file, line: line)
     }
     
     /// Assert cost savings meet target
-    static func assertCostSavings(_ savings: Double, totalRequests: Int, file: StaticString = #file, line: UInt = #line) {
+    static func assertCostSavings(_ savings: Double, totalRequests: Int, file: StaticString = #filePath, line: UInt = #line) {
         let totalCost = APICostCalculator.totalCost(requests: totalRequests)
         let savingsPercentage = (savings / totalCost) * 100.0
         
@@ -278,21 +278,21 @@ final class PerformanceTestUtilities {
     }
     
     /// Assert query reduction meets target
-    static func assertQueryReduction(_ metrics: QueryPerformanceMetrics, file: StaticString = #file, line: UInt = #line) {
+    static func assertQueryReduction(_ metrics: QueryPerformanceMetrics, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertGreaterThan(metrics.queryReduction, PerformanceTargets.queryReductionFactor,
             "Query reduction (\(String(format: "%.1f", metrics.queryReductionPercentage))%) below target (\(String(format: "%.1f", PerformanceTargets.queryReductionFactor * 100))%)",
             file: file, line: line)
     }
     
     /// Assert throughput meets minimum requirements
-    static func assertThroughput(_ throughput: Double, minimum: Double = 10.0, file: StaticString = #file, line: UInt = #line) {
+    static func assertThroughput(_ throughput: Double, minimum: Double = 10.0, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertGreaterThan(throughput, minimum,
             "Throughput (\(String(format: "%.1f", throughput)) req/s) below minimum (\(String(format: "%.1f", minimum)) req/s)",
             file: file, line: line)
     }
     
     /// Assert memory usage per cache entry is reasonable
-    static func assertMemoryUsage(_ bytesPerEntry: Int, file: StaticString = #file, line: UInt = #line) {
+    static func assertMemoryUsage(_ bytesPerEntry: Int, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertLessThan(bytesPerEntry, PerformanceTargets.maxCacheEntrySize,
             "Memory usage per cache entry (\(bytesPerEntry) bytes) exceeds target (\(PerformanceTargets.maxCacheEntrySize) bytes)",
             file: file, line: line)
