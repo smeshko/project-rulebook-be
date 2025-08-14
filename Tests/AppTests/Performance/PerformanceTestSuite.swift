@@ -3,12 +3,12 @@ import XCTest
 import Vapor
 import Testing
 
-/// Comprehensive Phase 5 performance test suite
+/// Comprehensive performance test suite
 /// 
 /// Orchestrates all performance tests and generates comprehensive reports
-/// to validate Phase 5 optimization targets: 80% API cost reduction,
+/// to validate optimization targets: 80% API cost reduction,
 /// >70% cache hit rate, <200ms P95 response time, and N+1 query prevention.
-final class Phase5PerformanceTestSuite: XCTestCase {
+final class PerformanceTestSuite: XCTestCase {
     
     var application: Application!
     var testWorld: TestWorld!
@@ -23,8 +23,8 @@ final class Phase5PerformanceTestSuite: XCTestCase {
         performanceData = PerformanceDataCollector()
         performanceTester = try await PerformanceTestCase()
         
-        print("=== Phase 5 Performance Test Suite Starting ===")
-        print("Testing Phase 5 optimization targets:")
+        print("=== Performance Test Suite Starting ===")
+        print("Testing optimization targets:")
         print("  • 80% reduction in OpenAI API calls through caching")
         print("  • Cache hit rate >70%")
         print("  • P95 response time <200ms")
@@ -42,14 +42,14 @@ final class Phase5PerformanceTestSuite: XCTestCase {
         try await application.asyncShutdown()
         try await super.tearDown()
         
-        print("=== Phase 5 Performance Test Suite Complete ===")
+        print("=== Performance Test Suite Complete ===")
     }
     
     // MARK: - Comprehensive Performance Test Suite
     
-    @Test("Complete Phase 5 performance validation suite")
-    func testPhase5PerformanceTargets() async throws {
-        print("\n🔄 Running comprehensive Phase 5 performance validation...")
+    @Test("Complete performance validation suite")
+    func testPerformanceTargets() async throws {
+        print("\n🔄 Running comprehensive performance validation...")
         
         // 1. Cache Performance Tests
         let cacheMetrics = try await runCachePerformanceTests()
@@ -72,8 +72,8 @@ final class Phase5PerformanceTestSuite: XCTestCase {
         // Print comprehensive results
         print(finalReport.summary)
         
-        // Assert all Phase 5 targets are met
-        assertPhase5Compliance(finalReport.complianceResults)
+        // Assert all targets are met
+        assertPerformanceCompliance(finalReport.complianceResults)
     }
     
     // MARK: - Cache Performance Test Suite
@@ -589,7 +589,7 @@ final class Phase5PerformanceTestSuite: XCTestCase {
         return cacheStats.entryCount * 2048 // Estimate 2KB per entry
     }
     
-    private func assertPhase5Compliance(_ compliance: PerformanceReporter.ComplianceResults) {
+    private func assertPerformanceCompliance(_ compliance: PerformanceReporter.ComplianceResults) {
         XCTAssertTrue(compliance.cacheHitRateCompliance.isCompliant, 
             "Cache hit rate target not met: \(compliance.cacheHitRateCompliance.actual)")
         
@@ -606,15 +606,15 @@ final class Phase5PerformanceTestSuite: XCTestCase {
             "Throughput target not met: \(compliance.throughputCompliance.actual)")
     }
     
-    private func savePerformanceReport(_ report: PerformanceReporter.Phase5PerformanceReport) async throws {
+    private func savePerformanceReport(_ report: PerformanceReporter.PerformanceReport) async throws {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let timestamp = dateFormatter.string(from: Date())
         
-        let reportPath = "/tmp/phase5_performance_report_\(timestamp).txt"
+        let reportPath = "/tmp/performance_report_\(timestamp).txt"
         try PerformanceReporter.saveReport(report, to: reportPath)
         
-        let jsonPath = "/tmp/phase5_performance_data_\(timestamp).json"
+        let jsonPath = "/tmp/performance_data_\(timestamp).json"
         let jsonData = try PerformanceReporter.exportPerformanceDataAsJSON(report)
         try jsonData.write(to: URL(fileURLWithPath: jsonPath))
         
@@ -648,8 +648,8 @@ class PerformanceDataCollector {
         self.integrationMetrics = metrics
     }
     
-    func generateFinalReport() -> PerformanceReporter.Phase5PerformanceReport {
-        return PerformanceReporter.generatePhase5Report(
+    func generateFinalReport() -> PerformanceReporter.PerformanceReport {
+        return PerformanceReporter.generatePerformanceReport(
             cacheMetrics: cacheMetrics ?? createDefaultCacheMetrics(),
             repositoryMetrics: repositoryMetrics,
             loadTestResults: loadTestResults,
