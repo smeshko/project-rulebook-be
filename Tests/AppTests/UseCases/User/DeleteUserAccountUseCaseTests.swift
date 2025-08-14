@@ -247,6 +247,24 @@ private final class DeleteTestFailingUserRepository: UserRepository {
         throw Abort(.internalServerError)
     }
     
+    // MARK: - Optimized methods with eager loading (failing implementations for tests)
+    
+    func findWithTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel], emailTokens: [EmailTokenModel], passwordTokens: [PasswordTokenModel]) {
+        throw Abort(.internalServerError)
+    }
+    
+    func findWithRefreshTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel]) {
+        throw Abort(.internalServerError)
+    }
+    
+    func findWithEmailTokens(id: UUID) async throws -> (user: UserAccountModel?, emailTokens: [EmailTokenModel]) {
+        throw Abort(.internalServerError)
+    }
+    
+    func findWithPasswordTokens(id: UUID) async throws -> (user: UserAccountModel?, passwordTokens: [PasswordTokenModel]) {
+        throw Abort(.internalServerError)
+    }
+    
     func `for`(_ req: Request) -> DeleteTestFailingUserRepository {
         return self
     }

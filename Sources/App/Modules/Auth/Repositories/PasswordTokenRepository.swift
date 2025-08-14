@@ -13,7 +13,7 @@ protocol PasswordTokenRepository: Repository {
 struct DatabasePasswordTokenRepository: PasswordTokenRepository, DatabaseRepository {
     typealias Model = PasswordTokenModel
     
-    var database: Database
+    let database: Database
     
     func find(forUserID id: UUID) async throws -> PasswordTokenModel? {
         try await PasswordTokenModel.query(on: database)

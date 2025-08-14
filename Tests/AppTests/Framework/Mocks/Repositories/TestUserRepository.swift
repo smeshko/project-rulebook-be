@@ -62,6 +62,29 @@ actor TestUserRepository: UserRepository, TestRepository {
         users.removeAll()
     }
     
+    // MARK: - Optimized methods with eager loading (test implementations)
+    // These methods are not used in tests currently, but need to be implemented for protocol compliance
+    
+    func findWithTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel], emailTokens: [EmailTokenModel], passwordTokens: [PasswordTokenModel]) {
+        let user = try await find(id: id)
+        return (user: user, refreshTokens: [], emailTokens: [], passwordTokens: [])
+    }
+    
+    func findWithRefreshTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel]) {
+        let user = try await find(id: id)
+        return (user: user, refreshTokens: [])
+    }
+    
+    func findWithEmailTokens(id: UUID) async throws -> (user: UserAccountModel?, emailTokens: [EmailTokenModel]) {
+        let user = try await find(id: id)
+        return (user: user, emailTokens: [])
+    }
+    
+    func findWithPasswordTokens(id: UUID) async throws -> (user: UserAccountModel?, passwordTokens: [PasswordTokenModel]) {
+        let user = try await find(id: id)
+        return (user: user, passwordTokens: [])
+    }
+    
     nonisolated func `for`(_ req: Request) -> TestUserRepository {
         return self
     }
