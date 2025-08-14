@@ -68,6 +68,19 @@ struct CacheAdminController {
         )
     }
     
+    // MARK: - Redis Health Endpoint
+    
+    /// GET /api/admin/cache/redis/health
+    /// Returns Redis connectivity status and performance metrics
+    func getRedisHealth(_ req: Request) async throws -> CacheAdmin.RedisHealth.Response {
+        let useCase = try await req.useCases.cacheAdmin.getRedisHealth
+        let clientIP = req.services.ipExtractor.extractClientIP(from: req)
+        
+        return try await useCase.execute(
+            GetRedisHealthUseCase.Request(clientIP: clientIP)
+        )
+    }
+    
 }
 
 

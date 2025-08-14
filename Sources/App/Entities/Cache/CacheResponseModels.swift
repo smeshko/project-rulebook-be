@@ -167,4 +167,42 @@ public extension CacheAdmin {
             }
         }
     }
+    
+    enum RedisHealth {
+        public enum Status: String, Codable, Equatable, Sendable {
+            case healthy = "healthy"
+            case warning = "warning"  
+            case critical = "critical"
+        }
+        
+        public struct Response: Content, Equatable {
+            public let status: Status
+            public let connected: Bool
+            public let latencyMs: Double?
+            public let issues: [String]
+            public let timestamp: Date
+            
+            public init(
+                status: Status,
+                connected: Bool,
+                latencyMs: Double?,
+                issues: [String],
+                timestamp: Date
+            ) {
+                self.status = status
+                self.connected = connected
+                self.latencyMs = latencyMs
+                self.issues = issues
+                self.timestamp = timestamp
+            }
+            
+            enum CodingKeys: String, CodingKey {
+                case status
+                case connected
+                case latencyMs = "latency_ms"
+                case issues
+                case timestamp
+            }
+        }
+    }
 }

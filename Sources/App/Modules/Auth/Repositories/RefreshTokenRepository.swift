@@ -35,11 +35,17 @@ struct DatabaseRefreshTokenRepository: RefreshTokenRepository, DatabaseRepositor
     }
     
     func all() async throws -> [RefreshTokenModel] {
-        try await RefreshTokenModel.query(on: database).all()
+        try await RefreshTokenModel.query(on: database)
+            .with(\.$user)
+            .all()
     }
     
     func find(id: UUID?) async throws -> RefreshTokenModel? {
-        try await RefreshTokenModel.find(id, on: database)
+        guard let id = id else { return nil }
+        return try await RefreshTokenModel.query(on: database)
+            .filter(\.$id == id)
+            .with(\.$user)
+            .first()
     }
     
     func create(_ model: RefreshTokenModel) async throws {

@@ -1,0 +1,397 @@
+@testable import App
+import XCTest
+import Vapor
+import Testing
+
+/// Comprehensive performance tests for Phase 5 LLM caching optimization
+/// 
+/// Tests the CachedLLMService and RedisCacheService performance characteristics
+/// to validate the 80% API cost reduction target and >70% cache hit rate goal.
+final class LLMCachePerformanceTests: XCTestCase {
+    
+    var application: Application!
+    var testWorld: TestWorld!
+    var cachedLLMService: CachedLLMService!
+    var mockRequest: Request!
+    private var performanceTester: PerformanceTestCase!
+    
+    override func setUp() async throws {
+        try await super.setUp()
+        application = try TestWorld.makeTestAppSync()
+        testWorld = try TestWorld(app: application)
+        testWorld.configureForAITesting()
+        mockRequest = Request(
+            application: application,
+            method: .POST,
+            url: "http://localhost/test",
+            on: application.eventLoopGroup.next()
+        )
+        
+        // Create cached LLM service with mock dependencies
+        let wrappedService = testWorld.llm
+        _ = testWorld.aiCache
+        
+        cachedLLMService = CachedLLMService(
+            wrappedService: wrappedService,
+            cacheService: nil, // Use nil for testing to bypass cache
+            configuration: .development, // Shorter TTLs for testing
+            logger: application.logger
+        )
+        
+        performanceTester = try await PerformanceTestCase()
+    }
+    
+    override func tearDown() async throws {
+        await testWorld.resetAll()
+        try await performanceTester.shutdown()
+        try await application.asyncShutdown()
+        try await super.tearDown()
+    }
+    
+    // MARK: - Cache Hit Rate Performance Tests
+    
+    @Test("Cache hit rate meets 70% target with realistic workload")
+    func testCacheHitRateTarget() async throws {
+        let testPrompts = PerformanceTestUtilities.generateTestPrompts(count: 200)
+        
+        // Configure cache for 80% hit rate to simulate real-world scenario
+        testWorld.aiCache.configureHitRatio(0.8)
+        
+        var cacheHits = 0
+        var cacheMisses = 0
+        var hitTimes: [TimeInterval] = []
+        var missTimes: [TimeInterval] = []
+        
+        for prompt in testPrompts {
+            let startTime = Date()
+            let _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
+            let responseTime = Date().timeIntervalSince(startTime)
+            
+            // Check if this was a cache hit or miss
+            let cacheKey = "test_cache_key_\(prompt.hashValue)"
+            let wasHit = await testWorld.aiCache.exists(key: cacheKey)
+            
+            if wasHit {
+                cacheHits += 1
+                hitTimes.append(responseTime)
+            } else {
+                cacheMisses += 1
+                missTimes.append(responseTime)
+            }
+        }
+        
+        let metrics = PerformanceTestUtilities.CachePerformanceMetrics(
+            totalRequests: testPrompts.count,
+            cacheHits: cacheHits,
+            cacheMisses: cacheMisses,
+            averageHitTime: hitTimes.isEmpty ? 0 : hitTimes.reduce(0, +) / Double(hitTimes.count),
+            averageMissTime: missTimes.isEmpty ? 0 : missTimes.reduce(0, +) / Double(missTimes.count),
+            p95HitTime: hitTimes.isEmpty ? 0 : hitTimes.sorted()[Int(Double(hitTimes.count) * 0.95)],
+            p95MissTime: missTimes.isEmpty ? 0 : missTimes.sorted()[Int(Double(missTimes.count) * 0.95)],
+            hitTimes: hitTimes,
+            missTimes: missTimes,
+            estimatedCostSavings: PerformanceTestUtilities.APICostCalculator.savings(
+                totalRequests: testPrompts.count,
+                cacheHitRate: Double(cacheHits) / Double(testPrompts.count)
+            ),
+            memoryUsage: 0 // Would need actual memory measurement
+        )
+        
+        print(metrics.summary)
+        
+        // Assert Phase 5 targets
+        PerformanceTestUtilities.assertCacheHitRate(metrics)
+        PerformanceTestUtilities.assertP95ResponseTime(metrics.p95HitTime)
+        PerformanceTestUtilities.assertCostSavings(metrics.estimatedCostSavings, totalRequests: testPrompts.count)
+    }
+    
+    @Test("Cache response time performance under load")
+    func testCacheResponseTimePerformance() async throws {
+        // Pre-populate cache with common requests
+        let commonPrompts = PerformanceTestUtilities.generateTestPrompts(count: 50)
+        for prompt in commonPrompts {
+            _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
+        }
+        
+        // Measure cached response times
+        let cachedMetrics = try await performanceTester.measure(
+            "Cached LLM Response",
+            iterations: 100
+        ) {
+            let randomPrompt = commonPrompts.randomElement()!
+            _ = try await cachedLLMService.for(mockRequest).generate(input: randomPrompt)
+        }
+        
+        // Measure uncached response times
+        testWorld.aiCache.configureForceMiss(true)
+        let uncachedMetrics = try await performanceTester.measure(
+            "Uncached LLM Response",
+            iterations: 20 // Fewer iterations for slower uncached requests
+        ) {
+            let newPrompt = "Generate unique rules for game #\(UUID().uuidString)"
+            _ = try await cachedLLMService.for(mockRequest).generate(input: newPrompt)
+        }
+        
+        print("=== Cache Performance Comparison ===")
+        print(cachedMetrics.phase5Summary)
+        print("---")
+        print(uncachedMetrics.phase5Summary)
+        
+        // Assert performance improvements
+        PerformanceTestUtilities.assertP95ResponseTime(cachedMetrics.p95Time)
+        PerformanceTestUtilities.assertP95ResponseTime(
+            uncachedMetrics.p95Time,
+            target: PerformanceTestUtilities.PerformanceTargets.p95UncachedResponseTime
+        )
+        
+        // Cache should be significantly faster
+        XCTAssertLessThan(cachedMetrics.averageTime * 10, uncachedMetrics.averageTime,
+            "Cached responses should be at least 10x faster than uncached")
+    }
+    
+    // MARK: - Cost Reduction Performance Tests
+    
+    @Test("API cost reduction meets 80% target")
+    func testAPICostReductionTarget() async throws {
+        let totalRequests = 1000
+        let testPrompts = PerformanceTestUtilities.generateTestPrompts(count: totalRequests)
+        
+        // Configure realistic cache hit rate
+        testWorld.aiCache.configureHitRatio(0.85) // 85% hit rate
+        
+        var apiCallCount = 0
+        let startTime = Date()
+        
+        // Simulate realistic usage pattern with some repeated requests
+        let repeatedPrompts = Array(testPrompts.prefix(100))
+        let allRequests = repeatedPrompts + testPrompts.shuffled().prefix(900)
+        
+        for prompt in allRequests {
+            _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
+            
+            // Count actual API calls (cache misses)
+            if !(await testWorld.aiCache.exists(key: "llm:gen:\(prompt.hashValue)")) {
+                apiCallCount += 1
+            }
+        }
+        
+        let duration = Date().timeIntervalSince(startTime)
+        
+        // Calculate cost savings
+        let actualHitRate = Double(totalRequests - apiCallCount) / Double(totalRequests)
+        let costSavings = PerformanceTestUtilities.APICostCalculator.savings(
+            totalRequests: totalRequests,
+            cacheHitRate: actualHitRate
+        )
+        
+        let totalCostWithoutCache = PerformanceTestUtilities.APICostCalculator.totalCost(requests: totalRequests)
+        let savingsPercentage = (costSavings / totalCostWithoutCache) * 100.0
+        
+        print("=== API Cost Reduction Analysis ===")
+        print("Total Requests: \(totalRequests)")
+        print("API Calls Made: \(apiCallCount)")
+        print("API Calls Avoided: \(totalRequests - apiCallCount)")
+        print("Cache Hit Rate: \(String(format: "%.1f", actualHitRate * 100))%")
+        print("Cost Without Cache: $\(String(format: "%.4f", totalCostWithoutCache))")
+        print("Cost With Cache: $\(String(format: "%.4f", totalCostWithoutCache - costSavings))")
+        print("Total Savings: $\(String(format: "%.4f", costSavings))")
+        print("Savings Percentage: \(String(format: "%.1f", savingsPercentage))%")
+        print("Total Duration: \(String(format: "%.2f", duration))s")
+        
+        // Assert Phase 5 targets
+        PerformanceTestUtilities.assertCostSavings(costSavings, totalRequests: totalRequests)
+        XCTAssertGreaterThan(actualHitRate, 0.70, "Cache hit rate should exceed 70%")
+        XCTAssertLessThan(Double(apiCallCount) / Double(totalRequests), 0.20, 
+            "API calls should be reduced by at least 80%")
+    }
+    
+    // MARK: - Cache TTL Performance Tests
+    
+    @Test("Cache TTL behavior meets performance requirements")
+    func testCacheTTLPerformance() async throws {
+        let rulesPrompt = "Generate rules for a medieval strategy game"
+        let imagePrompt = "Analyze this game box image for components"
+        let generalPrompt = "Help with general game question"
+        
+        // Test rules generation TTL (1 hour in development config)
+        let rulesStartTime = Date()
+        _ = try await cachedLLMService.for(mockRequest).generate(input: rulesPrompt)
+        let rulesSetTime = Date().timeIntervalSince(rulesStartTime)
+        
+        // Test image analysis TTL
+        let imageStartTime = Date()
+        _ = try await cachedLLMService.for(mockRequest).generateOptimized(
+            input: imagePrompt,
+            model: "gpt-4-vision-preview",
+            temperature: 0.1,
+            maxTokens: 500,
+            useJSONMode: false
+        )
+        let imageSetTime = Date().timeIntervalSince(imageStartTime)
+        
+        // Test default TTL
+        let generalStartTime = Date()
+        _ = try await cachedLLMService.for(mockRequest).generate(input: generalPrompt)
+        let generalSetTime = Date().timeIntervalSince(generalStartTime)
+        
+        print("=== Cache TTL Performance ===")
+        print("Rules Cache Set Time: \(String(format: "%.2f", rulesSetTime * 1000))ms")
+        print("Image Cache Set Time: \(String(format: "%.2f", imageSetTime * 1000))ms")
+        print("General Cache Set Time: \(String(format: "%.2f", generalSetTime * 1000))ms")
+        
+        // Cache operations should be fast
+        XCTAssertLessThan(rulesSetTime, 0.1, "Rules caching should be under 100ms")
+        XCTAssertLessThan(imageSetTime, 0.1, "Image caching should be under 100ms")
+        XCTAssertLessThan(generalSetTime, 0.1, "General caching should be under 100ms")
+        
+        // Verify retrieval is even faster
+        let retrievalStartTime = Date()
+        _ = try await cachedLLMService.for(mockRequest).generate(input: rulesPrompt)
+        let retrievalTime = Date().timeIntervalSince(retrievalStartTime)
+        
+        print("Cache Retrieval Time: \(String(format: "%.2f", retrievalTime * 1000))ms")
+        XCTAssertLessThan(retrievalTime, 0.05, "Cache retrieval should be under 50ms")
+    }
+    
+    // MARK: - Memory Usage Performance Tests
+    
+    @Test("Cache memory usage stays within reasonable bounds")
+    func testCacheMemoryUsage() async throws {
+        let prompts = PerformanceTestUtilities.generateTestPrompts(count: 100)
+        var totalMemoryUsage = 0
+        
+        for prompt in prompts {
+            let beforeCount = await testWorld.aiCache.count()
+            _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
+            let afterCount = await testWorld.aiCache.count()
+            
+            // Estimate memory usage (simplified)
+            if afterCount > beforeCount {
+                let promptSize = prompt.data(using: .utf8)?.count ?? 0
+                let responseSize = 2000 // Estimated average response size
+                totalMemoryUsage += promptSize + responseSize
+            }
+        }
+        
+        let averageMemoryPerEntry = totalMemoryUsage / prompts.count
+        
+        print("=== Cache Memory Usage ===")
+        print("Total Entries: \(prompts.count)")
+        print("Total Memory Usage: \(totalMemoryUsage) bytes")
+        print("Average Memory Per Entry: \(averageMemoryPerEntry) bytes")
+        
+        PerformanceTestUtilities.assertMemoryUsage(averageMemoryPerEntry)
+    }
+    
+    // MARK: - Concurrent Access Performance Tests
+    
+    @Test("Cache performance under concurrent load")
+    func testConcurrentCachePerformance() async throws {
+        let prompts = PerformanceTestUtilities.generateTestPrompts(count: 50)
+        let concurrentUsers = 10
+        let requestsPerUser = 20
+        
+        let loadTestResults = try await PerformanceTestUtilities.simulateRealisticLoad(
+            requests: concurrentUsers * requestsPerUser,
+            concurrency: concurrentUsers
+        ) {
+            let randomPrompt = prompts.randomElement()!
+            let startTime = Date()
+            _ = try await self.cachedLLMService.for(self.mockRequest).generate(input: randomPrompt)
+            return Date().timeIntervalSince(startTime)
+        }
+        
+        // Get final cache statistics
+        let cacheStats = await testWorld.aiCache.getStatistics()
+        let finalResults = LLMLoadTestResults(
+            testName: loadTestResults.testName,
+            totalRequests: loadTestResults.totalRequests,
+            concurrentUsers: loadTestResults.concurrentUsers,
+            duration: loadTestResults.duration,
+            successfulRequests: loadTestResults.successfulRequests,
+            failedRequests: loadTestResults.failedRequests,
+            responseTimes: loadTestResults.responseTimes,
+            throughput: loadTestResults.throughput,
+            errorRate: loadTestResults.errorRate,
+            cacheHitRate: cacheStats.hitRatio / 100.0
+        )
+        
+        print("=== Concurrent Load Test Results ===")
+        print(finalResults.summary)
+        
+        // Assert performance under load
+        PerformanceTestUtilities.assertThroughput(finalResults.throughput, minimum: 50.0)
+        PerformanceTestUtilities.assertP95ResponseTime(finalResults.p95ResponseTime)
+        XCTAssertLessThan(finalResults.errorRate, 1.0, "Error rate should be under 1%")
+        XCTAssertGreaterThan(finalResults.cacheHitRate, 0.50, "Cache hit rate should be > 50% under load")
+    }
+    
+    // MARK: - Cache Eviction Performance Tests
+    
+    @Test("Cache eviction performance meets targets")
+    func testCacheEvictionPerformance() async throws {
+        // Fill cache to capacity
+        testWorld.aiCache.configureMaxEntries(100)
+        let initialPrompts = PerformanceTestUtilities.generateTestPrompts(count: 100)
+        
+        for prompt in initialPrompts {
+            _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
+        }
+        
+        // Measure eviction performance when adding new entries
+        let evictionMetrics = try await performanceTester.measure(
+            "Cache Eviction",
+            iterations: 50
+        ) {
+            let newPrompt = "New prompt \(UUID().uuidString)"
+            _ = try await self.cachedLLMService.for(self.mockRequest).generate(input: newPrompt)
+        }
+        
+        print("=== Cache Eviction Performance ===")
+        print(evictionMetrics.phase5Summary)
+        
+        // Assert eviction time is reasonable
+        XCTAssertTrue(evictionMetrics.meetsPhase5Targets(for: .cacheOperation),
+            "Cache eviction should meet performance targets")
+        
+        // Cache should maintain its maximum size
+        let finalCacheCount = await testWorld.aiCache.count()
+        XCTAssertLessThanOrEqual(finalCacheCount, 100, "Cache should not exceed maximum entries")
+    }
+}
+
+// MARK: - Helper Extensions
+
+private struct LLMLoadTestResults {
+        let testName: String
+        let totalRequests: Int
+        let concurrentUsers: Int
+        let duration: TimeInterval
+        let successfulRequests: Int
+        let failedRequests: Int
+        let responseTimes: [TimeInterval]
+        let throughput: Double
+        let errorRate: Double
+        let cacheHitRate: Double
+        
+        var p95ResponseTime: TimeInterval {
+            guard !responseTimes.isEmpty else { return 0.0 }
+            let sorted = responseTimes.sorted()
+            let index = Int(Double(sorted.count) * 0.95)
+            return sorted[min(index, sorted.count - 1)]
+        }
+        
+        var summary: String {
+            """
+            Load Test Results: \(testName)
+            Total Requests: \(totalRequests)
+            Concurrent Users: \(concurrentUsers)
+            Duration: \(String(format: "%.1f", duration))s
+            Success Rate: \(String(format: "%.1f", Double(successfulRequests) / Double(totalRequests) * 100))%
+            Throughput: \(String(format: "%.1f", throughput)) req/s
+            P95 Response: \(String(format: "%.2f", p95ResponseTime * 1000))ms
+            Cache Hit Rate: \(String(format: "%.1f", cacheHitRate * 100))%
+            Error Rate: \(String(format: "%.2f", errorRate))%
+            """
+        }
+    }

@@ -516,6 +516,24 @@ actor ListTestFailingUserRepository: UserRepository {
         throw UserError.userNotFound
     }
     
+    // MARK: - Optimized methods with eager loading (failing implementations for tests)
+    
+    func findWithTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel], emailTokens: [EmailTokenModel], passwordTokens: [PasswordTokenModel]) {
+        throw UserError.userNotFound
+    }
+    
+    func findWithRefreshTokens(id: UUID) async throws -> (user: UserAccountModel?, refreshTokens: [RefreshTokenModel]) {
+        throw UserError.userNotFound
+    }
+    
+    func findWithEmailTokens(id: UUID) async throws -> (user: UserAccountModel?, emailTokens: [EmailTokenModel]) {
+        throw UserError.userNotFound
+    }
+    
+    func findWithPasswordTokens(id: UUID) async throws -> (user: UserAccountModel?, passwordTokens: [PasswordTokenModel]) {
+        throw UserError.userNotFound
+    }
+    
     nonisolated func `for`(_ req: Request) -> ListTestFailingUserRepository {
         return self
     }

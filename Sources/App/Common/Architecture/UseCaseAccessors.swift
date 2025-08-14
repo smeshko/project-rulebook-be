@@ -169,4 +169,11 @@ struct CacheAdminUseCases {
             try await request.resolveService(GetCacheHealthUseCase.self)
         }
     }
+    
+    /// Get Redis health use case for testing Redis connectivity and performance.
+    var getRedisHealth: GetRedisHealthUseCase {
+        get async throws {
+            try await request.resolveService(GetRedisHealthUseCase.self)
+        }
+    }
 }

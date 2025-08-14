@@ -42,7 +42,7 @@ struct RandomGeneratorTests {
     
     @Test("Random generator produces consistent behavior for request context")
     func requestContextBehavior() async throws {
-        let request = Request(
+        _ = Request(
             application: app,
             method: .GET,
             url: "http://localhost/test",

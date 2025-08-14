@@ -116,7 +116,7 @@ final class AspectMiddlewareTests: XCTestCase {
         )
         
         let middleware = AspectMiddleware(aspects: [errorAspect])
-        var context = AspectContext()
+        _ = AspectContext()
         
         // Create a mock next responder that throws an error
         let nextResponder = MockResponder { _ in
