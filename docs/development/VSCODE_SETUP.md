@@ -34,9 +34,22 @@ The following keyboard shortcuts are configured for Vapor development:
 All required environment variables are automatically configured in the VS Code settings:
 
 - `JWT_KEY` - Development JWT secret key
-- `DATABASE_*` - Database connection settings  
+- `DATABASE_*` - PostgreSQL connection settings (requires Docker services)
+- `REDIS_*` - Redis cache connection settings
 - `BASE_URL` - Application base URL
 - `APPLICATION_IDENTIFIER` - App identifier
+
+### Prerequisites
+
+Before using VS Code for development, ensure Docker services are running:
+
+```bash
+# Start development database services
+docker-compose -f docker-compose.dev.yml up -d
+
+# Verify services are healthy
+docker-compose -f docker-compose.dev.yml ps
+```
 
 ## Configuration Files
 
@@ -96,6 +109,14 @@ Create these files in your `.vscode/` directory:
                     "DATABASE_USERNAME": "vapor",
                     "DATABASE_PASSWORD": "password",
                     "DATABASE_PORT": "5432",
+                    "REDIS_HOST": "localhost",
+                    "REDIS_PORT": "6379",
+                    "REDIS_PASSWORD": "",
+                    "REDIS_DATABASE": "0",
+                    "REDIS_POOL_SIZE": "5",
+                    "REDIS_CONNECTION_TIMEOUT": "5.0",
+                    "REDIS_COMMAND_TIMEOUT": "10.0",
+                    "REDIS_ENABLE_LOGGING": "true",
                     "BASE_URL": "http://localhost:8080",
                     "APPLICATION_IDENTIFIER": "com.dev.app",
                     "BREVO_API_KEY": "dev_brevo_key",
@@ -141,6 +162,14 @@ Create these files in your `.vscode/` directory:
                 "DATABASE_USERNAME": "vapor", 
                 "DATABASE_PASSWORD": "password",
                 "DATABASE_PORT": "5432",
+                "REDIS_HOST": "localhost",
+                "REDIS_PORT": "6379",
+                "REDIS_PASSWORD": "",
+                "REDIS_DATABASE": "0",
+                "REDIS_POOL_SIZE": "5",
+                "REDIS_CONNECTION_TIMEOUT": "5.0",
+                "REDIS_COMMAND_TIMEOUT": "10.0",
+                "REDIS_ENABLE_LOGGING": "true",
                 "BASE_URL": "http://localhost:8080",
                 "APPLICATION_IDENTIFIER": "com.dev.app",
                 "BREVO_API_KEY": "dev_brevo_key",
@@ -191,6 +220,14 @@ Create these files in your `.vscode/` directory:
         "DATABASE_USERNAME": "vapor",
         "DATABASE_PASSWORD": "password",
         "DATABASE_PORT": "5432",
+        "REDIS_HOST": "localhost",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD": "",
+        "REDIS_DATABASE": "0",
+        "REDIS_POOL_SIZE": "5",
+        "REDIS_CONNECTION_TIMEOUT": "5.0",
+        "REDIS_COMMAND_TIMEOUT": "10.0",
+        "REDIS_ENABLE_LOGGING": "true",
         "BASE_URL": "http://localhost:8080",
         "APPLICATION_IDENTIFIER": "com.dev.app"
     }
@@ -254,8 +291,9 @@ Building for debugging...
 [1/1] Write swift-version...
 Build complete! 
 [ INFO ] Configuration loaded for environment: development
-[ INFO ] Database host: localhost  
-[ INFO ] Services configured: Brevo, OpenAI
+[ INFO ] Database host: localhost (PostgreSQL)
+[ INFO ] Redis host: localhost:6379
+[ INFO ] Services configured: Brevo, OpenAI, Redis Cache
 [ INFO ] Server starting on http://0.0.0.0:8080
 ```
 
@@ -274,14 +312,39 @@ which swift
 xcode-select --install
 ```
 
+### Issue: "Database connection failed"
+**Solution**: Ensure Docker services are running:
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+docker-compose -f docker-compose.dev.yml ps  # Check status
+```
+
+### Issue: "Redis connection failed"
+**Solution**: Verify Redis service is healthy:
+```bash
+docker exec -it project_rulebook_redis_dev redis-cli ping
+# Should respond with "PONG"
+```
+
 ### Issue: "Environment variables not loaded"
 **Solution**: The environment variables are configured in `.vscode/settings.json` and task definitions. They should load automatically.
 
 ### Issue: "Server won't start"
-**Solution**: Check that no other process is using port 8080:
+**Solution**: Check multiple potential causes:
 ```bash
+# 1. Check port availability
 lsof -i :8080
 # Kill any processes using the port if needed
+
+# 2. Verify Docker services are running
+docker-compose -f docker-compose.dev.yml ps
+
+# 3. Check service health
+docker-compose -f docker-compose.dev.yml logs postgres
+docker-compose -f docker-compose.dev.yml logs redis
+
+# 4. Restart services if needed
+docker-compose -f docker-compose.dev.yml restart
 ```
 
 ## Advanced Configuration
