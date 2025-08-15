@@ -102,11 +102,8 @@ extension Application {
     )
     middleware.use(CORSMiddleware(configuration: corsConfiguration))
     
-    // Setup Aspect-Oriented Middleware for cross-cutting concerns
-    setupAspects()
-    
-    // Add AspectMiddleware with registered aspects
-    middleware.use(aspectRegistry.middleware())
+    // Correlation ID middleware for request tracing (replaces CorrelationIDAspect)
+    middleware.use(CorrelationIDMiddleware())
     
     // Query performance monitoring (only in development/staging)
     if environment != .production {
@@ -138,34 +135,6 @@ extension Application {
     middleware.use(UserPayloadAuthenticator())
   }
   
-  func setupAspects() {
-    // Register aspects in priority order (higher priority = runs first)
-    
-    // Correlation ID should run first to ensure all logs have correlation ID
-    // Note: UUIDGeneratorService will be available at runtime via service registry
-    // For now, CorrelationIDAspect will fall back to system UUID generation
-    aspectRegistry.register(
-      CorrelationIDAspect(uuidGenerator: nil),
-      priority: 1000
-    )
-    
-    // Validation runs early to reject invalid requests quickly
-    let validationConfig = environment == .production
-      ? ValidationAspect.Configuration.production
-      : ValidationAspect.Configuration.development
-    aspectRegistry.register(
-      ValidationAspect(configuration: validationConfig),
-      priority: 500
-    )
-    
-    // Error handling runs last to catch all errors
-    aspectRegistry.register(
-      ErrorHandlingAspect(environment: environment),
-      priority: 100
-    )
-    
-    logger.info("Registered \(aspectRegistry.all().count) aspects for cross-cutting concerns")
-  }
 
   func setupModules() throws {
     let modules: [ModuleInterface] = [

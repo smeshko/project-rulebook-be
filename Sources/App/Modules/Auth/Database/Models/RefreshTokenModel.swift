@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-private let refreshTokenLifetime: TimeInterval = 7.days
+private let refreshTokenLifetime: TimeInterval = 7 * 24 * 60 * 60 // 7 days
 
 final class RefreshTokenModel: @unchecked Sendable, DatabaseModelInterface {
     

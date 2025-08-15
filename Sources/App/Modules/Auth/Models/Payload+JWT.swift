@@ -1,7 +1,7 @@
 import Vapor
 import JWT
 
-private let accessTokenLifetime: Double = 15.minutes
+private let accessTokenLifetime: Double = 15 * 60 // 15 minutes
 
 extension TokenPayload: Authenticatable {
     init(with user: UserAccountModel) throws {
