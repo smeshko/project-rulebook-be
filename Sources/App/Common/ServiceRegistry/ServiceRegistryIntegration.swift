@@ -125,8 +125,8 @@ extension Application {
         
         // Validate domain services are registered
         _ = try await serviceRegistry.resolveRequired(GameIdentificationService.self)
-        _ = try await serviceRegistry.resolveRequired(RulesOrchestrationService.self)
         _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
+        // Note: RulesOrchestrationService was removed - logic moved to GenerateRulesUseCase
         
         // Validate CQRS use cases are registered
         // Commands

@@ -70,6 +70,8 @@ struct AnalyzeGameBoxUseCase: Query {
     private let aiCache: AICacheServiceInterface
     /// Service for LLM interactions
     private let llmService: LLMService
+    /// Service for validating AI responses
+    private let aiResponseValidator: AIResponseValidationService
     /// Cache configuration settings
     private let cacheConfiguration: CacheConfig
     
@@ -81,6 +83,7 @@ struct AnalyzeGameBoxUseCase: Query {
         cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
         aiCache: AICacheServiceInterface,
         llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
         cacheConfiguration: CacheConfig
     ) {
         self.gameIdentificationService = gameIdentificationService
@@ -88,6 +91,7 @@ struct AnalyzeGameBoxUseCase: Query {
         self.cacheKeyGenerator = cacheKeyGenerator
         self.aiCache = aiCache
         self.llmService = llmService
+        self.aiResponseValidator = aiResponseValidator
         self.cacheConfiguration = cacheConfiguration
     }
     
@@ -142,6 +146,7 @@ struct AnalyzeGameBoxUseCase: Query {
             cacheKeyGenerator: cacheKeyGenerator,
             aiCache: aiCache,
             llmService: llmService,
+            aiResponseValidator: aiResponseValidator,
             cacheConfiguration: cacheConfiguration
         )
         

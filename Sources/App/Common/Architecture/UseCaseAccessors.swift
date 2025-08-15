@@ -64,12 +64,11 @@ struct AuthUseCases {
     }
     
     /// Apple Sign-In use case for handling Apple authentication.
-    // TODO: Restore when Apple JWT verification is fixed
-    // var appleSignIn: AppleSignInUseCase {
-    //     get async throws {
-    //         try await request.resolveService(AppleSignInUseCase.self)
-    //     }
-    // }
+    var appleSignIn: AppleSignInUseCase {
+        get async throws {
+            try await request.resolveService(AppleSignInUseCase.self)
+        }
+    }
     
     /// Refresh token use case for handling JWT token refresh.
     var refreshToken: RefreshTokenUseCase {

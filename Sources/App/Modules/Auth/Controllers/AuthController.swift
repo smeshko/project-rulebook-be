@@ -126,8 +126,22 @@ struct AuthController {
     /// }
     /// ```
     func authWithApple(_ req: Request) async throws -> Auth.Apple.Response {
-        // TODO: Restore this when Apple use case is properly registered
-        throw Abort(.notImplemented, reason: "Apple Sign-In use case temporarily disabled during refactoring")
+        // 1. Decode request (HTTP concern)
+        let appleRequest = try req.content.decode(Auth.Apple.Request.self)
+        
+        // 2. Execute use case (business logic)
+        let appleSignInUseCase = try await req.useCases.auth.appleSignIn
+        let result = try await appleSignInUseCase.execute(AppleSignInUseCase.Request(
+            appleIdentityToken: appleRequest.appleIdentityToken,
+            firstName: appleRequest.firstName,
+            lastName: appleRequest.lastName
+        ))
+        
+        // 3. Convert to HTTP response
+        return Auth.Apple.Response(
+            token: try .init(token: result.refreshToken, user: result.user, on: req),
+            user: try .init(from: result.user)
+        )
     }
     
     func signIn(_ req: Request) async throws -> Auth.Login.Response {

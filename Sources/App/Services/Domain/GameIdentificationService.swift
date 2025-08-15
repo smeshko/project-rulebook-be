@@ -42,6 +42,7 @@ protocol GameIdentificationService: Sendable {
     ///   - cacheKeyGenerator: Service for generating cache keys
     ///   - aiCache: Service for caching AI responses
     ///   - llmService: Service for LLM interactions
+    ///   - aiResponseValidator: Service for validating AI responses
     ///   - cacheConfiguration: Cache configuration settings
     /// - Returns: Game identification results with confidence ratings
     /// - Throws: AIValidationError for invalid images, ContentError for AI failures
@@ -52,6 +53,7 @@ protocol GameIdentificationService: Sendable {
         cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
         aiCache: AICacheServiceInterface,
         llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
         cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response
 }
@@ -77,6 +79,7 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
         aiCache: AICacheServiceInterface,
         llmService: LLMService,
+        aiResponseValidator: AIResponseValidationService,
         cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response {
         
@@ -119,6 +122,7 @@ final class DefaultGameIdentificationService: GameIdentificationService {
             cacheKey: cacheKey,
             context: context,
             aiCache: aiCache,
+            aiResponseValidator: aiResponseValidator,
             cacheConfiguration: cacheConfiguration
         )
         
@@ -272,11 +276,16 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         cacheKey: String,
         context: RequestContext,
         aiCache: AICacheServiceInterface,
+        aiResponseValidator: AIResponseValidationService,
         cacheConfiguration: CacheConfig
     ) async throws -> GameboxRecognition.Response {
         
-        // Validate response format and content
-        let validatedResponse = try validateResponse(response, context: context)
+        // Validate response format and content using the dedicated validation service
+        let validatedResponse = try aiResponseValidator.validateGameboxRecognitionResponse(
+            response, 
+            clientIP: context.clientIP, 
+            logger: context.logger
+        )
         
         // Parse validated response
         let responseBuffer = ByteBuffer(string: validatedResponse)
@@ -290,68 +299,5 @@ final class DefaultGameIdentificationService: GameIdentificationService {
         )
         
         return result
-    }
-    
-    /// Validates AI response for security and structural integrity.
-    private func validateResponse(_ response: String, context: RequestContext) throws -> String {
-        // Check response size limits (prevent DoS)
-        let maxResponseSize = 50_000 // 50KB max response
-        guard response.count <= maxResponseSize else {
-            context.logger.warning("AI response too large", metadata: [
-                "size": .string("\(response.count)"),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            throw Abort(.payloadTooLarge, reason: "AI response too large")
-        }
-        
-        // Check for minimum response size
-        guard response.count >= 10 else {
-            context.logger.warning("AI response too short", metadata: [
-                "size": .string("\(response.count)"),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            throw Abort(.unprocessableEntity, reason: "AI response too short")
-        }
-        
-        // Basic JSON structure validation
-        guard response.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") &&
-              response.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("}") else {
-            context.logger.warning("AI response invalid JSON structure", metadata: [
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            throw Abort(.unprocessableEntity, reason: "AI response is not valid JSON")
-        }
-        
-        // Check for potential security threats
-        let suspiciousPatterns = [
-            "<script", "javascript:", "data:text/html", "eval(",
-            "function(", "onclick=", "onerror=", "onload="
-        ]
-        
-        let lowercasedResponse = response.lowercased()
-        for pattern in suspiciousPatterns {
-            if lowercasedResponse.contains(pattern) {
-                context.logger.warning("AI response contains suspicious content", metadata: [
-                    "pattern": .string(pattern),
-                    "client_ip": .string(context.clientIP),
-                    "request_id": .string(context.requestID)
-                ])
-                throw Abort(.unprocessableEntity, reason: "AI response contains suspicious content")
-            }
-        }
-        
-        // Validate required fields for GameboxRecognition
-        guard response.contains("\"guessedTitle\"") && response.contains("\"confidence\"") else {
-            context.logger.warning("AI response missing required fields", metadata: [
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
-        }
-        
-        return response
     }
 }
