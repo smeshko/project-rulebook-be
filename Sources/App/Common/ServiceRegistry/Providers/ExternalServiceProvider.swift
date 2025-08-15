@@ -50,24 +50,15 @@ public struct ExternalServiceProvider: ServiceProvider {
         // Services with dependencies resolved through ServiceRegistry
         
         if !registry.isRegistered(AICacheServiceInterface.self) {
-            // AI Cache Service - requires configuration, logger, and key generator
+            // AI Cache Service - uses Redis for consistent caching
             registry.register(AICacheServiceInterface.self) { app in
-                let cacheConfig = try app.configuration.cache
                 let keyGenerator = try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
+                let cacheService = try await app.serviceRegistry.resolveRequired(CacheService.self)
                 
-                // Convert CacheConfig to CacheConfiguration
-                let configuration = CacheConfiguration(
-                    maxEntries: cacheConfig.maxEntries,
-                    rulesGenerationTTL: cacheConfig.rulesGenerationTTL,
-                    imageAnalysisTTL: cacheConfig.imageAnalysisTTL,
-                    cleanupInterval: cacheConfig.cleanupInterval,
-                    enableLogging: cacheConfig.enableLogging
-                )
-                
-                return InMemoryAICacheService(
-                    configuration: configuration,
-                    logger: app.logger,
-                    keyGenerator: keyGenerator
+                return RedisAICacheService(
+                    cacheService: cacheService,
+                    keyGenerator: keyGenerator,
+                    logger: app.logger
                 )
             }
         }
@@ -80,26 +71,9 @@ public struct ExternalServiceProvider: ServiceProvider {
         }
         
         if !registry.isRegistered(LLMService.self) {
-            // LLM Service - wrapped with Redis caching for performance optimization
+            // LLM Service - Redis caching handled at the use case level through AICacheServiceInterface
             registry.register(LLMService.self) { app in
-                // Create the base OpenAI service
-                let openAIService = OpenAIService(app: app)
-                
-                // Get the Redis cache service for caching LLM responses
-                let cacheService = try await app.serviceRegistry.resolveRequired(CacheService.self)
-                
-                // Configure caching based on environment
-                let cacheConfig = app.environment == .production 
-                    ? CachedLLMService.Configuration.standard
-                    : CachedLLMService.Configuration.development
-                
-                // Wrap with caching decorator
-                return CachedLLMService(
-                    wrappedService: openAIService,
-                    cacheService: cacheService,
-                    configuration: cacheConfig,
-                    logger: app.logger
-                )
+                return OpenAIService(app: app)
             }
         }
         

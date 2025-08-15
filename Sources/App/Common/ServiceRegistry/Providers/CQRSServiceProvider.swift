@@ -1,4 +1,5 @@
 import Vapor
+import JWT
 
 /// Enhanced service provider for CQRS-based use case registration.
 ///
@@ -110,16 +111,19 @@ public struct CQRSServiceProvider: ServiceProvider {
         }
         
         // Apple Sign-In command - handles Apple authentication
-        // TODO: Fix Apple JWT verification service integration
-        // registry.register(AppleSignInUseCase.self) { app in
-        //     AppleSignInUseCase(
-        //         userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self),
-        //         refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
-        //         appleJWTVerifier: { token, appId in try await app.jwt.apple.verify(token, applicationIdentifier: appId) },
-        //         randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self),
-        //         appIdentifier: Environment.appIdentifier
-        //     )
-        // }
+        registry.register(AppleSignInUseCase.self) { app in
+            AppleSignInUseCase(
+                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self),
+                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
+                appleJWTVerifier: { token, appId in
+                    // TODO: Implement proper Apple JWT verification
+                    // For now, temporarily disable Apple Sign-In until JWT integration is fixed
+                    throw AuthenticationError.invalidEmailOrPassword
+                },
+                randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self),
+                appIdentifier: Environment.appIdentifier
+            )
+        }
     }
     
     /// User management commands for profile operations.
@@ -166,7 +170,6 @@ public struct CQRSServiceProvider: ServiceProvider {
         // Rules generation command - creates AI-generated game rules
         registry.register(GenerateRulesUseCase.self) { app in
             GenerateRulesUseCase(
-                rulesOrchestrationService: try await app.serviceRegistry.resolveRequired(RulesOrchestrationService.self),
                 aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
                 cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
                 aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
@@ -254,11 +257,11 @@ public struct CQRSServiceProvider: ServiceProvider {
         // Game box analysis query - reads/analyzes game images
         registry.register(AnalyzeGameBoxUseCase.self) { app in
             AnalyzeGameBoxUseCase(
-                gameIdentificationService: try await app.serviceRegistry.resolveRequired(GameIdentificationService.self),
                 aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
                 cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
                 aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
                 llmService: try await app.serviceRegistry.resolveRequired(LLMService.self),
+                aiResponseValidator: try await app.serviceRegistry.resolveRequired(AIResponseValidationService.self),
                 cacheConfiguration: try app.configuration.cache
             )
         }

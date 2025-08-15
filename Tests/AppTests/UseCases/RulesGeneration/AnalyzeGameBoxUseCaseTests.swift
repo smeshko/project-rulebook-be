@@ -104,15 +104,16 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
         // dependency injection pattern used throughout the application
         
         // The use case requires these dependencies to be injected via constructor:
-        // - gameIdentificationService: GameIdentificationService
         // - aiInputValidator: AIInputValidatorServiceInterface
         // - cacheKeyGenerator: CacheKeyGeneratorServiceInterface
         // - aiCache: AICacheServiceInterface
         // - llmService: LLMService
+        // - aiResponseValidator: AIResponseValidationService
         // - cacheConfiguration: CacheConfig
         
         // This validates the architectural decision for use case dependency injection
-        // Use cases encapsulate complete business workflows and need stable dependencies
+        // Use cases encapsulate complete business workflows with direct implementation
+        // rather than delegating to over-engineered service abstraction layers
         
         let context = RequestContext(
             clientIP: "127.0.0.1",

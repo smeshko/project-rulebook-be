@@ -19,10 +19,9 @@ import Vapor
 ///   - Provides intelligent caching for cost optimization
 ///
 /// ### Rules Generation Domain
-/// - **RulesOrchestrationService**: AI-powered game rules generation
-///   - Coordinates input validation, AI generation, and response processing
-///   - Handles prompt engineering and content optimization
-///   - Provides intelligent caching with TTL management
+/// - Rules generation logic moved directly to GenerateRulesUseCase for simplified architecture
+///   - Eliminates unnecessary service abstraction layer
+///   - Direct implementation in use case reduces complexity
 ///
 /// ### AI Response Validation Domain
 /// - **AIResponseValidationService**: Centralized AI response security validation
@@ -72,17 +71,13 @@ public struct DomainServiceProvider: ServiceProvider {
         
         // MARK: - Game Identification Domain Services
         
-        /// GameIdentificationService for AI-powered game box image analysis
-        registry.register(GameIdentificationService.self) { app in
-            DefaultGameIdentificationService()
-        }
+        // Game identification logic has been moved directly to AnalyzeGameBoxUseCase
+        // for simplified architecture without unnecessary abstraction layers
         
         // MARK: - Rules Generation Domain Services
         
-        /// RulesOrchestrationService for AI-powered game rules generation
-        registry.register(RulesOrchestrationService.self) { app in
-            DefaultRulesOrchestrationService()
-        }
+        // Rules generation logic has been moved directly to GenerateRulesUseCase
+        // for simplified architecture without unnecessary abstraction layers
         
         // MARK: - AI Response Validation Domain Services
         
