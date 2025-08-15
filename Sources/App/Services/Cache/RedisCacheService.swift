@@ -305,6 +305,126 @@ public final class RedisCacheService: CacheService, @unchecked Sendable {
     }
 }
 
+// MARK: - ServiceLifecycle Implementation
+
+extension RedisCacheService: ServiceLifecycle {
+    /// Initializes the Redis cache service during application startup.
+    public func startup(_ app: Application) async throws {
+        do {
+            // Test Redis connection with a ping
+            _ = try await redis.ping().get()
+            
+            // Get Redis server info to verify connectivity and log version
+            let statsBuffer = ByteBuffer(string: "server")
+            let info = try await redis.send(command: "INFO", with: [
+                RESPValue.bulkString(statsBuffer)
+            ]).get().string ?? ""
+            
+            // Extract Redis version for logging
+            var redisVersion = "unknown"
+            for line in info.split(separator: "\r\n") {
+                if line.hasPrefix("redis_version:") {
+                    redisVersion = String(line.dropFirst("redis_version:".count))
+                    break
+                }
+            }
+            
+            // Log successful startup with connection details
+            app.logger.info("Redis cache service started successfully", metadata: [
+                "redis_version": .string(redisVersion),
+                "pool_size": .string("\(configuration.poolSize)"),
+                "host": .string(configuration.host),
+                "port": .string("\(configuration.port)")
+            ])
+            
+        } catch {
+            app.logger.error("Redis cache service startup failed", metadata: [
+                "error": .string(error.localizedDescription),
+                "host": .string(configuration.host),
+                "port": .string("\(configuration.port)")
+            ])
+            throw error
+        }
+    }
+    
+    /// Gracefully shuts down the Redis cache service during application termination.
+    public func shutdown(_ app: Application) async throws {
+        do {
+            // Close the Redis connection pool gracefully
+            // Note: RediStack automatically handles connection cleanup on deallocation
+            app.logger.info("Redis cache service shutting down gracefully")
+            
+            // Optional: Send a final command to ensure connection is still valid before shutdown
+            _ = try await redis.ping().get()
+            
+            app.logger.info("Redis cache service shut down successfully")
+            
+        } catch {
+            // Log shutdown errors but don't throw to avoid cascade failures
+            app.logger.warning("Redis cache service shutdown encountered issues", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+        }
+    }
+}
+
+// MARK: - ServiceHealthCheck Implementation
+
+extension RedisCacheService: ServiceHealthCheck {
+    /// Performs a health check to determine if Redis cache is operating correctly.
+    public func isHealthy() async -> Bool {
+        do {
+            // Test basic connectivity with ping
+            let startTime = Date()
+            _ = try await redis.ping().get()
+            let responseTime = Date().timeIntervalSince(startTime)
+            
+            // Check response time is reasonable (under 100ms for healthy Redis)
+            guard responseTime < 0.1 else {
+                logger.warning("Redis health check: slow response time", metadata: [
+                    "response_time_ms": .string(String(format: "%.2f", responseTime * 1000))
+                ])
+                return false
+            }
+            
+            // Test basic operations (set/get/delete)
+            let testKey = "health_check_test_\(UUID().uuidString)"
+            let testValue = "health_check_value"
+            
+            // Test set operation
+            try await redis.set(RedisKey(testKey), to: testValue).get()
+            
+            // Test get operation
+            let retrievedValue = try await redis.get(RedisKey(testKey), as: String.self).get()
+            guard retrievedValue == testValue else {
+                logger.warning("Redis health check: set/get operation failed")
+                return false
+            }
+            
+            // Test delete operation
+            let deleted = try await redis.delete([RedisKey(testKey)]).get()
+            guard deleted > 0 else {
+                logger.warning("Redis health check: delete operation failed")
+                return false
+            }
+            
+            // All operations succeeded
+            return true
+            
+        } catch {
+            logger.warning("Redis health check failed", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+            return false
+        }
+    }
+    
+    /// Provides a human-readable name for this service's health check.
+    public func healthCheckName() -> String {
+        "Redis Cache Service"
+    }
+}
+
 // MARK: - Extensions
 
 extension Array {

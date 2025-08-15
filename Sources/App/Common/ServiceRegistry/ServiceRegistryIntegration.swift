@@ -124,8 +124,8 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self)
         
         // Validate domain services are registered
-        _ = try await serviceRegistry.resolveRequired(GameIdentificationService.self)
         _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
+        // Note: GameIdentificationService was removed - logic moved to AnalyzeGameBoxUseCase
         // Note: RulesOrchestrationService was removed - logic moved to GenerateRulesUseCase
         
         // Validate CQRS use cases are registered

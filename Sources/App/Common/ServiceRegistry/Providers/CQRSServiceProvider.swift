@@ -257,7 +257,6 @@ public struct CQRSServiceProvider: ServiceProvider {
         // Game box analysis query - reads/analyzes game images
         registry.register(AnalyzeGameBoxUseCase.self) { app in
             AnalyzeGameBoxUseCase(
-                gameIdentificationService: try await app.serviceRegistry.resolveRequired(GameIdentificationService.self),
                 aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
                 cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
                 aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),

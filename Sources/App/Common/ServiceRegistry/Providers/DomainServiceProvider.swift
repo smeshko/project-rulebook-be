@@ -71,10 +71,8 @@ public struct DomainServiceProvider: ServiceProvider {
         
         // MARK: - Game Identification Domain Services
         
-        /// GameIdentificationService for AI-powered game box image analysis
-        registry.register(GameIdentificationService.self) { app in
-            DefaultGameIdentificationService()
-        }
+        // Game identification logic has been moved directly to AnalyzeGameBoxUseCase
+        // for simplified architecture without unnecessary abstraction layers
         
         // MARK: - Rules Generation Domain Services
         

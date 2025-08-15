@@ -105,13 +105,8 @@ extension Application {
     // Correlation ID middleware for request tracing (replaces CorrelationIDAspect)
     middleware.use(CorrelationIDMiddleware())
     
-    // Query performance monitoring (only in development/staging)
-    if environment != .production {
-        let queryConfig = environment == .development 
-            ? QueryPerformanceMiddleware.Configuration.development 
-            : QueryPerformanceMiddleware.Configuration.production
-        middleware.use(QueryPerformanceMiddleware(configuration: queryConfig))
-    }
+    // Query performance monitoring removed - was unused by repositories
+    // Future implementation should use Fluent's built-in query logging or database-level monitoring
 
     // Unified Rate Limiting with operation-specific limits
     let rateLimitConfig =
