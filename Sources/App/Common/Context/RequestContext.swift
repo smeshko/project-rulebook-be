@@ -42,10 +42,18 @@ public extension RequestContext {
     /// Creates a RequestContext from a Vapor.Request
     static func from(_ request: Request) -> RequestContext {
         let clientIP = request.services.ipExtractor.extractClientIP(from: request)
+        
+        // Use correlation ID from CorrelationIDMiddleware if available, otherwise request ID
+        let correlationID = request.correlationID
+        
+        // Create logger with correlation metadata
+        var logger = request.logger
+        logger[metadataKey: "correlation_id"] = .string(correlationID)
+        
         return RequestContext(
             clientIP: clientIP,
-            logger: request.logger,
-            requestID: request.id
+            logger: logger,
+            requestID: correlationID
         )
     }
 }
