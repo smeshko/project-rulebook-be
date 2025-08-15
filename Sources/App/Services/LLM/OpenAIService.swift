@@ -477,6 +477,7 @@ extension OpenAIService: ServiceLifecycle {
         throw ConfigurationError.missingRequired(key: "OPENAI_API_KEY", suggestion: "Set the OpenAI API key in environment variables")
       }
       
+      
       // Test API connectivity with a minimal request to validate API key
       // Using a simple models list endpoint which is lightweight and doesn't consume tokens
       let response = try await app.client.get(

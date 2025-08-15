@@ -49,10 +49,11 @@ extension BrevoClient: ServiceLifecycle {
                 throw ConfigurationError.missingRequired(key: "BREVO_URL", suggestion: "Set the Brevo API URL in environment variables")
             }
             
+            
             // Test connectivity by attempting to get account information
             // This is a lightweight operation that verifies API key validity
             let response = try await app.client.get(
-                URI(string: config.brevoURL + "/account"),
+                URI(string: config.brevoURL + "/v3/account"),
                 headers: .init([
                     ("accept", "application/json"),
                     ("api-key", config.brevoAPIKey)

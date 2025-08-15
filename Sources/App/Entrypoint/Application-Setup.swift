@@ -2,6 +2,7 @@ import FluentPostgresDriver
 import FluentSQLiteDriver
 import Foundation
 @preconcurrency import JWT
+@preconcurrency import Redis
 import Vapor
 
 extension String {
@@ -194,6 +195,39 @@ extension Application {
     if environment != .testing {
       let security = try configuration.security
       jwt.signers.use(.hs256(key: security.jwtKey))
+    }
+  }
+  
+  func setupRedis() throws {
+    if environment == .testing {
+      // Skip Redis setup for testing
+      return
+    }
+    
+    do {
+      let redisConfig = try configuration.redis
+      
+      redis.configuration = try RedisConfiguration(
+        hostname: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password?.isEmpty == false ? redisConfig.password : nil,
+        database: redisConfig.database,
+        pool: RedisConfiguration.PoolOptions(
+          maximumConnectionCount: .maximumActiveConnections(redisConfig.poolSize),
+          connectionRetryTimeout: .seconds(Int64(redisConfig.connectionTimeout))
+        )
+      )
+      
+      logger.info("Redis configured successfully", metadata: [
+        "host": .string(redisConfig.host),
+        "port": .string("\(redisConfig.port)"),
+        "database": .string("\(redisConfig.database)")
+      ])
+    } catch {
+      logger.error("Failed to configure Redis", metadata: [
+        "error": .string(String(describing: error))
+      ])
+      throw error
     }
   }
 

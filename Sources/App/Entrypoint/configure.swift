@@ -12,6 +12,7 @@ public func configure(_ app: Application) throws {
     
     try app.setupDB()
     try app.setupJWT()
+    try app.setupRedis()     // Setup Redis before services that depend on it
     try app.setupServices()  // Services must be set up before aspects
     try app.setupMiddleware() // Now middleware can access services
     try app.setupModules()

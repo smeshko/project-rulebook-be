@@ -82,12 +82,13 @@ public struct ExternalServiceProvider: ServiceProvider {
             registry.register(CacheService.self) { app in
                 let redisConfig = try app.configuration.redis
                 
-                // Configure Redis for the application if not already configured
+                // Redis should already be configured by setupRedis()
+                // But provide fallback configuration if needed
                 if app.redis.configuration == nil {
                     app.redis.configuration = try RedisConfiguration(
                         hostname: redisConfig.host,
                         port: redisConfig.port,
-                        password: redisConfig.password,
+                        password: redisConfig.password?.isEmpty == false ? redisConfig.password : nil,
                         database: redisConfig.database,
                         pool: RedisConfiguration.PoolOptions(
                             maximumConnectionCount: .maximumActiveConnections(redisConfig.poolSize),
