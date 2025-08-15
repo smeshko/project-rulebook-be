@@ -1,6 +1,14 @@
 # Clean Architecture API Documentation
 
-This document provides comprehensive documentation for all API endpoints in the Project Rulebook application following the Clean Architecture implementation. It covers request/response schemas, authentication requirements, rate limiting, and the new architectural patterns.
+This document provides comprehensive documentation for all 18 API endpoints in the Project Rulebook application following the Clean Architecture implementation. It covers request/response schemas, authentication requirements, rate limiting, and the new architectural patterns.
+
+## API Endpoint Summary
+
+**18 Total Endpoints:**
+- **Authentication (6)**: sign-in, sign-up, Apple Sign-In, token refresh, password reset, logout
+- **User Management (4)**: profile operations, admin user listing  
+- **Rules Generation (2)**: AI-powered game analysis and rules generation
+- **Cache Administration (6)**: comprehensive cache monitoring and management
 
 ## Table of Contents
 1. [Clean Architecture Overview](#clean-architecture-overview)
@@ -77,8 +85,10 @@ Every API endpoint is now powered by a dedicated use case that encapsulates the 
 ### Authentication Use Cases
 - `SignUpUseCase` - User registration with validation
 - `SignInUseCase` - Authentication and token generation
+- `AppleSignInUseCase` - Apple Sign-In with App Attest verification
 - `LogoutUseCase` - Session termination and cleanup
 - `RefreshTokenUseCase` - Token refresh operations
+- `PasswordResetUseCase` - Password reset workflow
 
 ### User Management Use Cases
 - `GetCurrentUserUseCase` - Current user profile retrieval
@@ -93,8 +103,10 @@ Every API endpoint is now powered by a dedicated use case that encapsulates the 
 ### Cache Administration Use Cases
 - `GetCacheStatsUseCase` - Cache performance metrics
 - `GetCacheHealthUseCase` - Cache health monitoring
+- `GetRedisHealthUseCase` - Redis connectivity and performance monitoring
 - `ClearCacheUseCase` - Cache cleanup operations
 - `ManualCleanupUseCase` - Manual cache maintenance
+- `ListCacheEntriesUseCase` - Cache entry enumeration
 
 ### Use Case Execution Pattern
 All endpoints follow this consistent pattern:
@@ -1051,7 +1063,7 @@ curl -X GET http://localhost:8080/api/user/list \
 
 ### 3. Token Refresh
 
-**Endpoint:** `POST /api/auth/refresh-token`
+**Endpoint:** `POST /api/auth/refresh`
 
 **Purpose:** Obtain a new access token using a valid refresh token.
 
@@ -1084,7 +1096,96 @@ curl -X GET http://localhost:8080/api/user/list \
 
 ---
 
-### 4. Email Verification
+### 4. Apple Sign-In
+
+**Endpoint:** `POST /api/auth/apple-auth`
+
+**Purpose:** Authenticate users using Apple Sign-In credentials with App Attest verification.
+
+#### Request
+
+**Method:** `POST`  
+**Content-Type:** `application/json`  
+**Authentication:** Not required  
+**Rate Limit:** 10 requests/hour per IP  
+
+#### Request Schema
+```json
+{
+  "identityToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "authorizationCode": "c1234567890abcdef",
+  "user": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@privaterelay.appleid.com"
+  }
+}
+```
+
+**Field Descriptions:**
+- `identityToken`: JWT identity token from Apple Sign-In
+- `authorizationCode`: Authorization code from Apple Sign-In flow
+- `user`: User information (only provided on first-time sign-in)
+
+#### Response Schema
+```json
+{
+  "token": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  },
+  "user": {
+    "id": "123e4567-e89b-12d3-a456-426614174000",
+    "email": "john.doe@privaterelay.appleid.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "isAdmin": false,
+    "isEmailVerified": true
+  }
+}
+```
+
+#### Security Features
+- **Apple Identity Token Verification**: Validates JWT signature against Apple's public keys
+- **App Attest Integration**: Verifies device authenticity through Apple's App Attest service
+- **Privacy Protection**: Supports Apple's private relay email addresses
+
+#### Error Responses
+
+**400 Bad Request - Invalid Token:**
+```json
+{
+  "error": "validation_failed",
+  "reason": "Invalid Apple identity token"
+}
+```
+
+**403 Forbidden - Device Verification Failed:**
+```json
+{
+  "error": "forbidden", 
+  "reason": "Device attestation failed"
+}
+```
+
+#### cURL Example
+```bash
+curl -X POST http://localhost:8080/api/auth/apple-auth \
+  -H "Content-Type: application/json" \
+  -d '{
+    "identityToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "authorizationCode": "c1234567890abcdef",
+    "user": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john.doe@privaterelay.appleid.com"
+    }
+  }'
+```
+
+---
+
+### 5. Email Verification
 
 **Endpoint:** `POST /api/auth/verify-email`
 
@@ -1120,7 +1221,7 @@ curl -X GET http://localhost:8080/api/user/list \
 
 ---
 
-### 5. Password Reset Request
+### 6. Password Reset Request
 
 **Endpoint:** `POST /api/auth/reset-password`
 
@@ -1151,7 +1252,7 @@ curl -X GET http://localhost:8080/api/user/list \
 
 ---
 
-### 6. Password Reset Completion
+### 7. Password Reset Completion
 
 **Endpoint:** `POST /api/auth/reset-password/complete`
 
@@ -1185,7 +1286,7 @@ curl -X GET http://localhost:8080/api/user/list \
 
 ---
 
-### 7. Logout
+### 8. Logout
 
 **Endpoint:** `POST /api/auth/logout`
 
@@ -1334,7 +1435,49 @@ HTTP/1.1 204 No Content
 
 ---
 
-### 5. Clear Entire Cache
+### 5. Redis Health Check
+
+**Endpoint:** `GET /api/admin/cache/redis/health`
+
+**Purpose:** Check Redis connectivity and performance metrics for cache infrastructure monitoring.
+
+#### Response Schema
+```json
+{
+  "status": "healthy",
+  "connectivity": true,
+  "responseTime": 15,
+  "version": "7.2.0",
+  "memory": {
+    "used": 1024000,
+    "peak": 2048000
+  },
+  "issues": []
+}
+```
+
+**Response Fields:**
+- `status`: Overall health status (healthy/degraded/unhealthy)
+- `connectivity`: Redis connection status
+- `responseTime`: Redis ping response time in milliseconds
+- `version`: Redis server version
+- `memory`: Memory usage statistics in bytes
+- `issues`: Array of any detected issues
+
+**Health Status Levels:**
+- **healthy**: All systems operational, optimal performance
+- **degraded**: Working but with performance issues or warnings
+- **unhealthy**: Connection issues or critical failures
+
+#### cURL Example
+```bash
+curl -H "Authorization: Bearer YOUR_ADMIN_JWT_TOKEN" \
+  http://localhost:8080/api/admin/cache/redis/health
+```
+
+---
+
+### 6. Clear Entire Cache
 
 **Endpoint:** `DELETE /api/admin/cache`
 

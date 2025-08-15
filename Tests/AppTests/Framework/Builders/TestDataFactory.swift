@@ -26,12 +26,12 @@ struct TestDataFactory {
         email: String = "test@example.com",
         firstName: String = "Test",
         lastName: String = "User"
-    ) throws -> UserAccountModel {
-        try user()
+    ) async throws -> UserAccountModel {
+        try await user()
             .email(email)
             .firstName(firstName)
             .lastName(lastName)
-            .build()
+            .buildAndSave()
     }
     
     /// Creates an admin user for testing administrative functionality.
@@ -39,24 +39,24 @@ struct TestDataFactory {
         email: String = "admin@example.com",
         firstName: String = "Admin",
         lastName: String = "User"
-    ) throws -> UserAccountModel {
-        try user()
+    ) async throws -> UserAccountModel {
+        try await user()
             .email(email)
             .firstName(firstName)
             .lastName(lastName)
             .isAdmin(true)
             .isEmailVerified(true)
-            .build()
+            .buildAndSave()
     }
     
     /// Creates an unverified user for testing email verification flows.
     func createUnverifiedUser(
         email: String = "unverified@example.com"
-    ) throws -> UserAccountModel {
-        try user()
+    ) async throws -> UserAccountModel {
+        try await user()
             .email(email)
             .isEmailVerified(false)
-            .build()
+            .buildAndSave()
     }
     
     // MARK: - Token Creation
@@ -114,11 +114,11 @@ struct TestDataFactory {
     // MARK: - Batch Creation Helpers
     
     /// Creates multiple users with sequential email addresses.
-    func createUsers(count: Int, emailPrefix: String = "user") throws -> [UserAccountModel] {
+    func createUsers(count: Int, emailPrefix: String = "user") async throws -> [UserAccountModel] {
         var users: [UserAccountModel] = []
         
         for i in 1...count {
-            let user = try createUser(
+            let user = try await createUser(
                 email: "\(emailPrefix)\(i)@example.com",
                 firstName: "User",
                 lastName: "\(i)"
@@ -133,9 +133,10 @@ struct TestDataFactory {
     func createUserWithTokens(
         email: String = "test@example.com",
         isVerified: Bool = true
-    ) throws -> UserWithTokens {
-        let user = try createUser(email: email)
+    ) async throws -> UserWithTokens {
+        let user = try await createUser(email: email)
         user.isEmailVerified = isVerified
+        try await user.save(on: app.db)
         
         let refreshToken = try createRefreshToken(for: user)
         let emailToken = isVerified ? nil : try createEmailToken(for: user)

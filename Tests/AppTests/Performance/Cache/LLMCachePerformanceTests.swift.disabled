@@ -1,7 +1,6 @@
 @testable import App
 import XCTest
 import Vapor
-import Testing
 
 /// Comprehensive performance tests for Phase 5 LLM caching optimization
 /// 
@@ -13,6 +12,7 @@ final class LLMCachePerformanceTests: XCTestCase {
     var testWorld: TestWorld!
     var cachedLLMService: CachedLLMService!
     var mockRequest: Request!
+    fileprivate var mockCacheService: LLMTestCacheService!
     private var performanceTester: PerformanceTestCase!
     
     override func setUp() async throws {
@@ -27,14 +27,14 @@ final class LLMCachePerformanceTests: XCTestCase {
             on: application.eventLoopGroup.next()
         )
         
-        // Create cached LLM service with mock dependencies
+        // Create cached LLM service with proper mock cache service
         let wrappedService = testWorld.llm
-        _ = testWorld.aiCache
+        mockCacheService = LLMTestCacheService()
         
         cachedLLMService = CachedLLMService(
             wrappedService: wrappedService,
-            cacheService: nil, // Use nil for testing to bypass cache
-            configuration: .development, // Shorter TTLs for testing
+            cacheService: mockCacheService,
+            configuration: .development,
             logger: application.logger
         )
         
@@ -50,7 +50,6 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Cache Hit Rate Performance Tests
     
-    @Test("Cache hit rate meets 70% target with realistic workload")
     func testCacheHitRateTarget() async throws {
         let testPrompts = PerformanceTestUtilities.generateTestPrompts(count: 200)
         
@@ -105,7 +104,6 @@ final class LLMCachePerformanceTests: XCTestCase {
         PerformanceTestUtilities.assertCostSavings(metrics.estimatedCostSavings, totalRequests: testPrompts.count)
     }
     
-    @Test("Cache response time performance under load")
     func testCacheResponseTimePerformance() async throws {
         // Pre-populate cache with common requests
         let commonPrompts = PerformanceTestUtilities.generateTestPrompts(count: 50)
@@ -151,16 +149,18 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Cost Reduction Performance Tests
     
-    @Test("API cost reduction meets 80% target")
     func testAPICostReductionTarget() async throws {
         let totalRequests = 1000
         let testPrompts = PerformanceTestUtilities.generateTestPrompts(count: totalRequests)
         
         // Configure realistic cache hit rate
-        testWorld.aiCache.configureHitRatio(0.85) // 85% hit rate
+        mockCacheService.configureHitRatio(0.85) // 85% hit rate
         
-        var apiCallCount = 0
         let startTime = Date()
+        
+        // Reset cache statistics before test
+        mockCacheService.reset()
+        mockCacheService.configureHitRatio(0.85) // Re-configure after reset
         
         // Simulate realistic usage pattern with some repeated requests
         let repeatedPrompts = Array(testPrompts.prefix(100))
@@ -168,17 +168,16 @@ final class LLMCachePerformanceTests: XCTestCase {
         
         for prompt in allRequests {
             _ = try await cachedLLMService.for(mockRequest).generate(input: prompt)
-            
-            // Count actual API calls (cache misses)
-            if !(await testWorld.aiCache.exists(key: "llm:gen:\(prompt.hashValue)")) {
-                apiCallCount += 1
-            }
         }
         
         let duration = Date().timeIntervalSince(startTime)
         
+        // Get actual statistics from cache
+        let cacheStats = mockCacheService.getStatistics()
+        let apiCallCount = cacheStats.misses  // Misses = API calls
+        let actualHitRate = cacheStats.hitRatio
+        
         // Calculate cost savings
-        let actualHitRate = Double(totalRequests - apiCallCount) / Double(totalRequests)
         let costSavings = PerformanceTestUtilities.APICostCalculator.savings(
             totalRequests: totalRequests,
             cacheHitRate: actualHitRate
@@ -207,7 +206,6 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Cache TTL Performance Tests
     
-    @Test("Cache TTL behavior meets performance requirements")
     func testCacheTTLPerformance() async throws {
         let rulesPrompt = "Generate rules for a medieval strategy game"
         let imagePrompt = "Analyze this game box image for components"
@@ -255,7 +253,6 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Memory Usage Performance Tests
     
-    @Test("Cache memory usage stays within reasonable bounds")
     func testCacheMemoryUsage() async throws {
         let prompts = PerformanceTestUtilities.generateTestPrompts(count: 100)
         var totalMemoryUsage = 0
@@ -285,11 +282,13 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Concurrent Access Performance Tests
     
-    @Test("Cache performance under concurrent load")
     func testConcurrentCachePerformance() async throws {
         let prompts = PerformanceTestUtilities.generateTestPrompts(count: 50)
         let concurrentUsers = 10
         let requestsPerUser = 20
+        
+        let cachedService = self.cachedLLMService!
+        let request = self.mockRequest!
         
         let loadTestResults = try await PerformanceTestUtilities.simulateRealisticLoad(
             requests: concurrentUsers * requestsPerUser,
@@ -297,7 +296,7 @@ final class LLMCachePerformanceTests: XCTestCase {
         ) {
             let randomPrompt = prompts.randomElement()!
             let startTime = Date()
-            _ = try await self.cachedLLMService.for(self.mockRequest).generate(input: randomPrompt)
+            _ = try await cachedService.for(request).generate(input: randomPrompt)
             return Date().timeIntervalSince(startTime)
         }
         
@@ -328,7 +327,6 @@ final class LLMCachePerformanceTests: XCTestCase {
     
     // MARK: - Cache Eviction Performance Tests
     
-    @Test("Cache eviction performance meets targets")
     func testCacheEvictionPerformance() async throws {
         // Fill cache to capacity
         testWorld.aiCache.configureMaxEntries(100)
@@ -395,3 +393,67 @@ private struct LLMLoadTestResults {
             """
         }
     }
+
+// MARK: - LLM Test Cache Service for Testing
+
+/// Test cache service that implements CacheService interface for testing CachedLLMService
+private class LLMTestCacheService: CacheService, @unchecked Sendable {
+    private var cache: [String: (data: Data, expiresAt: Date)] = [:]
+    private var hits = 0
+    private var misses = 0
+    private var hitRatio: Double = 0.85 // Default 85% hit rate
+    
+    func configureHitRatio(_ ratio: Double) {
+        hitRatio = max(0.0, min(1.0, ratio))
+    }
+    
+    func reset() {
+        cache.removeAll()
+        hits = 0
+        misses = 0
+    }
+    
+    func getStatistics() -> (hits: Int, misses: Int, hitRatio: Double) {
+        let total = hits + misses
+        let actualRatio = total > 0 ? Double(hits) / Double(total) : 0.0
+        return (hits: hits, misses: misses, hitRatio: actualRatio)
+    }
+    
+    func get<T: Codable>(_ key: String, as type: T.Type) async throws -> T? {
+        // Simulate cache behavior with configured hit ratio
+        if let entry = cache[key], entry.expiresAt > Date() {
+            // Entry exists and is not expired
+            if Double.random(in: 0...1) <= hitRatio {
+                hits += 1
+                return try JSONDecoder().decode(type, from: entry.data)
+            } else {
+                misses += 1
+                return nil
+            }
+        } else {
+            misses += 1
+            return nil
+        }
+    }
+    
+    func set<T: Codable>(_ key: String, value: T, ttl: TimeInterval?) async throws {
+        let data = try JSONEncoder().encode(value)
+        let expiresAt = Date().addingTimeInterval(ttl ?? 3600) // Default 1 hour
+        cache[key] = (data: data, expiresAt: expiresAt)
+    }
+    
+    func delete(_ key: String) async throws {
+        cache.removeValue(forKey: key)
+    }
+    
+    func flush() async throws {
+        cache.removeAll()
+        hits = 0
+        misses = 0
+    }
+    
+    func exists(_ key: String) async throws -> Bool {
+        guard let entry = cache[key] else { return false }
+        return entry.expiresAt > Date()
+    }
+}

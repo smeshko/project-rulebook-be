@@ -1,7 +1,6 @@
 @testable import App
 import XCTest
 import Vapor
-import Testing
 
 /// Comprehensive performance test suite
 /// 
@@ -47,7 +46,7 @@ final class PerformanceTestSuite: XCTestCase {
     
     // MARK: - Comprehensive Performance Test Suite
     
-    @Test("Complete performance validation suite")
+    // Complete performance validation suite
     func testPerformanceTargets() async throws {
         print("\n🔄 Running comprehensive performance validation...")
         
@@ -193,7 +192,7 @@ final class PerformanceTestSuite: XCTestCase {
         var allResults: [PerformanceTestUtilities.LoadTestResults] = []
         
         // Create authenticated test user
-        let testUser = try testWorld.createUserWithTokens()
+        let testUser = try await testWorld.createUserWithTokens()
         
         // Test 1: Rules generation endpoint
         print("  🎲 Testing rules generation load performance...")
@@ -235,7 +234,7 @@ final class PerformanceTestSuite: XCTestCase {
             iterations: 50
         ) {
             // Simulate complete user workflow
-            let testUser = try self.testWorld.createUserWithTokens()
+            let testUser = try await self.testWorld.createUserWithTokens()
             
             // 1. User profile access (should use optimized repository)
             _ = try await self.application.repositories.users.findWithTokens(id: testUser.user.id!)
@@ -452,7 +451,10 @@ final class PerformanceTestSuite: XCTestCase {
         let testDuration: TimeInterval = 30.0 // 30 second test
         let concurrency = 10
         
-        await withTaskGroup(of: (TimeInterval, Bool).self) { group in
+        let app = self.application!
+        let user = testUser.user
+        
+        await withTaskGroup(of: ([TimeInterval], Int, Int).self) { group in
             for _ in 0..<concurrency {
                 group.addTask {
                     var workerResponseTimes: [TimeInterval] = []
@@ -465,15 +467,17 @@ final class PerformanceTestSuite: XCTestCase {
                         let requestStartTime = Date()
                         
                         do {
-                            try await self.application.test(.GET, "/api/\(operation == "profile" ? "users/current" : "cache/stats")", user: testUser.user) { response in
-                                let responseTime = Date().timeIntervalSince(requestStartTime)
-                                workerResponseTimes.append(responseTime)
-                                
-                                if response.status.code >= 200 && response.status.code < 300 {
-                                    workerSuccessCount += 1
-                                } else {
-                                    workerErrorCount += 1
-                                }
+                            var success = false
+                            try await app.test(.GET, "/api/\(operation == "profile" ? "users/current" : "cache/stats")", user: user, afterResponse: { response in
+                                success = response.status.code >= 200 && response.status.code < 300
+                            })
+                            let responseTime = Date().timeIntervalSince(requestStartTime)
+                            workerResponseTimes.append(responseTime)
+                            
+                            if success {
+                                workerSuccessCount += 1
+                            } else {
+                                workerErrorCount += 1
                             }
                         } catch {
                             let responseTime = Date().timeIntervalSince(requestStartTime)
@@ -488,12 +492,10 @@ final class PerformanceTestSuite: XCTestCase {
                 }
             }
             
-            for await result in group {
-                if let (times, success, errors) = result as? ([TimeInterval], Int, Int) {
-                    responseTimes.append(contentsOf: times)
-                    successCount += success
-                    errorCount += errors
-                }
+            for await (times, success, errors) in group {
+                responseTimes.append(contentsOf: times)
+                successCount += success
+                errorCount += errors
             }
         }
         
@@ -535,6 +537,9 @@ final class PerformanceTestSuite: XCTestCase {
             let batchEnd = min(batchStart + concurrency, requests)
             let batchSize = batchEnd - batchStart
             
+            let app = self.application!
+            let user = testUser.user
+            
             await withTaskGroup(of: (TimeInterval, Bool).self) { group in
                 for _ in 0..<batchSize {
                     group.addTask {
@@ -544,10 +549,10 @@ final class PerformanceTestSuite: XCTestCase {
                             var responseTime: TimeInterval = 0
                             var success = false
                             
-                            try await self.application.test(method, endpoint, user: testUser.user) { response in
-                                responseTime = Date().timeIntervalSince(requestStartTime)
+                            try await app.test(method, endpoint, user: user, afterResponse: { response in
                                 success = response.status.code >= 200 && response.status.code < 300
-                            }
+                            })
+                            responseTime = Date().timeIntervalSince(requestStartTime)
                             
                             return (responseTime, success)
                         } catch {

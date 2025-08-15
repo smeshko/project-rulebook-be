@@ -134,56 +134,6 @@ private struct CorrelationIDKey: AspectContextKey {
     typealias Value = String
 }
 
-// MARK: - Middleware Wrapper
-
-/// Legacy middleware wrapper for CorrelationIDAspect.
-///
-/// Provides backward compatibility for applications using traditional
-/// middleware configuration instead of the aspect system.
-///
-/// ## Usage
-/// ```swift
-/// app.middleware.use(CorrelationIDMiddleware())
-/// ```
-public struct CorrelationIDMiddleware: AsyncMiddleware {
-    /// The underlying correlation ID aspect.
-    private let aspect: CorrelationIDAspect
-    
-    /// Creates a new CorrelationIDMiddleware.
-    ///
-    /// - Parameter uuidGenerator: Optional UUID generator service
-    public init(uuidGenerator: (any UUIDGeneratorService)? = nil) {
-        self.aspect = CorrelationIDAspect(uuidGenerator: uuidGenerator)
-    }
-    
-    public func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
-        var context = AspectContext()
-        
-        // Apply before phase
-        try await aspect.before(request: request, context: &context)
-        
-        do {
-            // Execute next middleware
-            let response = try await next.respond(to: request)
-            
-            // Apply after phase
-            return try await aspect.after(
-                request: request,
-                response: response,
-                context: context
-            )
-        } catch {
-            // Apply error phase
-            try await aspect.onError(
-                request: request,
-                error: error,
-                context: context
-            )
-            throw error
-        }
-    }
-}
-
 // MARK: - Request Extensions
 
 public extension Request {

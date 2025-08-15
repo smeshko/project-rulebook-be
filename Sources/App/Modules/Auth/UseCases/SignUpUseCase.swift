@@ -85,9 +85,23 @@ struct SignUpUseCase: Command {
             try await userRepository.create(user)
         } catch {
             // Check if this is a unique constraint failure for email
-            if error.localizedDescription.contains("UNIQUE constraint failed: users.email") {
-                throw AuthenticationError.emailAlreadyExists
+            // Use String(reflecting:) to get the full error details for proper matching
+            let errorString = String(reflecting: error)
+            
+            // Check for PostgreSQL unique constraint violation (code 23505) for email
+            // Look for key indicators: sqlState code, constraint name, or column reference
+            let isPostgreSQLDuplicateEmail = errorString.contains("sqlState: 23505") && 
+                                           (errorString.contains("uq:users.email") || 
+                                            errorString.contains("Key (email)") || 
+                                            errorString.contains("duplicate key") && errorString.contains("email"))
+            
+            // Check for SQLite unique constraint failures
+            let isSQLiteDuplicateEmail = errorString.contains("UNIQUE constraint failed: users.email")
+            
+            if isPostgreSQLDuplicateEmail || isSQLiteDuplicateEmail {
+                throw AuthenticationError.emailAlreadyExists  
             }
+            
             throw error
         }
         

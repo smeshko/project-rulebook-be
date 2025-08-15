@@ -198,8 +198,8 @@ class TestWorld: @unchecked Sendable {
     ///   - isVerified: Whether the user's email is verified
     /// - Returns: User with associated tokens
     /// - Throws: Any errors from user or token creation
-    func createUserWithTokens(email: String = "test@example.com", isVerified: Bool = true) throws -> UserWithTokens {
-        return try dataFactory.createUserWithTokens(email: email, isVerified: isVerified)
+    func createUserWithTokens(email: String = "test@example.com", isVerified: Bool = true) async throws -> UserWithTokens {
+        return try await dataFactory.createUserWithTokens(email: email, isVerified: isVerified)
     }
     
     // MARK: - Private Setup Methods

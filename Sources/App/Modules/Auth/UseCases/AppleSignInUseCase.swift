@@ -171,9 +171,18 @@ struct AppleSignInUseCase: Command {
             try await userRepository.create(user)
         } catch {
             // Check if this is a unique constraint failure for email
-            if error.localizedDescription.contains("UNIQUE constraint failed: users.email") {
+            let errorString = String(describing: error)
+            
+            // Check for PostgreSQL unique constraint violation (code 23505) for email
+            if errorString.contains("sqlState: 23505") && errorString.contains("email") {
                 throw AuthenticationError.emailAlreadyExists
             }
+            
+            // Check for SQLite unique constraint failures
+            if errorString.contains("UNIQUE constraint failed: users.email") {
+                throw AuthenticationError.emailAlreadyExists  
+            }
+            
             throw error
         }
         

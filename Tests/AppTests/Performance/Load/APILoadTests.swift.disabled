@@ -2,7 +2,6 @@
 import XCTest
 import XCTVapor
 import Vapor
-import Testing
 
 /// Comprehensive load testing framework for Phase 5 performance validation
 /// 
@@ -21,7 +20,7 @@ final class APILoadTests: XCTestCase {
         testWorld.configureForAITesting()
         
         // Create authenticated test user
-        let userWithTokens = try testWorld.createUserWithTokens()
+        let userWithTokens = try await testWorld.createUserWithTokens()
         testUser = userWithTokens.user
     }
     
@@ -33,7 +32,7 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Rules Generation Load Tests
     
-    @Test("Rules generation endpoint performance under load")
+    // Rules generation endpoint performance under load
     func testRulesGenerationLoadPerformance() async throws {
         let requests = 100
         let concurrency = 10
@@ -63,6 +62,8 @@ final class APILoadTests: XCTestCase {
             let batchStart = batch * concurrency
             let batchEnd = min(batchStart + concurrency, requests)
             let batchSize = batchEnd - batchStart
+            let app = self.application!
+            let user = self.testUser!
             
             await withTaskGroup(of: (TimeInterval, Bool).self) { group in
                 for _ in 0..<batchSize {
@@ -71,9 +72,9 @@ final class APILoadTests: XCTestCase {
                         
                         do {
                             var success = false
-                            try await self.application.test(.POST, "/api/rules/generate", user: self.testUser, content: requestBody) { response in
+                            try await app.test(.POST, "/api/rules/generate", user: user, content: requestBody, afterResponse: { response in
                                 success = response.status == .ok
-                            }
+                            })
                             let responseTime = Date().timeIntervalSince(requestStartTime)
                             return (responseTime, success)
                         } catch {
@@ -121,7 +122,7 @@ final class APILoadTests: XCTestCase {
         XCTAssertGreaterThan(loadResults.successRate, 95.0, "Success rate should exceed 95%")
     }
     
-    @Test("Game box analysis endpoint performance under load")
+    // Game box analysis endpoint performance under load
     func testGameBoxAnalysisLoadPerformance() async throws {
         let requests = 50 // Fewer requests for image processing
         let concurrency = 5
@@ -156,7 +157,7 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Authentication Load Tests
     
-    @Test("Authentication endpoints performance under load")
+    // Authentication endpoints performance under load
     func testAuthenticationLoadPerformance() async throws {
         let requests = 200
         let concurrency = 20
@@ -177,7 +178,7 @@ final class APILoadTests: XCTestCase {
         XCTAssertLessThan(signupResults.errorRate, 2.0, "Auth error rate should be under 2%")
     }
     
-    @Test("User profile endpoints performance under load")
+    // User profile endpoints performance under load
     func testUserProfileLoadPerformance() async throws {
         let requests = 300
         let concurrency = 15
@@ -202,7 +203,7 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Cache Admin Load Tests
     
-    @Test("Cache admin endpoints performance under load")
+    // Cache admin endpoints performance under load
     func testCacheAdminLoadPerformance() async throws {
         let requests = 100
         let concurrency = 10
@@ -244,9 +245,9 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Mixed Workload Load Tests
     
-    @Test("Mixed realistic workload performance")
+    // Mixed realistic workload performance
     func testMixedWorkloadPerformance() async throws {
-        let totalRequests = 200
+        let _ = 200 // total requests (unused in duration-based test)
         let concurrency = 15
         let testDuration: TimeInterval = 60.0 // 1 minute test
         
@@ -261,18 +262,65 @@ final class APILoadTests: XCTestCase {
         let startTime = Date()
         let endTime = startTime.addingTimeInterval(testDuration)
         
-        await withTaskGroup(of: (String, TimeInterval, Bool).self) { group in
+        let app = self.application!
+        let testUser = self.testUser!
+        
+        await withTaskGroup(of: [(String, TimeInterval, Bool)].self) { group in
             
             // Spawn concurrent workers
-            for workerIndex in 0..<concurrency {
+            for _ in 0..<concurrency {
                 group.addTask {
                     var localResponseTimes: [(String, TimeInterval, Bool)] = []
                     
                     while Date() < endTime {
-                        let operation = self.selectRandomOperation()
+                        // Inline operation selection
+                        let operations = ["profile", "rules", "cache_stats", "analyze", "health"]
+                        let operation = operations.randomElement()!
                         let requestStartTime = Date()
                         
-                        let success = await self.executeOperation(operation)
+                        // Inline operation execution
+                        var success = false
+                        do {
+                            switch operation {
+                            case "profile":
+                                try await app.test(.GET, "/api/users/current", user: testUser, afterResponse: { response in
+                                    success = response.status == .ok
+                                })
+                            case "rules":
+                                let rulesRequest = GenerateRulesRequest(
+                                    gameTitle: "Test Game \(Int.random(in: 1...1000))",
+                                    gameDescription: "A test game for load testing",
+                                    playerCount: "2-4",
+                                    playTime: "30-60 minutes",
+                                    gameComponents: ["board", "cards"],
+                                    gameTheme: "abstract",
+                                    complexityLevel: "easy"
+                                )
+                                try await app.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest, afterResponse: { response in
+                                    success = response.status == .ok
+                                })
+                            case "cache_stats":
+                                try await app.test(.GET, "/api/cache/stats", user: testUser, afterResponse: { response in
+                                    success = response.status == .ok
+                                })
+                            case "analyze":
+                                let analyzeRequest = AnalyzeGameBoxRequest(
+                                    imageData: "mock-image-data-base64-encoded",
+                                    analysisType: "components"
+                                )
+                                try await app.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest, afterResponse: { response in
+                                    success = response.status == .ok
+                                })
+                            case "health":
+                                try await app.test(.GET, "/api/cache/health", user: testUser, afterResponse: { response in
+                                    success = response.status == .ok
+                                })
+                            default:
+                                success = false
+                            }
+                        } catch {
+                            success = false
+                        }
                         let responseTime = Date().timeIntervalSince(requestStartTime)
                         
                         localResponseTimes.append((operation, responseTime, success))
@@ -287,16 +335,14 @@ final class APILoadTests: XCTestCase {
             
             // Wait for all workers to complete and collect results
             for await workerResults in group {
-                if let results = workerResults as? [(String, TimeInterval, Bool)] {
-                    for (operation, responseTime, success) in results {
-                        responseTimes.append(responseTime)
-                        operationCounts[operation, default: 0] += 1
-                        
-                        if success {
-                            successCount += 1
-                        } else {
-                            errorCount += 1
-                        }
+                for (operation, responseTime, success) in workerResults {
+                    responseTimes.append(responseTime)
+                    operationCounts[operation, default: 0] += 1
+                    
+                    if success {
+                        successCount += 1
+                    } else {
+                        errorCount += 1
                     }
                 }
             }
@@ -333,7 +379,7 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Stress Testing
     
-    @Test("System stress test with high concurrency")
+    // System stress test with high concurrency
     func testHighConcurrencyStress() async throws {
         let requests = 500
         let concurrency = 50 // High concurrency to stress test
@@ -358,7 +404,7 @@ final class APILoadTests: XCTestCase {
     
     // MARK: - Helper Methods
     
-    private func runAPILoadTest<T: Codable>(
+    private func runAPILoadTest<T: Content>(
         endpoint: String,
         method: HTTPMethod,
         requestBody: T,
@@ -378,15 +424,32 @@ final class APILoadTests: XCTestCase {
             let batchStart = batch * concurrency
             let batchEnd = min(batchStart + concurrency, requests)
             let batchSize = batchEnd - batchStart
+            let app = self.application!
+            let user = self.testUser!
             
             await withTaskGroup(of: (TimeInterval, Bool).self) { group in
                 for _ in 0..<batchSize {
-                    group.addTask {
-                        await self.executeHTTPRequest(
-                            endpoint: endpoint,
-                            method: method,
-                            requestBody: requestBody
-                        )
+                    group.addTask { [app, user, requestBody, method, endpoint] in
+                        // Inline HTTP request execution
+                        let requestStartTime = Date()
+                        var success = false
+                        
+                        do {
+                            if requestBody is EmptyContent {
+                                try await app.test(method, endpoint, user: user, afterResponse: { response in
+                                    success = response.status.code >= 200 && response.status.code < 300
+                                })
+                            } else {
+                                try await app.test(method, endpoint, user: user, content: requestBody, afterResponse: { response in
+                                    success = response.status.code >= 200 && response.status.code < 300
+                                })
+                            }
+                            let responseTime = Date().timeIntervalSince(requestStartTime)
+                            return (responseTime, success)
+                        } catch {
+                            let responseTime = Date().timeIntervalSince(requestStartTime)
+                            return (responseTime, false)
+                        }
                     }
                 }
                 
@@ -420,25 +483,26 @@ final class APILoadTests: XCTestCase {
         )
     }
     
-    private func executeHTTPRequest<T: Codable>(
+    private func executeHTTPRequest<T: Content>(
         endpoint: String,
         method: HTTPMethod,
         requestBody: T
     ) async -> (TimeInterval, Bool) {
         let requestStartTime = Date()
+        var success = false
         
         do {
             if requestBody is EmptyContent {
-                try await application.test(method, endpoint, user: testUser) { response in
-                    let responseTime = Date().timeIntervalSince(requestStartTime)
-                    return (responseTime, response.status.code >= 200 && response.status.code < 300)
-                }
+                try await application.test(method, endpoint, user: testUser, afterResponse: { response in
+                    success = response.status.code >= 200 && response.status.code < 300
+                })
             } else {
-                try await application.test(method, endpoint, user: testUser, content: requestBody) { response in
-                    let responseTime = Date().timeIntervalSince(requestStartTime)
-                    return (responseTime, response.status.code >= 200 && response.status.code < 300)
-                }
+                try await application.test(method, endpoint, user: testUser, content: requestBody, afterResponse: { response in
+                    success = response.status.code >= 200 && response.status.code < 300
+                })
             }
+            let responseTime = Date().timeIntervalSince(requestStartTime)
+            return (responseTime, success)
         } catch {
             let responseTime = Date().timeIntervalSince(requestStartTime)
             return (responseTime, false)
@@ -462,6 +526,8 @@ final class APILoadTests: XCTestCase {
             let batchStart = batch * concurrency
             let batchEnd = min(batchStart + concurrency, requests)
             let batchSize = batchEnd - batchStart
+            let app = self.application!
+            let _ = self.testUser! // Not used in auth tests
             
             await withTaskGroup(of: (TimeInterval, Bool).self) { group in
                 for i in 0..<batchSize {
@@ -477,12 +543,12 @@ final class APILoadTests: XCTestCase {
                         )
                         
                         do {
-                            try await self.application.test(.POST, "/api/auth/signup") { request in
-                                try request.content.encode(signupRequest)
-                            } content: { response in
-                                let responseTime = Date().timeIntervalSince(requestStartTime)
-                                return (responseTime, response.status == .created)
-                            }
+                            var success = false
+                            try await app.test(.POST, "/api/auth/signup", content: signupRequest, afterResponse: { response in
+                                success = response.status == .created
+                            })
+                            let responseTime = Date().timeIntervalSince(requestStartTime)
+                            return (responseTime, success)
                         } catch {
                             let responseTime = Date().timeIntervalSince(requestStartTime)
                             return (responseTime, false)
@@ -544,9 +610,9 @@ final class APILoadTests: XCTestCase {
             switch operation {
             case "profile":
                 var success = false
-                try await application.test(.GET, "/api/users/current", user: testUser) { response in
+                try await application.test(.GET, "/api/users/current", user: testUser, afterResponse: { response in
                     success = response.status == .ok
-                }
+                })
                 return success
                 
             case "rules":
@@ -561,16 +627,16 @@ final class APILoadTests: XCTestCase {
                 )
                 
                 var success = false
-                try await application.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest) { response in
+                try await application.test(.POST, "/api/rules/generate", user: testUser, content: rulesRequest, afterResponse: { response in
                     success = response.status == .ok
-                }
+                })
                 return success
                 
             case "cache_stats":
                 var success = false
-                try await application.test(.GET, "/api/cache/stats", user: testUser) { response in
+                try await application.test(.GET, "/api/cache/stats", user: testUser, afterResponse: { response in
                     success = response.status == .ok
-                }
+                })
                 return success
                 
             case "analyze":
@@ -580,16 +646,16 @@ final class APILoadTests: XCTestCase {
                 )
                 
                 var success = false
-                try await application.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest) { response in
+                try await application.test(.POST, "/api/rules/analyze-box", user: testUser, content: analyzeRequest, afterResponse: { response in
                     success = response.status == .ok
-                }
+                })
                 return success
                 
             case "health":
                 var success = false
-                try await application.test(.GET, "/api/cache/health", user: testUser) { response in
+                try await application.test(.GET, "/api/cache/health", user: testUser, afterResponse: { response in
                     success = response.status == .ok
-                }
+                })
                 return success
                 
             default:
@@ -616,7 +682,7 @@ final class APILoadTests: XCTestCase {
 
 // MARK: - Helper Types
 
-private struct EmptyContent: Codable {}
+private struct EmptyContent: Content {}
 
 private struct GenerateRulesRequest: Content {
     let gameTitle: String

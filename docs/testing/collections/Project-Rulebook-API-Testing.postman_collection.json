@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "project-rulebook-api-testing",
 		"name": "Project Rulebook API Testing Collection",
-		"description": "Comprehensive API testing collection for the Project Rulebook Vapor backend.\n\n## Quick Start\n1. Import this collection into Postman or RapidAPI\n2. Set environment variables: `base_url`, `admin_email`, `admin_password`\n3. Run the \"Authentication → Admin Login\" request first\n4. Test other endpoints with the stored JWT tokens\n\n## Admin Credentials (Seeded)\n- Email: root@localhost.com\n- Password: ChangeMe1\n\n## Available Endpoints\n- Authentication (login, signup, refresh)\n- Rules Generation (image analysis, rules summary)\n- Cache Administration (stats, health, management)",
+		"description": "Comprehensive API testing collection for the Project Rulebook Vapor backend.\n\n## Quick Start\n1. Import this collection into Postman or RapidAPI\n2. Set environment variables: `base_url`, `admin_email`, `admin_password`\n3. Run the \"Authentication → Admin Login\" request first\n4. Test other endpoints with the stored JWT tokens\n\n## Admin Credentials (Seeded)\n- Email: root@localhost.com\n- Password: ChangeMe1\n\n## Available Endpoints\n- **Authentication** (6 endpoints): login, signup, Apple Sign-In, password reset, logout, token refresh\n- **User Management** (4 endpoints): profile view/update/delete, admin user listing\n- **Rules Generation** (2 endpoints): game box image analysis, rules summary generation\n- **Cache Administration** (6 endpoints): stats, health checks, Redis monitoring, entry management, cleanup\n\n## Total Endpoints: 18 API endpoints\n\n## Authentication Requirements\n- **Public**: signup, login, Apple Sign-In, password reset\n- **User Protected**: logout, profile management, rules generation\n- **Admin Only**: user listing, all cache administration endpoints",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -77,6 +77,49 @@
 					"response": []
 				},
 				{
+					"name": "Apple Sign-In",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Store tokens from Apple auth response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('access_token', response.token.accessToken);",
+									"    pm.environment.set('refresh_token', response.token.refreshToken);",
+									"    console.log('✅ Apple Sign-In successful - tokens stored');",
+									"    console.log('👤 User:', response.user.email);",
+									"} else {",
+									"    console.log('❌ Apple Sign-In failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identityToken\": \"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"authorizationCode\": \"c1234567890abcdef\",\n  \"user\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@privaterelay.appleid.com\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/apple-auth",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "apple-auth"]
+						},
+						"description": "Authenticate using Apple Sign-In credentials.\n\n**Rate Limited**: Yes\n\n**Request Format**:\n- identityToken: JWT from Apple Sign-In\n- authorizationCode: Authorization code from Apple\n- user: User information (only provided on first sign-in)\n\n**Expected Response**:\n```json\n{\n  \"token\": {\n    \"accessToken\": \"jwt_access_token\",\n    \"refreshToken\": \"jwt_refresh_token\"\n  },\n  \"user\": {\n    \"id\": \"uuid\",\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"isAdmin\": false\n  }\n}\n```"
+					},
+					"response": []
+				},
+				{
 					"name": "Refresh Token",
 					"event": [
 						{
@@ -116,9 +159,279 @@
 						"description": "Refresh access token using the refresh token."
 					},
 					"response": []
+				},
+				{
+					"name": "Request Password Reset",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate password reset response",
+									"if (pm.response.code === 200) {",
+									"    console.log('✅ Password reset email sent successfully');",
+									"} else {",
+									"    console.log('❌ Password reset failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/reset-password",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "reset-password"]
+						},
+						"description": "Request a password reset email for the specified user.\n\n**Rate Limited**: Yes - prevents email spam\n\n**Expected Response**:\n```json\n{\n  \"message\": \"Password reset email sent if account exists\"\n}\n```\n\n**Note**: For security, this endpoint always returns success even if the email doesn't exist."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Clear stored tokens on successful logout",
+									"if (pm.response.code === 200) {",
+									"    pm.environment.unset('access_token');",
+									"    pm.environment.unset('refresh_token');",
+									"    console.log('✅ Logged out successfully - tokens cleared');",
+									"} else {",
+									"    console.log('❌ Logout failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "logout"]
+						},
+						"description": "Logout user and invalidate all refresh tokens.\n\n**Requires**: Bearer token authentication\n\n**Expected Response**:\n```json\n{\n  \"message\": \"Logout successful\"\n}\n```\n\n**Security**: Invalidates all refresh tokens for the user, forcing re-authentication on all devices."
+					},
+					"response": []
 				}
 			],
-			"description": "Authentication endpoints for login, signup, and token management."
+			"description": "Authentication endpoints for login, signup, Apple Sign-In, password reset, and token management."
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Get Current User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate user profile response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('User has email', () => {",
+									"        pm.expect(response).to.have.property('email');",
+									"    });",
+									"    pm.test('User has ID', () => {",
+									"        pm.expect(response).to.have.property('id');",
+									"    });",
+									"    console.log('👤 User Profile:');",
+									"    console.log('   Email:', response.email);",
+									"    console.log('   Name:', response.firstName, response.lastName);",
+									"    console.log('   Admin:', response.isAdmin);",
+									"    console.log('   Verified:', response.emailVerified);",
+									"} else {",
+									"    console.log('❌ Failed to get user profile:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/user/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "user", "me"]
+						},
+						"description": "Get current user's profile information.\n\n**Requires**: Bearer token authentication\n\n**Expected Response**:\n```json\n{\n  \"id\": \"uuid\",\n  \"email\": \"user@example.com\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"isAdmin\": false,\n  \"emailVerified\": true,\n  \"createdAt\": \"2024-01-01T12:00:00Z\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate profile update response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    console.log('✅ Profile updated successfully');",
+									"    console.log('   Updated Name:', response.firstName, response.lastName);",
+									"} else {",
+									"    console.log('❌ Profile update failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated First Name\",\n  \"lastName\": \"Updated Last Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/user/update",
+							"host": ["{{base_url}}"],
+							"path": ["api", "user", "update"]
+						},
+						"description": "Update current user's profile information.\n\n**Requires**: Bearer token authentication\n\n**Request Body** (all fields optional):\n```json\n{\n  \"firstName\": \"string\",\n  \"lastName\": \"string\"\n}\n```\n\n**Expected Response**: Updated user profile data"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User Account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate account deletion response",
+									"if (pm.response.code === 200) {",
+									"    // Clear tokens since account is deleted",
+									"    pm.environment.unset('access_token');",
+									"    pm.environment.unset('refresh_token');",
+									"    console.log('✅ Account deleted successfully - tokens cleared');",
+									"    console.log('⚠️ User account has been permanently removed');",
+									"} else {",
+									"    console.log('❌ Account deletion failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Confirm destructive action",
+									"console.log('⚠️ WARNING: This will permanently delete the user account!');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/user/delete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "user", "delete"]
+						},
+						"description": "⚠️ **DESTRUCTIVE ACTION** ⚠️\n\nPermanently delete the current user account.\n\n**Requires**: Bearer token authentication\n\n**Security**: This action cannot be undone. All user data will be permanently removed.\n\n**Expected Response**: HTTP 200 OK"
+					},
+					"response": []
+				},
+				{
+					"name": "List All Users (Admin)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Validate user list response",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (Array.isArray(response)) {",
+									"        console.log('👥 Total users found:', response.length);",
+									"        response.forEach((user, index) => {",
+									"            console.log(`   ${index + 1}. ${user.email} (${user.firstName} ${user.lastName}) - Admin: ${user.isAdmin}`);",
+									"        });",
+									"    } else {",
+									"        console.log('📋 User data:', response);",
+									"    }",
+									"} else {",
+									"    console.log('❌ Failed to get user list:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/user/list",
+							"host": ["{{base_url}}"],
+							"path": ["api", "user", "list"]
+						},
+						"description": "List all registered users (admin only).\n\n**Requires**: Admin Bearer token authentication\n\n**Authorization**: Admin users only\n\n**Expected Response**:\n```json\n[\n  {\n    \"id\": \"uuid\",\n    \"email\": \"user@example.com\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"isAdmin\": false,\n    \"emailVerified\": true,\n    \"createdAt\": \"2024-01-01T12:00:00Z\"\n  }\n]\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints for profile operations and admin user listing."
 		},
 		{
 			"name": "Rules Generation",
@@ -405,6 +718,57 @@
 							"path": ["api", "admin", "cache", "cleanup"]
 						},
 						"description": "Manually trigger cache cleanup to remove expired entries.\n\n**Requires**: Admin authentication"
+					},
+					"response": []
+				},
+				{
+					"name": "Redis Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Check Redis health status",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.test('Redis connectivity', () => {",
+									"        pm.expect(response).to.have.property('connectivity');",
+									"        pm.expect(response.connectivity).to.be.true;",
+									"    });",
+									"    console.log('🔴 Redis Health:', response.status);",
+									"    console.log('   Connectivity:', response.connectivity ? '✅ Connected' : '❌ Disconnected');",
+									"    console.log('   Response Time:', response.responseTime + 'ms');",
+									"    console.log('   Version:', response.version);",
+									"    if (response.memory) {",
+									"        console.log('   Memory Used:', Math.round(response.memory.used / 1024 / 1024) + 'MB');",
+									"        console.log('   Memory Peak:', Math.round(response.memory.peak / 1024 / 1024) + 'MB');",
+									"    }",
+									"    if (response.issues && response.issues.length > 0) {",
+									"        console.log('⚠️ Issues:', response.issues);",
+									"    }",
+									"} else {",
+									"    console.log('❌ Redis health check failed:', pm.response.text());",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/admin/cache/redis/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "admin", "cache", "redis", "health"]
+						},
+						"description": "Check Redis connectivity and performance metrics.\n\n**Requires**: Admin authentication\n\n**Expected Response**:\n```json\n{\n  \"status\": \"healthy|degraded|unhealthy\",\n  \"connectivity\": true,\n  \"responseTime\": 15,\n  \"version\": \"7.2.0\",\n  \"memory\": {\n    \"used\": 1024000,\n    \"peak\": 2048000\n  },\n  \"issues\": []\n}\n```\n\n**Health Status Levels**:\n- **healthy**: All systems operational\n- **degraded**: Working but with performance issues\n- **unhealthy**: Connection issues or failures"
 					},
 					"response": []
 				},

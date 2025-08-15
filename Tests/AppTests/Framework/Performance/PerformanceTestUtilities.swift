@@ -332,7 +332,7 @@ final class PerformanceTestUtilities {
     static func simulateRealisticLoad(
         requests: Int,
         concurrency: Int,
-        operation: @escaping () async throws -> TimeInterval
+        operation: @escaping @Sendable () async throws -> TimeInterval
     ) async throws -> LoadTestResults {
         let startTime = Date()
         var responseTimes: [TimeInterval] = []
