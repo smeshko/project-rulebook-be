@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-private let tokenLifetime: TimeInterval = 1.hours
+private let tokenLifetime: TimeInterval = 60 * 60 // 1 hour
 
 final class PasswordTokenModel: @unchecked Sendable, DatabaseModelInterface {
     typealias Module = AuthModule

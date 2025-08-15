@@ -51,7 +51,7 @@ final class EmailVerificationTests: XCTestCase {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await app.repositories.users.create(user)
         let expectedHash = SHA256.hash("token123")
-        let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash, expiresAt: Date().addingTimeInterval(-15.minutes - 1) )
+        let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash, expiresAt: Date().addingTimeInterval(-15 * 60 - 1) ) // -15 minutes - 1 second
         emailToken.$user.value = user
 
         try await app.repositories.emailTokens.create(emailToken)

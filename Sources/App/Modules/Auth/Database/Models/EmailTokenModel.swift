@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-private let emailTokenLifetime: Double = 15.minutes
+private let emailTokenLifetime: Double = 15 * 60 // 15 minutes
 
 final class EmailTokenModel: @unchecked Sendable, DatabaseModelInterface {
     typealias Module = UserModule
