@@ -229,6 +229,15 @@ struct ProductionConfiguration: ConfigurationService {
       let database = Int(Environment.get("REDIS_DATABASE") ?? "0") ?? 0
       let poolSize = Int(Environment.get("REDIS_POOL_SIZE") ?? "20") ?? 20
       
+      // Validate port range for individual env vars too
+      guard port >= 1 && port <= 65535 else {
+        throw ConfigurationError.invalidFormat(
+          key: "REDIS_PORT",
+          expected: "Port number between 1 and 65535",
+          got: "\(port)"
+        )
+      }
+      
       return RedisConfig(
         host: host,
         port: port,
@@ -408,6 +417,15 @@ struct ProductionConfiguration: ConfigurationService {
     
     let port = url.port ?? 6379
     let password = url.password
+    
+    // Validate port range
+    guard port >= 1 && port <= 65535 else {
+      throw ConfigurationError.invalidFormat(
+        key: "REDIS_URL",
+        expected: "Port number between 1 and 65535",
+        got: "\(port)"
+      )
+    }
     
     // Extract database number from path (remove leading slash and convert to int)
     var database = 0

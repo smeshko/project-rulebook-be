@@ -35,7 +35,7 @@ extension Application {
     
     // Load the environment file
     if FileManager.default.fileExists(atPath: envFilePath) {
-      logger.info("Loading environment variables from \(envFilePath.split(separator: "/").last ?? "")")
+      logger.info("Loading environment variables from configuration file")
       do {
         let envContent = try String(contentsOfFile: envFilePath, encoding: .utf8)
         for line in envContent.split(separator: "\n") {
@@ -65,10 +65,10 @@ extension Application {
           }
         }
       } catch {
-        logger.warning("Could not load \(envFilePath): \(error)")
+        logger.warning("Could not load environment configuration: \(error)")
       }
     } else {
-      logger.info("No environment file found at \(envFilePath)")
+      logger.info("No environment configuration file found")
     }
 
     try initializeConfiguration()

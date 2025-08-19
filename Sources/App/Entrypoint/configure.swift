@@ -20,9 +20,7 @@ public func configure(_ app: Application) throws {
     // Health check endpoint for Railway
     app.get("health") { req -> [String: String] in
         return [
-            "status": "healthy",
-            "timestamp": String(Date().timeIntervalSince1970),
-            "version": "1.0.0"
+            "status": "healthy"
         ]
     }
 
