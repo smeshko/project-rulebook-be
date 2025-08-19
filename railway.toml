@@ -11,3 +11,12 @@ restartPolicyMaxRetries = 10
 
 [environment]
 PORT = "8080"
+
+# Environment-specific configurations
+[environments.staging]
+[environments.staging.deploy]
+# Staging-specific settings can be added here
+
+[environments.production]
+[environments.production.deploy]
+# Production-specific settings can be added here

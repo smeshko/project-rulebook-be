@@ -15,3 +15,11 @@ CLAUDE.md
 CLAUDE.local.md
 blog/
 docs/testing/logs/
+
+# Railway
+.railway/
+railway-project-id.txt
+
+# Environment-specific files (keep examples)
+.env.staging
+.env.production
