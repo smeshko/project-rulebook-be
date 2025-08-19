@@ -408,9 +408,8 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         }
         
         // Check if string only contains valid base64 characters
-        let base64Regex = "^[A-Za-z0-9+/]*={0,2}$"
-        let predicate = NSPredicate(format: "SELF MATCHES %@", base64Regex)
-        return predicate.evaluate(with: cleanString)
+        let base64CharacterSet = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=")
+        return cleanString.unicodeScalars.allSatisfy { base64CharacterSet.contains($0) }
     }
 }
 

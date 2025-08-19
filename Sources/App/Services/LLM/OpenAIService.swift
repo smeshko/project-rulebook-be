@@ -513,7 +513,6 @@ extension OpenAIService: ServiceLifecycle {
       // Parse response to get available models for logging
       let decoder = JSONDecoder()
       let modelsResponse = try response.content.decode(OpenAIModelsResponse.self, using: decoder)
-      let modelNames = modelsResponse.data.map { $0.id }.joined(separator: ", ")
       
       app.logger.info("OpenAI service started successfully", metadata: [
         "available_models_count": .string("\(modelsResponse.data.count)"),
