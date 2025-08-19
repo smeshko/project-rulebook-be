@@ -39,6 +39,11 @@ let package = Package(
             .product(name: "VaporTesting", package: "vapor"),
             .product(name: "Vapor", package: "vapor"),
             .product(name: "Fluent", package: "Fluent")
+        ], exclude: [
+            "Performance/PerformanceTestSuite.swift.disabled",
+            "Performance/Load/APILoadTests.swift.disabled", 
+            "Performance/Repository/RepositoryPerformanceTests.swift.disabled",
+            "Performance/Cache/LLMCachePerformanceTests.swift.disabled"
         ])
     ]
 )

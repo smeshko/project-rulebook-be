@@ -16,61 +16,8 @@ extension JWKIdentifier {
 
 extension Application {
   func setupConfiguration() throws {
-    // Determine which .env file to load based on environment
-    let workingDirectory = DirectoryConfiguration.detect().workingDirectory
-    let envFilePath: String
-    
-    switch environment {
-    case .testing:
-      // Try .env.testing first, fallback to .env
-      let testingEnvPath = workingDirectory + ".env.testing"
-      if FileManager.default.fileExists(atPath: testingEnvPath) {
-        envFilePath = testingEnvPath
-      } else {
-        envFilePath = workingDirectory + ".env"
-      }
-    default:
-      envFilePath = workingDirectory + ".env"
-    }
-    
-    // Load the environment file
-    if FileManager.default.fileExists(atPath: envFilePath) {
-      logger.info("Loading environment variables from configuration file")
-      do {
-        let envContent = try String(contentsOfFile: envFilePath, encoding: .utf8)
-        for line in envContent.split(separator: "\n") {
-          let trimmedLine = line.trimmingCharacters(in: .whitespaces)
-          // Skip comments and empty lines
-          if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
-            continue
-          }
-          // Parse KEY=VALUE format
-          if let equalIndex = trimmedLine.firstIndex(of: "=") {
-            let key = String(trimmedLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
-            let value = String(trimmedLine[trimmedLine.index(after: equalIndex)...])
-              .trimmingCharacters(in: .whitespaces)
-              .trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
-
-            // Set the environment variable
-            setenv(key, value, 1)
-
-            // Log non-sensitive keys
-            if !key.lowercased().contains("key") && !key.lowercased().contains("secret")
-              && !key.lowercased().contains("password")
-            {
-              logger.debug("Loaded env var: \(key)")
-            } else {
-              logger.debug("Loaded sensitive env var: \(key) (value hidden)")
-            }
-          }
-        }
-      } catch {
-        logger.warning("Could not load environment configuration: \(error)")
-      }
-    } else {
-      logger.info("No environment configuration file found")
-    }
-
+    // Vapor automatically loads .env files during Environment.detect()
+    // No manual parsing needed - Environment.get() reads from process environment
     try initializeConfiguration()
 
     // Log configuration status (without sensitive data)
