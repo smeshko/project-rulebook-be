@@ -74,4 +74,5 @@ ENV SWIFT_ROOT=/usr SWIFT_BACKTRACE=enable=yes,sanitize=yes,threads=all,images=a
 USER vapor:vapor
 
 # Start the Vapor service when the image is run
-CMD ./App serve --hostname 0.0.0.0 --port ${PORT:-8080}
+# Use exec form to avoid shell interpretation issues
+CMD ["./App", "serve", "--hostname", "0.0.0.0", "--port", "8080"]
