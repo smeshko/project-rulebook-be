@@ -75,4 +75,4 @@ USER vapor:vapor
 
 # Start the Vapor service when the image is run
 ENTRYPOINT ["./App"]
-CMD ["serve", "--hostname", "0.0.0.0"]
+CMD ["serve", "--hostname", "0.0.0.0", "--port", "$PORT"]

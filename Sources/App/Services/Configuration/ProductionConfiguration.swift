@@ -1,12 +1,19 @@
 import Vapor
+import Foundation
 
 struct ProductionConfiguration: ConfigurationService {
   var database: DatabaseConfig {
     get throws {
+      // First, try to parse DATABASE_URL (Railway format)
+      if let databaseURL = Environment.get("DATABASE_URL") {
+        return try parseDatabaseURL(databaseURL)
+      }
+      
+      // Fallback to individual environment variables (local development)
       guard let name = Environment.get("DATABASE_NAME") else {
         throw ConfigurationError.missingRequired(
-          key: "DATABASE_NAME",
-          suggestion: "Set DATABASE_NAME environment variable for production database"
+          key: "DATABASE_NAME or DATABASE_URL",
+          suggestion: "Set DATABASE_URL for Railway deployment or individual DATABASE_* variables for local development"
         )
       }
 
@@ -205,10 +212,16 @@ struct ProductionConfiguration: ConfigurationService {
   
   var redis: RedisConfig {
     get throws {
+      // First, try to parse REDIS_URL (Railway format)
+      if let redisURL = Environment.get("REDIS_URL") {
+        return try parseRedisURL(redisURL)
+      }
+      
+      // Fallback to individual environment variables (local development)
       guard let host = Environment.get("REDIS_HOST") else {
         throw ConfigurationError.missingRequired(
-          key: "REDIS_HOST",
-          suggestion: "Set REDIS_HOST environment variable for Redis cache"
+          key: "REDIS_HOST or REDIS_URL",
+          suggestion: "Set REDIS_URL for Railway deployment or individual REDIS_* variables for local development"
         )
       }
       
@@ -298,5 +311,128 @@ struct ProductionConfiguration: ConfigurationService {
         reason: "CACHE_IMAGE_TTL must be at least 60 seconds"
       )
     }
+  }
+  
+  // MARK: - Private URL Parsing Methods
+  
+  /// Parses a PostgreSQL DATABASE_URL into DatabaseConfig
+  /// Format: postgresql://username:password@host:port/database
+  private func parseDatabaseURL(_ urlString: String) throws -> DatabaseConfig {
+    guard let url = URL(string: urlString) else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "postgresql://username:password@host:port/database",
+        got: urlString
+      )
+    }
+    
+    guard url.scheme == "postgresql" || url.scheme == "postgres" else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "postgresql:// or postgres:// scheme",
+        got: url.scheme ?? "none"
+      )
+    }
+    
+    guard let host = url.host else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "Valid hostname",
+        got: "missing host"
+      )
+    }
+    
+    guard let username = url.user else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "Username in URL",
+        got: "missing username"
+      )
+    }
+    
+    guard let password = url.password else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "Password in URL",
+        got: "missing password"
+      )
+    }
+    
+    let port = url.port ?? 5432
+    
+    // Extract database name from path (remove leading slash)
+    let database = String(url.path.dropFirst())
+    guard !database.isEmpty else {
+      throw ConfigurationError.invalidFormat(
+        key: "DATABASE_URL",
+        expected: "Database name in URL path",
+        got: "missing database name"
+      )
+    }
+    
+    return DatabaseConfig(
+      name: database,
+      host: host,
+      username: username,
+      password: password,
+      port: port
+    )
+  }
+  
+  /// Parses a Redis REDIS_URL into RedisConfig
+  /// Format: redis://[:password@]host:port[/database]
+  private func parseRedisURL(_ urlString: String) throws -> RedisConfig {
+    guard let url = URL(string: urlString) else {
+      throw ConfigurationError.invalidFormat(
+        key: "REDIS_URL",
+        expected: "redis://[:password@]host:port[/database]",
+        got: urlString
+      )
+    }
+    
+    guard url.scheme == "redis" || url.scheme == "rediss" else {
+      throw ConfigurationError.invalidFormat(
+        key: "REDIS_URL",
+        expected: "redis:// or rediss:// scheme",
+        got: url.scheme ?? "none"
+      )
+    }
+    
+    guard let host = url.host else {
+      throw ConfigurationError.invalidFormat(
+        key: "REDIS_URL",
+        expected: "Valid hostname",
+        got: "missing host"
+      )
+    }
+    
+    let port = url.port ?? 6379
+    let password = url.password
+    
+    // Extract database number from path (remove leading slash and convert to int)
+    var database = 0
+    if !url.path.isEmpty {
+      let databaseString = String(url.path.dropFirst())
+      if !databaseString.isEmpty {
+        database = Int(databaseString) ?? 0
+      }
+    }
+    
+    // Use environment variable overrides for connection settings, with sensible defaults
+    let poolSize = Int(Environment.get("REDIS_POOL_SIZE") ?? "20") ?? 20
+    let connectionTimeout = Double(Environment.get("REDIS_CONNECTION_TIMEOUT") ?? "10.0") ?? 10.0
+    let commandTimeout = Double(Environment.get("REDIS_COMMAND_TIMEOUT") ?? "30.0") ?? 30.0
+    let enableLogging = Environment.get("REDIS_ENABLE_LOGGING")?.lowercased() == "true"
+    
+    return RedisConfig(
+      host: host,
+      port: port,
+      password: password,
+      database: database,
+      poolSize: poolSize,
+      connectionTimeout: connectionTimeout,
+      commandTimeout: commandTimeout,
+      enableLogging: enableLogging
+    )
   }
 }
