@@ -1,172 +1,188 @@
-import XCTest
+import Testing
 @testable import App
 
-final class ValidationRuleTests: XCTestCase {
+struct ValidationRuleTests {
     
     // MARK: - String Validation Tests
     
-    func testNotEmptyRule() {
+    @Test("NotEmptyRule validates non-empty strings")
+    func notEmptyRule() {
         let rule = NotEmptyRule()
         
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertFalse(rule.validate("").isValid)
-        XCTAssertEqual(rule.validate("").errorMessage, "Value cannot be empty")
+        #expect(rule.validate("hello").isValid)
+        #expect(!rule.validate("").isValid)
+        #expect(rule.validate("").errorMessage == "Value cannot be empty")
     }
     
-    func testMinLengthRule() {
+    @Test("MinLengthRule validates minimum string length")
+    func minLengthRule() {
         let rule = MinLengthRule(5)
         
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertTrue(rule.validate("hello world").isValid)
-        XCTAssertFalse(rule.validate("hi").isValid)
-        XCTAssertEqual(rule.validate("hi").errorMessage, "Must be at least 5 characters long")
+        #expect(rule.validate("hello").isValid)
+        #expect(rule.validate("hello world").isValid)
+        #expect(!rule.validate("hi").isValid)
+        #expect(rule.validate("hi").errorMessage == "Must be at least 5 characters long")
         
         // Test custom message
         let customRule = MinLengthRule(3, message: "Too short!")
-        XCTAssertEqual(customRule.validate("ab").errorMessage, "Too short!")
+        #expect(customRule.validate("ab").errorMessage == "Too short!")
     }
     
-    func testMaxLengthRule() {
+    @Test("MaxLengthRule validates maximum string length")
+    func maxLengthRule() {
         let rule = MaxLengthRule(5)
         
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertTrue(rule.validate("hi").isValid)
-        XCTAssertFalse(rule.validate("hello world").isValid)
-        XCTAssertEqual(rule.validate("hello world").errorMessage, "Must be at most 5 characters long")
+        #expect(rule.validate("hello").isValid)
+        #expect(rule.validate("hi").isValid)
+        #expect(!rule.validate("hello world").isValid)
+        #expect(rule.validate("hello world").errorMessage == "Must be at most 5 characters long")
     }
     
-    func testPatternRule() {
+    @Test("PatternRule validates regex patterns")
+    func patternRule() {
         let rule = PatternRule(
             pattern: "^[A-Z][a-z]+$",
             message: "Must start with capital letter"
         )
         
-        XCTAssertTrue(rule.validate("Hello").isValid)
-        XCTAssertFalse(rule.validate("hello").isValid)
-        XCTAssertFalse(rule.validate("HELLO").isValid)
-        XCTAssertEqual(rule.validate("hello").errorMessage, "Must start with capital letter")
+        #expect(rule.validate("Hello").isValid)
+        #expect(!rule.validate("hello").isValid)
+        #expect(!rule.validate("HELLO").isValid)
+        #expect(rule.validate("hello").errorMessage == "Must start with capital letter")
     }
     
-    func testEmailRule() {
+    @Test("EmailRule validates email addresses")
+    func emailRule() {
         let rule = EmailRule()
         
-        XCTAssertTrue(rule.validate("user@example.com").isValid)
-        XCTAssertTrue(rule.validate("test.user+tag@example.co.uk").isValid)
-        XCTAssertFalse(rule.validate("invalid").isValid)
-        XCTAssertFalse(rule.validate("@example.com").isValid)
-        XCTAssertFalse(rule.validate("user@").isValid)
+        #expect(rule.validate("user@example.com").isValid)
+        #expect(rule.validate("test.user+tag@example.co.uk").isValid)
+        #expect(!rule.validate("invalid").isValid)
+        #expect(!rule.validate("@example.com").isValid)
+        #expect(!rule.validate("user@").isValid)
     }
     
     // MARK: - Numeric Validation Tests
     
-    func testRangeRule() {
+    @Test("RangeRule validates numeric ranges")
+    func rangeRule() {
         let rule = RangeRule(1...10)
         
-        XCTAssertTrue(rule.validate(5).isValid)
-        XCTAssertTrue(rule.validate(1).isValid)
-        XCTAssertTrue(rule.validate(10).isValid)
-        XCTAssertFalse(rule.validate(0).isValid)
-        XCTAssertFalse(rule.validate(11).isValid)
+        #expect(rule.validate(5).isValid)
+        #expect(rule.validate(1).isValid)
+        #expect(rule.validate(10).isValid)
+        #expect(!rule.validate(0).isValid)
+        #expect(!rule.validate(11).isValid)
     }
     
-    func testMinRule() {
+    @Test("MinRule validates minimum values")
+    func minRule() {
         let rule = MinRule(18, message: "Must be 18 or older")
         
-        XCTAssertTrue(rule.validate(18).isValid)
-        XCTAssertTrue(rule.validate(25).isValid)
-        XCTAssertFalse(rule.validate(17).isValid)
-        XCTAssertEqual(rule.validate(17).errorMessage, "Must be 18 or older")
+        #expect(rule.validate(18).isValid)
+        #expect(rule.validate(25).isValid)
+        #expect(!rule.validate(17).isValid)
+        #expect(rule.validate(17).errorMessage == "Must be 18 or older")
     }
     
-    func testMaxRule() {
+    @Test("MaxRule validates maximum values")
+    func maxRule() {
         let rule = MaxRule(100.0)
         
-        XCTAssertTrue(rule.validate(50.0).isValid)
-        XCTAssertTrue(rule.validate(100.0).isValid)
-        XCTAssertFalse(rule.validate(100.1).isValid)
+        #expect(rule.validate(50.0).isValid)
+        #expect(rule.validate(100.0).isValid)
+        #expect(!rule.validate(100.1).isValid)
     }
     
     // MARK: - Composite Rule Tests
     
-    func testAndRule() {
+    @Test("AndRule validates all conditions")
+    func andRule() {
         let rule = AndRule(
             MinLengthRule(5),
             MaxLengthRule(10),
             PatternRule(pattern: "^[a-z]+$", message: "Lowercase only")
         )
         
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertFalse(rule.validate("hi").isValid)  // Too short
-        XCTAssertFalse(rule.validate("helloworldtest").isValid)  // Too long
-        XCTAssertFalse(rule.validate("Hello").isValid)  // Capital letter
+        #expect(rule.validate("hello").isValid)
+        #expect(!rule.validate("hi").isValid)  // Too short
+        #expect(!rule.validate("helloworldtest").isValid)  // Too long
+        #expect(!rule.validate("Hello").isValid)  // Capital letter
     }
     
-    func testOrRule() {
+    @Test("OrRule validates any condition")
+    func orRule() {
         let rule = OrRule(
             EmailRule(message: "Invalid email"),
             PatternRule(pattern: "^[a-zA-Z0-9_]+$", message: "Invalid username")
         )
         
-        XCTAssertTrue(rule.validate("user@example.com").isValid)  // Valid email
-        XCTAssertTrue(rule.validate("username123").isValid)  // Valid username
-        XCTAssertFalse(rule.validate("invalid@").isValid)  // Neither valid
+        #expect(rule.validate("user@example.com").isValid)  // Valid email
+        #expect(rule.validate("username123").isValid)  // Valid username
+        #expect(!rule.validate("invalid@").isValid)  // Neither valid
     }
     
-    func testNotRule() {
+    @Test("NotRule validates inverse condition")
+    func notRule() {
         let rule = NotRule(
             PatternRule(pattern: "^test", message: ""),
             message: "Cannot start with 'test'"
         )
         
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertFalse(rule.validate("test123").isValid)
-        XCTAssertEqual(rule.validate("test").errorMessage, "Cannot start with 'test'")
+        #expect(rule.validate("hello").isValid)
+        #expect(!rule.validate("test123").isValid)
+        #expect(rule.validate("test").errorMessage == "Cannot start with 'test'")
     }
     
     // MARK: - Custom Rule Tests
     
-    func testCustomRuleWithClosure() {
+    @Test("CustomRule validates with closure")
+    func customRuleWithClosure() {
         let rule = CustomRule<String> { value in
             value.count % 2 == 0 ? .valid : .invalid("Must have even length")
         }
         
-        XCTAssertTrue(rule.validate("hi").isValid)
-        XCTAssertTrue(rule.validate("test").isValid)
-        XCTAssertFalse(rule.validate("hello").isValid)
+        #expect(rule.validate("hi").isValid)
+        #expect(rule.validate("test").isValid)
+        #expect(!rule.validate("hello").isValid)
     }
     
-    func testCustomRuleWithBooleanClosure() {
+    @Test("CustomRule validates with boolean closure")
+    func customRuleWithBooleanClosure() {
         let rule = CustomRule<Int>(
             { $0 > 0 },
             message: "Must be positive"
         )
         
-        XCTAssertTrue(rule.validate(1).isValid)
-        XCTAssertFalse(rule.validate(0).isValid)
-        XCTAssertFalse(rule.validate(-1).isValid)
+        #expect(rule.validate(1).isValid)
+        #expect(!rule.validate(0).isValid)
+        #expect(!rule.validate(-1).isValid)
     }
     
     // MARK: - Optional Value Tests
     
-    func testOptionalRule() {
+    @Test("OptionalRule validates optional values")
+    func optionalRule() {
         let rule = OptionalRule(MinLengthRule(5))
         
-        XCTAssertTrue(rule.validate(nil).isValid)  // nil is valid
-        XCTAssertTrue(rule.validate("hello").isValid)
-        XCTAssertFalse(rule.validate("hi").isValid)
+        #expect(rule.validate(nil).isValid)  // nil is valid
+        #expect(rule.validate("hello").isValid)
+        #expect(!rule.validate("hi").isValid)
     }
     
-    func testRequiredRule() {
+    @Test("RequiredRule validates required values")
+    func requiredRule() {
         let rule = RequiredRule<String>()
         
-        XCTAssertTrue(rule.validate("value").isValid)
-        XCTAssertFalse(rule.validate(nil).isValid)
-        XCTAssertEqual(rule.validate(nil).errorMessage, "Value is required")
+        #expect(rule.validate("value").isValid)
+        #expect(!rule.validate(nil).isValid)
+        #expect(rule.validate(nil).errorMessage == "Value is required")
     }
     
     // MARK: - Complex Validation Scenarios
     
-    func testPasswordValidation() {
+    @Test("Complex password validation")
+    func passwordValidation() {
         // Password must be 8-20 chars with at least one letter and one number
         let rule = AndRule(
             MinLengthRule(8, message: "Password too short"),
@@ -181,13 +197,14 @@ final class ValidationRuleTests: XCTestCase {
             )
         )
         
-        XCTAssertTrue(rule.validate("password123").isValid)
-        XCTAssertFalse(rule.validate("pass").isValid)  // Too short
-        XCTAssertFalse(rule.validate("password").isValid)  // No number
-        XCTAssertFalse(rule.validate("12345678").isValid)  // No letter
+        #expect(rule.validate("password123").isValid)
+        #expect(!rule.validate("pass").isValid)  // Too short
+        #expect(!rule.validate("password").isValid)  // No number
+        #expect(!rule.validate("12345678").isValid)  // No letter
     }
     
-    func testUsernameValidation() {
+    @Test("Complex username validation")
+    func usernameValidation() {
         // Username: 3-20 chars, alphanumeric with underscores
         let rule = AndRule(
             MinLengthRule(3, message: "Username too short"),
@@ -198,9 +215,9 @@ final class ValidationRuleTests: XCTestCase {
             )
         )
         
-        XCTAssertTrue(rule.validate("user_123").isValid)
-        XCTAssertTrue(rule.validate("JohnDoe").isValid)
-        XCTAssertFalse(rule.validate("ab").isValid)  // Too short
-        XCTAssertFalse(rule.validate("user@domain").isValid)  // Invalid character
+        #expect(rule.validate("user_123").isValid)
+        #expect(rule.validate("JohnDoe").isValid)
+        #expect(!rule.validate("ab").isValid)  // Too short
+        #expect(!rule.validate("user@domain").isValid)  // Invalid character
     }
 }
