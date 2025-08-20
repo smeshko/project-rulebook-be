@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)
@@ -16,7 +16,7 @@ struct PasswordTokenRepositoryTests {
         self.repository = DatabasePasswordTokenRepository(database: app.db)
         try await app.autoMigrate()
         
-        self.user = .init(email: "test@test.com", password: "123")
+        self.user = .init(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await user.create(on: app.db)
     }
     

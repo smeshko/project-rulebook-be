@@ -1,5 +1,5 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)
@@ -28,8 +28,8 @@ struct AuthLogoutTests {
     }
     
     @Test("Logout requires authentication")
-    func logoutNotLoggedIn() throws {
-        try app.test(.POST, logoutPath) { response in
+    func logoutNotLoggedIn() async throws {
+        try await app.test(.POST, logoutPath) { response in
             #expect(response.status == .unauthorized)
         }
     }

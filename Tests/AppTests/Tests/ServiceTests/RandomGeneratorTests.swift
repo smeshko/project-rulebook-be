@@ -1,5 +1,5 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)

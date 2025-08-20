@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)
@@ -37,8 +37,8 @@ struct UserListTests {
     }
     
     @Test("User list fails for unauthenticated request")
-    func listUnauthenticatedRequestShouldFail() throws {
-        try app.test(.GET, listPath) { response in
+    func listUnauthenticatedRequestShouldFail() async throws {
+        try await app.test(.GET, listPath) { response in
             #expect(response.status == .unauthorized)
         }
     }

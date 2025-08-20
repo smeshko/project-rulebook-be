@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 

@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 
@@ -96,7 +96,7 @@ struct AuthSignupTests {
     }
     
     @Test("Registration validates email and password requirements")
-    func registerValidations() throws {
+    func registerValidations() async throws {
         // TestWorld already configures random generator with "test_random_value"
 
         let data = Auth.SignUp.Request(
@@ -106,7 +106,7 @@ struct AuthSignupTests {
             lastName: "User"
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             #expect(res.status == .badRequest)
@@ -117,7 +117,7 @@ struct AuthSignupTests {
     }
     
     @Test("Registration converts email to lowercase")
-    func registerLowercaseEmail() throws {
+    func registerLowercaseEmail() async throws {
         // TestWorld already configures random generator with "test_random_value"
 
         let data = Auth.SignUp.Request(
@@ -127,7 +127,7 @@ struct AuthSignupTests {
             lastName: "User"
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             #expect(res.status == .ok)
@@ -138,7 +138,7 @@ struct AuthSignupTests {
     }
     
     @Test("Registration works with optional fields omitted")
-    func registerWithOptionalFields() throws {
+    func registerWithOptionalFields() async throws {
         // TestWorld already configures random generator with "test_random_value"
 
         // Test with no first/last name
@@ -149,7 +149,7 @@ struct AuthSignupTests {
             lastName: nil
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             #expect(res.status == .ok)
@@ -162,7 +162,7 @@ struct AuthSignupTests {
     }
     
     @Test("Registration treats empty strings as nil for optional fields")
-    func registerWithEmptyOptionalFields() throws {
+    func registerWithEmptyOptionalFields() async throws {
         // TestWorld already configures random generator with "test_random_value"
 
         // Test with empty strings (should be converted to nil)
@@ -173,7 +173,7 @@ struct AuthSignupTests {
             lastName: "  " // whitespace should be treated as empty
         )
 
-        try app.test(.POST, registerPath, beforeRequest: { req in
+        try await app.test(.POST, registerPath, beforeRequest: { req in
             try req.content.encode(data)
         }, afterResponse: { res in
             #expect(res.status == .ok)

@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)
@@ -27,8 +27,8 @@ struct UserDeleteTests {
     }
     
     @Test("User delete fails when not authenticated")
-    func deleteUnauthenticatedRequestShouldFail() throws {
-        try app.test(.DELETE, deletePath) { response in
+    func deleteUnauthenticatedRequestShouldFail() async throws {
+        try await app.test(.DELETE, deletePath) { response in
             #expect(response.status == .unauthorized)
         }
     }

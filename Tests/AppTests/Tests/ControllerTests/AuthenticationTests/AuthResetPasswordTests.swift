@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 
@@ -20,10 +20,10 @@ struct AuthResetPasswordTests {
     
     @Test("Password reset creates token for valid user")
     func resetPassword() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await app.repositories.users.create(user)
         
-        let resetPasswordRequest = Auth.PasswordReset.Request(email: "test@test.com")
+        let resetPasswordRequest = Auth.PasswordReset.Request(email: user.email)
         
         try await app.test(.POST, path, beforeRequest: { req in
             try req.content.encode(resetPasswordRequest)
@@ -45,7 +45,7 @@ struct AuthResetPasswordTests {
 
     @Test("Account can be recovered with valid token")
     func recoverAccount() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "oldpassword")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "oldpassword")
         try await app.repositories.users.create(user)
         let hashedToken = SHA256.hash("passwordtoken")
         let tokenModel = try PasswordTokenModel(userID: user.requireID(), value: hashedToken)
@@ -57,8 +57,12 @@ struct AuthResetPasswordTests {
         
         try await app.test(.POST, "reset-password?token=\(hashedToken)", content: recoverRequest, afterResponse: { res in
             #expect(res.status == .ok)
-            let user = try await app.repositories.users.find(id: user.requireID())!
-            #expect(try BCryptDigest().verify("newpassword", created: user.password!))
+            let foundUser = try await app.repositories.users.find(id: user.requireID())
+            guard let foundUser else {
+                Issue.record("User not found after password reset")
+                return
+            }
+            #expect(try BCryptDigest().verify("newpassword", created: foundUser.password!))
             let count = try await app.repositories.passwordTokens.count()
             #expect(count == 0)
         })
@@ -85,8 +89,8 @@ struct AuthResetPasswordTests {
     }
     
     @Test("Account recovery fails with invalid token")
-    func recoverAccountWithInvalidTokenFails() throws {
-        try app.test(.GET, "reset-password?token=blah", afterResponse: { res in
+    func recoverAccountWithInvalidTokenFails() async throws {
+        try await app.test(.GET, "reset-password?token=blah", afterResponse: { res in
             guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
                 Issue.record("Failed to decode response body as UTF-8 string")
                 return

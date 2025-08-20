@@ -1,5 +1,5 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 import Vapor
 import Testing
 
@@ -282,7 +282,7 @@ struct OpenAIServiceTests {
     }
     
     @Test("Response text extraction works correctly")
-    func responseTextExtraction() throws {
+    func responseTextExtraction() async throws {
         // Test extractText() method with various formats
         
         // Test normal response

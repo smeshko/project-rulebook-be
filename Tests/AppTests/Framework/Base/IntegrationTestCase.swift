@@ -1,5 +1,5 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 import XCTest
 import Vapor
 
@@ -36,10 +36,10 @@ struct IntegrationTestCase {
         _ method: HTTPMethod,
         _ path: String,
         headers: HTTPHeaders = [:],
-        beforeRequest: @escaping (inout XCTHTTPRequest) throws -> () = { _ in },
-        afterResponse: @escaping (XCTHTTPResponse) throws -> () = { _ in }
-    ) throws -> XCTApplicationTester {
-        return try testWorld.app.test(
+        beforeRequest: @escaping (inout TestingHTTPRequest) throws -> () = { _ in },
+        afterResponse: @escaping (TestingHTTPResponse) throws -> () = { _ in }
+    ) async throws -> TestingApplicationTester {
+        return try await testWorld.app.test(
             method,
             path,
             headers: headers,

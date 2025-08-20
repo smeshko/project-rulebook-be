@@ -1,4 +1,4 @@
-import XCTVapor
+import VaporTesting
 @testable import App
 import Testing
 

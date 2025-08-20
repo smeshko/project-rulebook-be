@@ -1,4 +1,5 @@
-import XCTVapor
+import VaporTesting
+import XCTest
 
 func XCTAssertNotNilAsync(_ expression: @autoclosure () async throws -> Any?) async throws {
     let result = try await expression()
@@ -12,7 +13,7 @@ func XCTUnwrapAsync<T>(_ expression: @autoclosure () async throws -> T?) async t
 
 public func XCTAssertContentAsync<D>(
     _ type: D.Type,
-    _ res: XCTHTTPResponse,
+    _ res: TestingHTTPResponse,
     file: StaticString = #file,
     line: UInt = #line,
     _ closure: (D) async throws -> ()

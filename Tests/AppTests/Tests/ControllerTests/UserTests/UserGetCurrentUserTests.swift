@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 
@@ -33,8 +33,8 @@ struct UserGetCurrentUserTests {
     }
     
     @Test("Get current user fails when not logged in")
-    func currentUserNotLoggedIn() throws {
-        try app.test(.GET, path) { response in
+    func currentUserNotLoggedIn() async throws {
+        try await app.test(.GET, path) { response in
             #expect(response.status == .unauthorized)
         }
     }

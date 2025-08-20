@@ -45,7 +45,7 @@ struct ConfigurationTests {
     }
     
     @Test("Testing configuration provides sensible defaults")
-    func testingConfigurationProvidesSensibleDefaults() throws {
+    func testingConfigurationProvidesSensibleDefaults() async throws {
         let config = TestingConfiguration()
         
         let db = try config.database
@@ -79,7 +79,7 @@ struct ConfigurationTests {
     }
     
     @Test("Development configuration validation works correctly")
-    func developmentConfigurationValidation() throws {
+    func developmentConfigurationValidation() async throws {
         let config = DevelopmentConfiguration()
         
         // Valid configuration should pass validation
@@ -94,7 +94,7 @@ struct ConfigurationTests {
     }
     
     @Test("Testing configuration validation works correctly")
-    func testingConfigurationValidation() throws {
+    func testingConfigurationValidation() async throws {
         let config = TestingConfiguration()
         
         #expect(throws: Never.self) { try config.validate() }
@@ -130,7 +130,7 @@ struct ConfigurationTests {
     }
     
     @Test("Security configuration provides correct defaults")
-    func securityConfigurationDefaults() throws {
+    func securityConfigurationDefaults() async throws {
         let devConfig = DevelopmentConfiguration()
         let security = try devConfig.security
         
@@ -188,7 +188,7 @@ struct ConfigurationTests {
     // Note: We can't easily test production config validation without setting
     // actual environment variables, but we can test the factory selection
     @Test("Production configuration requires strict validation")
-    func productionConfigurationRequiresStrictValidation() throws {
+    func productionConfigurationRequiresStrictValidation() async throws {
         let prodConfig = ConfigurationFactory.create(for: .production)
         #expect(prodConfig is ProductionConfiguration)
         

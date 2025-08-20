@@ -1,7 +1,7 @@
 
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 
@@ -42,8 +42,8 @@ struct EmailVerificationTests {
     }
     
     @Test("Email verification fails with invalid token")
-    func verifyingEmailWithInvalidTokenFails() throws {
-        try app.test(.GET, verifyURL, beforeRequest: { req in
+    func verifyingEmailWithInvalidTokenFails() async throws {
+        try await app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": "blabla"])
         }, afterResponse: { res in
             guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {

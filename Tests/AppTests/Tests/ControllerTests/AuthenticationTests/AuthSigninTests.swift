@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
 import Testing
 
@@ -22,12 +22,12 @@ struct AuthSigninTests {
         let user = try UserAccountModel.mock(app: app)
         
         try await app.repositories.users.create(user)
-        let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
+        let loginRequest = Auth.Login.Request(email: user.email, password: "password")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             #expect(res.status == .ok)
             expectContent(Auth.Login.Response.self, res) { login in
-                #expect(login.user.email == "test@test.com")
+                #expect(login.user.email == user.email)
                 #expect(login.user.firstName == "John")
                 #expect(login.user.lastName == "Doe")
                 #expect(!login.token.refreshToken.isEmpty)
@@ -53,7 +53,7 @@ struct AuthSigninTests {
 
         try await app.repositories.users.create(user)
         
-        let loginRequest = Auth.Login.Request(email: "test@test.com", password: "wrongpassword")
+        let loginRequest = Auth.Login.Request(email: user.email, password: "wrongpassword")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             expectResponseError(res, AuthenticationError.invalidEmailOrPassword)
@@ -68,7 +68,7 @@ struct AuthSigninTests {
 
         try await app.repositories.users.create(user)
         
-        let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
+        let loginRequest = Auth.Login.Request(email: user.email, password: "password")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
             expectResponseError(res, AuthenticationError.emailIsNotVerified)
@@ -83,7 +83,7 @@ struct AuthSigninTests {
 
         try await app.repositories.users.create(user)
         
-        let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
+        let loginRequest = Auth.Login.Request(email: user.email, password: "password")
         let token = "test_random_value"  // Use hardcoded value since we're using rigged generator
         
         let refreshToken = try RefreshTokenModel(value: SHA256.hash(token), userID: user.requireID())

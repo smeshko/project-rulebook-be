@@ -5,7 +5,7 @@ extension UserAccountModel {
     static func mock(
         app: Application,
         id: UUID = .init(),
-        email: String = "test@test.com",
+        email: String = "test-\(UUID().uuidString.lowercased())@test.com",
         firstName: String? = "John",
         lastName: String? = "Doe",
         isAdmin: Bool = false,

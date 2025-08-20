@@ -1,7 +1,7 @@
 @testable import App
 import Fluent
 import FluentSQLiteDriver
-import XCTVapor
+import VaporTesting
 
 /// Shared test repositories that get used across the application
 private final class SharedTestRepositories: @unchecked Sendable {
@@ -143,7 +143,7 @@ class TestWorld: @unchecked Sendable {
         // Initialize data factory
         self.dataFactory = TestDataFactory(app: app)
         
-        try setupJWT()
+        try await setupJWT()
         setupRepositories()
     }
     
@@ -164,7 +164,7 @@ class TestWorld: @unchecked Sendable {
         // Initialize data factory
         self.dataFactory = TestDataFactory(app: app)
         
-        try setupJWT()
+        try await setupJWT()
         setupRepositories()
     }
     
@@ -258,7 +258,7 @@ class TestWorld: @unchecked Sendable {
     
     // MARK: - Private Setup Methods
     
-    private func setupJWT() throws {
+    private func setupJWT() async throws {
         try app.jwt.signers.use(.es256(key: .generate()))
     }
     

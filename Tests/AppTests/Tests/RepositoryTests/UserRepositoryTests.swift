@@ -1,6 +1,6 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Testing
 
 @Suite(.serialized)
@@ -17,7 +17,7 @@ struct UserRepositoryTests {
     }
     
     @Test("DatabaseUserRepository can be instantiated with database")
-    func defaultProvider() throws {
+    func defaultProvider() async throws {
         // Test that DatabaseUserRepository can be instantiated with database
         let defaultProvider = DatabaseUserRepository(database: app.db)
         #expect(type(of: defaultProvider) == DatabaseUserRepository.self)
@@ -25,7 +25,7 @@ struct UserRepositoryTests {
     
     @Test("User can be created and retrieved")
     func creatingUser() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await repository.create(user)
         
         #expect(user.id != nil)
@@ -36,7 +36,7 @@ struct UserRepositoryTests {
     
     @Test("User can be deleted")
     func deletingUser() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await user.create(on: app.db)
         let count = try await UserAccountModel.query(on: app.db).count()
         #expect(count == 1)
@@ -48,7 +48,7 @@ struct UserRepositoryTests {
     
     @Test("Repository can retrieve all users")
     func getAllUsers() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         let user2 = UserAccountModel(email: "test2@test.com", password: "123")
         
         try await user.create(on: app.db)
@@ -60,7 +60,7 @@ struct UserRepositoryTests {
     
     @Test("User can be found by ID")
     func findUserById() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await user.create(on: app.db)
         
         let userFound = try await repository.find(id: user.requireID())

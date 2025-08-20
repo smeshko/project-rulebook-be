@@ -1,5 +1,5 @@
 import Testing
-import XCTVapor
+import VaporTesting
 @testable import App
 
 /// Swift Testing version of XCTAssertResponseError
@@ -9,7 +9,7 @@ import XCTVapor
 ///   - res: The HTTP response to validate
 ///   - error: The expected AppError
 ///   - sourceLocation: Source location for issue reporting
-func expectResponseError(_ res: XCTHTTPResponse, _ error: AppError, sourceLocation: SourceLocation = #_sourceLocation) {
+func expectResponseError(_ res: TestingHTTPResponse, _ error: AppError, sourceLocation: SourceLocation = #_sourceLocation) {
     #expect(res.status == error.status, "Response status should match error status", sourceLocation: sourceLocation)
     
     do {
@@ -31,7 +31,7 @@ func expectResponseError(_ res: XCTHTTPResponse, _ error: AppError, sourceLocati
 ///   - sourceLocation: Source location for issue reporting
 func expectContent<T: Decodable>(
     _ type: T.Type, 
-    _ res: XCTHTTPResponse, 
+    _ res: TestingHTTPResponse, 
     _ closure: (T) throws -> Void,
     sourceLocation: SourceLocation = #_sourceLocation
 ) {
