@@ -6,6 +6,7 @@ import Testing
 
 extension Auth.TokenRefresh.Request: Content {}
 
+@Suite(.serialized)
 struct AuthRefreshAccessTokenTests {
     let app: Application
     let testWorld: TestWorld
@@ -13,8 +14,8 @@ struct AuthRefreshAccessTokenTests {
     let user: UserAccountModel
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
         self.user = UserAccountModel(email: "test@test.com", password: "123")
     }
     

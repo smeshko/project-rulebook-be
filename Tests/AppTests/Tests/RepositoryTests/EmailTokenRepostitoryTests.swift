@@ -3,13 +3,16 @@ import Fluent
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct EmailTokenRepositoryTests {
     let app: Application
+    let testWorld: TestWorld
     let repository: any EmailTokenRepository
     let user: UserAccountModel
     
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
+        testWorld = try await TestWorld()
+        self.app = testWorld.app
         self.repository = DatabaseEmailTokenRepository(database: app.db)
         try await app.autoMigrate()
         

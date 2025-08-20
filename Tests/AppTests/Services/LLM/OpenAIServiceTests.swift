@@ -3,6 +3,7 @@ import XCTVapor
 import Vapor
 import Testing
 
+@Suite(.serialized)
 struct OpenAIServiceTests {
     
     @Test("OpenAI service generates successful response")
@@ -127,7 +128,7 @@ struct OpenAIServiceTests {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        #expect(throws: OpenAIError.self) {
+        await #expect(throws: OpenAIError.self) {
             try await service.generate(input: "Test")
         }
         
@@ -150,7 +151,7 @@ struct OpenAIServiceTests {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        #expect(throws: OpenAIError.self) {
+        await #expect(throws: OpenAIError.self) {
             try await service.generate(input: "Test")
         }
         
@@ -191,7 +192,7 @@ struct OpenAIServiceTests {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        #expect(throws: OpenAIError.self) {
+        await #expect(throws: OpenAIError.self) {
             try await service.generate(input: "Test")
         }
         
@@ -212,7 +213,7 @@ struct OpenAIServiceTests {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        #expect(throws: OpenAIError.self) {
+        await #expect(throws: OpenAIError.self) {
             try await service.generate(input: "Test")
         }
         

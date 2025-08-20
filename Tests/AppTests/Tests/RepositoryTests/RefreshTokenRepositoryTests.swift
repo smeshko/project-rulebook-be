@@ -3,13 +3,16 @@ import Fluent
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct RefreshTokenRepositoryTests {
     let app: Application
+    let testWorld: TestWorld
     let repository: any RefreshTokenRepository
     let user: UserAccountModel
     
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
+        testWorld = try await TestWorld()
+        self.app = testWorld.app
         self.repository = DatabaseRefreshTokenRepository(database: app.db)
         try await app.autoMigrate()
         self.user = UserAccountModel(
@@ -28,7 +31,8 @@ struct RefreshTokenRepositoryTests {
         
         let tokenRetrieved = try await RefreshTokenModel.find(token.id, on: app.db)
         #expect(tokenRetrieved != nil)
-        #expect(tokenRetrieved!.$user.id == try user.requireID())
+        let userID = try user.requireID()
+        #expect(tokenRetrieved!.$user.id == userID)
     }
     
     @Test("Refresh token can be found by ID")

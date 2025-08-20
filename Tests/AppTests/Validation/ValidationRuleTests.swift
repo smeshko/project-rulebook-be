@@ -1,6 +1,7 @@
 import Testing
 @testable import App
 
+@Suite(.serialized)
 struct ValidationRuleTests {
     
     // MARK: - String Validation Tests

@@ -3,12 +3,15 @@ import Fluent
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct UserRepositoryTests {
     let app: Application
+    let testWorld: TestWorld
     let repository: DatabaseUserRepository
     
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
+        testWorld = try await TestWorld()
+        self.app = testWorld.app
         self.repository = DatabaseUserRepository(database: app.db)
         try await app.autoMigrate()
     }

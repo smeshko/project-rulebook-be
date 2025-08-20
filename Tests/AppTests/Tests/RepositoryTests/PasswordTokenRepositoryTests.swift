@@ -3,13 +3,16 @@ import Fluent
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct PasswordTokenRepositoryTests {
     let app: Application
+    let testWorld: TestWorld
     let repository: any PasswordTokenRepository
     let user: UserAccountModel
     
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
+        testWorld = try await TestWorld()
+        self.app = testWorld.app
         self.repository = DatabasePasswordTokenRepository(database: app.db)
         try await app.autoMigrate()
         
@@ -23,7 +26,7 @@ struct PasswordTokenRepositoryTests {
         let token = PasswordTokenModel(userID: userID, value: "123")
         try await token.create(on: app.db)
         
-        let foundToken = await repository.find(forUserID: userID)
+        let foundToken = try await repository.find(forUserID: userID)
         #expect(foundToken != nil)
     }
     
@@ -31,7 +34,7 @@ struct PasswordTokenRepositoryTests {
     func findByToken() async throws {
         let token = PasswordTokenModel(userID: try user.requireID(), value: "token123")
         try await token.create(on: app.db)
-        let foundToken = await repository.find(token: "token123")
+        let foundToken = try await repository.find(token: "token123")
         #expect(foundToken != nil)
     }
     

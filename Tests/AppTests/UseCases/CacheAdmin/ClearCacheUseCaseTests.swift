@@ -7,6 +7,7 @@ import Logging
 ///
 /// This test suite validates cache management operations including bulk deletion,
 /// audit logging, and administrative privilege verification.
+@Suite(.serialized)
 final class ClearCacheUseCaseTests: Sendable {
     
     /// Test successful cache clearing operation.

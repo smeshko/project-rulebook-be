@@ -16,7 +16,7 @@ struct IntegrationTestCase {
     /// - Throws: Configuration or setup errors
     init() async throws {
         let app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        self.testWorld = try await TestWorld(app: app)
     }
     
     /// Performs an HTTP test against the application.

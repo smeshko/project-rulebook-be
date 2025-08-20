@@ -3,6 +3,7 @@ import Fluent
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct UserDeleteTests {
     let app: Application
     let user: UserAccountModel
@@ -10,8 +11,8 @@ struct UserDeleteTests {
     let deletePath = "api/user/delete"
     
     init() async throws {
-        app = try await withApp { app in return app }
-        testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
         user = try UserAccountModel.mock(app: app)
     }
     

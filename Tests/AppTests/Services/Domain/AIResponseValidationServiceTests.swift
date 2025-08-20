@@ -6,6 +6,7 @@ import Vapor
 ///
 /// This test suite validates AI response security including content sanitization,
 /// malicious content detection, injection prevention, and compliance validation.
+@Suite(.serialized)
 final class AIResponseValidationServiceTests: Sendable {
     
     /// Test validation of clean, safe AI responses.

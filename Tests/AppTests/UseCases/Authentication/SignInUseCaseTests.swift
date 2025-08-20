@@ -6,6 +6,7 @@ import Vapor
 ///
 /// This test suite validates user authentication business logic including credential
 /// validation, token generation, and security-focused error handling patterns.
+@Suite(.serialized)
 final class SignInUseCaseTests {
     
     /// Test successful sign-in with valid credentials.

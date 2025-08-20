@@ -28,6 +28,40 @@ private final class SharedTestRepositories: @unchecked Sendable {
     }
 }
 
+/// Global shared test application to prevent resource exhaustion
+/// Only creates a single Application instance for all tests
+private actor SharedTestApplication {
+    static let shared = SharedTestApplication()
+    private var _app: Application?
+    
+    private init() {}
+    
+    func getSharedApp() async throws -> Application {
+        if let app = _app {
+            return app
+        }
+        
+        let app = try await Application.make(.testing)
+        
+        // Pre-configure test repositories and services BEFORE running configure()
+        let testWorld = try TestWorldPreConfiguration(app: app)
+        testWorld.setupTestRepositories() 
+        testWorld.setupTestServices()
+        
+        try configure(app)
+        self._app = app
+        
+        // Reset repositories for clean test state
+        await SharedTestRepositories.shared.reset()
+        
+        return app
+    }
+    
+    func resetRepositories() async {
+        await SharedTestRepositories.shared.reset()
+    }
+}
+
 /// Helper class to set up test repositories before configure() runs
 private class TestWorldPreConfiguration {
     let app: Application
@@ -90,16 +124,16 @@ class TestWorld: @unchecked Sendable {
     
     /// Initialize TestWorld with comprehensive mock services.
     ///
-    /// Sets up all necessary mocks and configures the application for testing.
-    /// This includes JWT configuration, repository mocks, and service mocks.
+    /// Uses a shared application instance to prevent resource exhaustion
+    /// and ensures clean test state through repository resets.
     ///
-    /// - Parameter app: The Vapor application to configure
     /// - Throws: Configuration errors
-    init(app: Application) throws {
-        self.app = app
+    init() async throws {
+        // Use shared application to prevent resource exhaustion
+        self.app = try await SharedTestApplication.shared.getSharedApp()
         
         // Reset shared repositories to ensure clean state for each test
-        SharedTestRepositories.shared.resetSync()
+        await SharedTestApplication.shared.resetRepositories()
         
         // Initialize mock services
         self.fakeLLMService = FakeLLMService(app: app)
@@ -111,7 +145,27 @@ class TestWorld: @unchecked Sendable {
         
         try setupJWT()
         setupRepositories()
-        // Services are now registered in ServiceRegistry during makeTestAppSync()
+    }
+    
+    /// Legacy initializer for backward compatibility
+    /// - Parameter app: The Vapor application to configure
+    /// - Throws: Configuration errors
+    init(app: Application) async throws {
+        self.app = app
+        
+        // Reset shared repositories to ensure clean state for each test
+        await SharedTestRepositories.shared.reset()
+        
+        // Initialize mock services
+        self.fakeLLMService = FakeLLMService(app: app)
+        self.mockAICacheService = MockAICacheService(app: app)
+        self.constantUUIDGenerator = ConstantUUIDGeneratorService(app: app)
+        
+        // Initialize data factory
+        self.dataFactory = TestDataFactory(app: app)
+        
+        try setupJWT()
+        setupRepositories()
     }
     
     // MARK: - Public Access to Mock Services
@@ -250,12 +304,11 @@ class TestWorld: @unchecked Sendable {
         return app
     }
     
-    /// Creates a TestWorld with a new async application.
+    /// Creates a TestWorld with shared application instance.
     ///
-    /// - Returns: TestWorld instance with async application
+    /// - Returns: TestWorld instance with shared application
     /// - Throws: Configuration or setup errors
     static func make() async throws -> TestWorld {
-        let app = try await makeTestApp()
-        return try TestWorld(app: app)
+        return try await TestWorld()
     }
 }

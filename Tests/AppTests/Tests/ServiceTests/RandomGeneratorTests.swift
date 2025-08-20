@@ -2,13 +2,14 @@
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct RandomGeneratorTests {
     let app: Application
     let testWorld: TestWorld
     
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
-        self.testWorld = try .init(app: app)
+        testWorld = try await TestWorld()
+        self.app = testWorld.app
     }
     
     @Test("Random generator service is properly configured")

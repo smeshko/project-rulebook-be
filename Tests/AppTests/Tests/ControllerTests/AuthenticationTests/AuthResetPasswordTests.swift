@@ -7,14 +7,15 @@ import Testing
 extension Auth.PasswordReset.Request: Content {}
 extension PasswordResetInput: Content {}
 
+@Suite(.serialized)
 struct AuthResetPasswordTests {
     let app: Application
     let testWorld: TestWorld
     let path = "api/auth/reset-password"
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("Password reset creates token for valid user")

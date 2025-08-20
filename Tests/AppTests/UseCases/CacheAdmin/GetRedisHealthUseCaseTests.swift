@@ -7,6 +7,7 @@ import Logging
 ///
 /// This test suite validates Redis health monitoring queries including connectivity tests,
 /// performance metrics, and graceful failure handling.
+@Suite(.serialized)
 final class GetRedisHealthUseCaseTests: Sendable {
     
     /// Test successful Redis health check.

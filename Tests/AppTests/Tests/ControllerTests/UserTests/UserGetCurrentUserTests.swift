@@ -4,14 +4,15 @@ import XCTVapor
 import Crypto
 import Testing
 
+@Suite(.serialized)
 struct UserGetCurrentUserTests {
     let app: Application
     let testWorld: TestWorld
     let path = "api/user/me"
     
     init() async throws {
-        app = try await withApp { app in return app }
-        testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("Get current user returns user details")

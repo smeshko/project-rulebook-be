@@ -7,6 +7,7 @@ import Vapor
 /// This test suite validates read-only operations that should be side-effect free
 /// and safe to execute multiple times. Query testing focuses on data retrieval
 /// accuracy and proper response formatting.
+@Suite(.serialized)
 final class GetCurrentUserUseCaseTests {
     
     /// Test successful user profile retrieval.

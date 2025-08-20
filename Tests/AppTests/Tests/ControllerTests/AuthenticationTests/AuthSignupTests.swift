@@ -6,14 +6,15 @@ import Testing
 
 extension Auth.SignUp.Request: Content {}
 
+@Suite(.serialized)
 struct AuthSignupTests {
     let app: Application
     let testWorld: TestWorld
     let registerPath = "api/auth/sign-up"
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("User registration succeeds with valid data") 

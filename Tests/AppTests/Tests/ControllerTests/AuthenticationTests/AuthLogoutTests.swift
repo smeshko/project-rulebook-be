@@ -2,6 +2,7 @@
 import XCTVapor
 import Testing
 
+@Suite(.serialized)
 struct AuthLogoutTests {
     let app: Application
     let testWorld: TestWorld
@@ -9,8 +10,8 @@ struct AuthLogoutTests {
     let user: UserAccountModel
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
         self.user = try UserAccountModel.mock(app: app)
     }
     

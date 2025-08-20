@@ -2,13 +2,14 @@ import XCTVapor
 @testable import App
 import Testing
 
+@Suite(.serialized)
 struct ServiceContainerTests {
     let app: Application
+    let testWorld: TestWorld
     
     init() async throws {
-        // Use standard configuration for ServiceRegistry tests
-        app = try await Application.make(.testing)
-        try configure(app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("ServiceRegistry handles basic registration and resolution")

@@ -3,6 +3,7 @@ import Testing
 
 @testable import App
 
+@Suite(.serialized)
 struct ConfigurationTests {
     
     @Test("Development configuration provides correct defaults from environment")

@@ -2,6 +2,7 @@
 import Testing
 import XCTVapor
 
+@Suite(.serialized)
 struct ConfigurationIntegrationTests {
     @Test("Application startup works with valid configuration")
     func applicationStartupWithValidConfiguration() async throws {

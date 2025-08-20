@@ -6,6 +6,7 @@ import Testing
 
 extension User.Update.Request: Content {}
 
+@Suite(.serialized)
 struct UserPatchTests {
     let app: Application
     let user: UserAccountModel
@@ -14,8 +15,8 @@ struct UserPatchTests {
     let patchPath = "api/user/update"
 
     init() async throws {
-        app = try await withApp { app in return app }
-        testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
         user = try UserAccountModel.mock(app: app)
         request = .init(
             email: "new_mail@test.com",

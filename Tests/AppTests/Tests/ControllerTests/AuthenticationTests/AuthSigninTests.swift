@@ -4,14 +4,15 @@ import XCTVapor
 import Crypto
 import Testing
 
+@Suite(.serialized)
 struct AuthSigninTests {
     let app: Application
     let testWorld: TestWorld
     let loginPath = "api/auth/sign-in"
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("User can login with valid credentials")

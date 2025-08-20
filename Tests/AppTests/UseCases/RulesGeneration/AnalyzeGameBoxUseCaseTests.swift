@@ -7,6 +7,7 @@ import Vapor
 /// This test suite validates AI-powered game analysis queries that are read-only operations
 /// but involve complex AI service integration, caching strategies, and image processing.
 /// Focus is on data accuracy, performance, and proper error handling for AI queries.
+@Suite(.serialized)
 final class AnalyzeGameBoxUseCaseTests: Sendable {
     
     /// Test use case request structure and validation.

@@ -5,14 +5,15 @@ import XCTVapor
 import Crypto
 import Testing
 
+@Suite(.serialized)
 struct EmailVerificationTests {
     let app: Application
     let testWorld: TestWorld
     let verifyURL = "verify-email"
     
     init() async throws {
-        self.app = try await withApp { app in return app }
-        self.testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     @Test("Email verification succeeds with valid token")

@@ -6,6 +6,7 @@ import Vapor
 ///
 /// This test suite validates user account deletion including data cleanup and 
 /// repository operations for authenticated user deletion.
+@Suite(.serialized)
 final class DeleteUserAccountUseCaseTests {
     
     /// Test successful user account deletion.

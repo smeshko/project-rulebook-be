@@ -1,14 +1,15 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 import Testing
 
+@Suite(.serialized)
 struct AISecurityTests {
     let app: Application
     let testWorld: TestWorld
     
     init() async throws {
-        app = try await withApp { app in return app }
-        testWorld = try TestWorld(app: app)
+        testWorld = try await TestWorld()
+        app = testWorld.app
     }
     
     // MARK: - PromptSanitizer Tests
@@ -194,10 +195,10 @@ struct AISecurityTests {
         #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("") }
         
         // Invalid base64 should fail
-        XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateImageData("invalid!!!"))
+        #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("invalid!!!") }
         
         // Suspicious content should fail
-        XCTAssertThrowsError(try request.application.serviceCache.aiInputValidatorService.validateImageData("system:hack"))
+        #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("system:hack") }
     }
     
     // MARK: - Unit Tests (Integration tests are skipped due to test framework issues)

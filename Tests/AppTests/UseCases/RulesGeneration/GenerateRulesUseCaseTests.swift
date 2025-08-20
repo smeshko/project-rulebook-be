@@ -7,6 +7,7 @@ import Vapor
 /// This test suite validates AI-powered rules generation business logic in isolation,
 /// including orchestration of multiple AI services, caching strategies, and complex
 /// error handling scenarios for multi-step AI operations.
+@Suite(.serialized)
 final class GenerateRulesUseCaseTests: Sendable {
     
     /// Test use case request structure and validation.

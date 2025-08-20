@@ -7,6 +7,7 @@ import Vapor
 /// This test suite validates the business logic for user registration in isolation
 /// from HTTP concerns, using mock dependencies to test various scenarios including
 /// success cases, validation errors, and external service failures.
+@Suite(.serialized)
 final class SignUpUseCaseTests {
     
     /// Test successful user registration flow.
