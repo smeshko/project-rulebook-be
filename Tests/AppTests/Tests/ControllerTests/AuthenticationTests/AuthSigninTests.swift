@@ -2,22 +2,20 @@
 import Fluent
 import XCTVapor
 import Crypto
+import Testing
 
-final class AuthSigninTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+struct AuthSigninTests {
+    let app: Application
+    let testWorld: TestWorld
     let loginPath = "api/auth/sign-in"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        testWorld = try TestWorld(app: app)
+    init() async throws {
+        self.app = try await withApp { app in return app }
+        self.testWorld = try TestWorld(app: app)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testLoginHappyPath() async throws {
+    @Test("User can login with valid credentials")
+    func loginHappyPath() async throws {
         app.passwords.use(.plaintext)
         
         let user = try UserAccountModel.mock(app: app)
@@ -26,26 +24,28 @@ final class AuthSigninTests: XCTestCase {
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
-            XCTAssertEqual(res.status, .ok)
-            XCTAssertContent(Auth.Login.Response.self, res) { login in
-                XCTAssertEqual(login.user.email, "test@test.com")
-                XCTAssertEqual(login.user.firstName, "John")
-                XCTAssertEqual(login.user.lastName, "Doe")
-                XCTAssertFalse(login.token.refreshToken.isEmpty)
-                XCTAssertFalse(login.token.accessToken.isEmpty)
+            #expect(res.status == .ok)
+            expectContent(Auth.Login.Response.self, res) { login in
+                #expect(login.user.email == "test@test.com")
+                #expect(login.user.firstName == "John")
+                #expect(login.user.lastName == "Doe")
+                #expect(!login.token.refreshToken.isEmpty)
+                #expect(!login.token.accessToken.isEmpty)
             }
         })
     }
     
-    func testLoginWithNonExistingUserFails() async throws {
+    @Test("Login fails with non-existing user")
+    func loginWithNonExistingUserFails() async throws {
         let loginRequest = Auth.Login.Request(email: "none@login.com", password: "123")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
-            XCTAssertResponseError(res, AuthenticationError.invalidEmailOrPassword)
+            expectResponseError(res, AuthenticationError.invalidEmailOrPassword)
         })
     }
     
-    func testLoginWithIncorrectPasswordFails() async throws {
+    @Test("Login fails with incorrect password")
+    func loginWithIncorrectPasswordFails() async throws {
         app.passwords.use(.plaintext)
 
         let user = try UserAccountModel.mock(app: app)
@@ -55,11 +55,12 @@ final class AuthSigninTests: XCTestCase {
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "wrongpassword")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
-            XCTAssertResponseError(res, AuthenticationError.invalidEmailOrPassword)
+            expectResponseError(res, AuthenticationError.invalidEmailOrPassword)
         })
     }
     
-    func testLoginRequiresEmailVerification() async throws {
+    @Test("Login requires email verification")
+    func loginRequiresEmailVerification() async throws {
         app.passwords.use(.plaintext)
         
         let user = try UserAccountModel.mock(app: app, isEmailVerified: false)
@@ -69,11 +70,12 @@ final class AuthSigninTests: XCTestCase {
         let loginRequest = Auth.Login.Request(email: "test@test.com", password: "password")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
-            XCTAssertResponseError(res, AuthenticationError.emailIsNotVerified)
+            expectResponseError(res, AuthenticationError.emailIsNotVerified)
         })
     }
     
-    func testLoginDeletesOldRefreshTokens() async throws {
+    @Test("Login removes old refresh tokens")
+    func loginDeletesOldRefreshTokens() async throws {
         app.passwords.use(.plaintext)
         
         let user = try UserAccountModel.mock(app: app)
@@ -87,9 +89,9 @@ final class AuthSigninTests: XCTestCase {
         try await app.repositories.refreshTokens.create(refreshToken)
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
-            XCTAssertEqual(res.status, .ok)
+            #expect(res.status == .ok)
             let tokenCount = try await app.repositories.refreshTokens.count()
-            XCTAssertEqual(tokenCount, 1)
+            #expect(tokenCount == 1)
         })
     }
 }
