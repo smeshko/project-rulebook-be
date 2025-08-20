@@ -1,45 +1,44 @@
 @testable import App
 import Fluent
 import XCTVapor
+import Testing
 
-final class UserListTests: XCTestCase {
-    var app: Application!
-    var user: UserAccountModel!
-    var testWorld: TestWorld!
+struct UserListTests {
+    let app: Application
+    let user: UserAccountModel
+    let testWorld: TestWorld
     let listPath = "api/user/list"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
+    init() async throws {
+        app = try await withApp { app in return app }
         testWorld = try TestWorld(app: app)
-        
         user = try UserAccountModel.mock(app: app, isAdmin: true)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testListHappyPath() async throws {
+    @Test("User list returns all users for admin")
+    func listHappyPath() async throws {
         try await app.repositories.users.create(user)
         try await app.test(.GET, listPath, user: user) { response in
-            XCTAssertContent([User.List.Response].self, response) { listResponse in
-                XCTAssertEqual(listResponse.count, 1)
+            expectContent([User.List.Response].self, response) { listResponse in
+                #expect(listResponse.count == 1)
             }
         }
     }
     
-    func testListRequestedByNonAdminShouldFail() async throws {
+    @Test("User list fails for non-admin user")
+    func listRequestedByNonAdminShouldFail() async throws {
         let nonAdmin = try UserAccountModel.mock(app: app)
         try await app.repositories.users.create(nonAdmin)
         
         try await app.test(.GET, listPath, user: nonAdmin) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() throws {
+    @Test("User list fails for unauthenticated request")
+    func listUnauthenticatedRequestShouldFail() throws {
         try app.test(.GET, listPath) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         }
     }
 }
