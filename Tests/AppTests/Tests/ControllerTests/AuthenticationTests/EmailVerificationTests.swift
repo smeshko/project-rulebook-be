@@ -29,7 +29,7 @@ struct EmailVerificationTests {
             try req.query.encode(["token": expectedHash])
         }, afterResponse: { res in
             #expect(res.status == .ok)
-            let foundUser = await app.repositories.users.find(id: user.id!)
+            let foundUser = try await app.repositories.users.find(id: user.id!)
             guard let foundUser = foundUser else {
                 Issue.record("User not found after email verification")
                 return
