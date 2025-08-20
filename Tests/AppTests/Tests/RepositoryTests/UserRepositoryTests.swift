@@ -1,50 +1,50 @@
 @testable import App
 import Fluent
 import XCTVapor
+import Testing
 
-final class UserRepositoryTests: XCTestCase {
-    var app: Application!
-    var repository: DatabaseUserRepository!
+struct UserRepositoryTests {
+    let app: Application
+    let repository: DatabaseUserRepository
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        repository = DatabaseUserRepository(database: app.db)
-        try app.autoMigrate().wait()
+    init() async throws {
+        self.app = try TestWorld.makeTestAppSync()
+        self.repository = DatabaseUserRepository(database: app.db)
+        try await app.autoMigrate()
     }
     
-    override func tearDownWithError() throws {
-        try app.autoRevert().wait()
-        app.shutdown()
-    }
-    
-    func testDefaultProvider() throws {
+    @Test("DatabaseUserRepository can be instantiated with database")
+    func defaultProvider() throws {
         // Test that DatabaseUserRepository can be instantiated with database
         let defaultProvider = DatabaseUserRepository(database: app.db)
-        XCTAssertTrue(type(of: defaultProvider) == DatabaseUserRepository.self)
+        #expect(type(of: defaultProvider) == DatabaseUserRepository.self)
     }
     
-    func testCreatingUser() async throws {
+    @Test("User can be created and retrieved")
+    func creatingUser() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await repository.create(user)
         
-        XCTAssertNotNil(user.id)
+        #expect(user.id != nil)
         
         let userRetrieved = try await UserAccountModel.find(user.id, on: app.db)
-        XCTAssertNotNil(userRetrieved)
+        #expect(userRetrieved != nil)
     }
     
-    func testDeletingUser() async throws {
+    @Test("User can be deleted")
+    func deletingUser() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await user.create(on: app.db)
         let count = try await UserAccountModel.query(on: app.db).count()
-        XCTAssertEqual(count, 1)
+        #expect(count == 1)
         
         try await repository.delete(id: user.requireID())
         let countAfterDelete = try await UserAccountModel.query(on: app.db).count()
-        XCTAssertEqual(countAfterDelete, 0)
+        #expect(countAfterDelete == 0)
     }
     
-    func testGetAllUsers() async throws {
+    @Test("Repository can retrieve all users")
+    func getAllUsers() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         let user2 = UserAccountModel(email: "test2@test.com", password: "123")
         
@@ -52,42 +52,49 @@ final class UserRepositoryTests: XCTestCase {
         try await user2.create(on: app.db)
         
         let users = try await repository.all()
-        XCTAssertEqual(users.count, 2)
+        #expect(users.count == 2)
     }
     
-    func testFindUserById() async throws {
+    @Test("User can be found by ID")
+    func findUserById() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123")
         try await user.create(on: app.db)
         
         let userFound = try await repository.find(id: user.requireID())
-        XCTAssertNotNil(userFound)
+        #expect(userFound != nil)
     }
     
-    func testFindByAppleID() async throws {
+    @Test("User can be found by Apple ID")
+    func findByAppleID() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123", appleUserIdentifier: "1")
         try await user.create(on: app.db)
         
-        try await XCTAssertNotNilAsync(try await repository.find(appleUserIdentifier: "1"))
+        let foundUser = try await repository.find(appleUserIdentifier: "1")
+        #expect(foundUser != nil)
     }
 
-    func testFindByEmail() async throws {
+    @Test("User can be found by email")
+    func findByEmail() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123", appleUserIdentifier: "1")
         try await user.create(on: app.db)
         
-        try await XCTAssertNotNilAsync(try await repository.find(email: "test@test.com"))
+        let foundUser = try await repository.find(email: "test@test.com")
+        #expect(foundUser != nil)
     }
 
-    func testSetFieldValue() async throws {
+    @Test("User field values can be updated")
+    func setFieldValue() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123", isEmailVerified: false)
         try await user.create(on: app.db)
         user.isEmailVerified = true
         try await repository.update(user)
         
         let updatedUser = try await UserAccountModel.find(user.id!, on: app.db)
-        XCTAssertEqual(updatedUser!.isEmailVerified, true)
+        #expect(updatedUser!.isEmailVerified == true)
     }
     
-    func testUserEmailLookup() async throws {
+    @Test("Email lookup works correctly with multiple users")
+    func userEmailLookup() async throws {
         let user1 = UserAccountModel(email: "user1@test.com", password: "123")
         let user2 = UserAccountModel(email: "user2@test.com", password: "123")
         
@@ -98,15 +105,16 @@ final class UserRepositoryTests: XCTestCase {
         let foundUser2 = try await repository.find(email: "user2@test.com")
         let notFound = try await repository.find(email: "nonexistent@test.com")
         
-        XCTAssertNotNil(foundUser1)
-        XCTAssertNotNil(foundUser2)
-        XCTAssertNil(notFound)
+        #expect(foundUser1 != nil)
+        #expect(foundUser2 != nil)
+        #expect(notFound == nil)
         
-        XCTAssertEqual(foundUser1?.email, "user1@test.com")
-        XCTAssertEqual(foundUser2?.email, "user2@test.com")
+        #expect(foundUser1?.email == "user1@test.com")
+        #expect(foundUser2?.email == "user2@test.com")
     }
     
-    func testUserUpdate() async throws {
+    @Test("User information can be updated")
+    func userUpdate() async throws {
         let user = UserAccountModel(
             email: "original@test.com", 
             password: "123",
@@ -123,8 +131,8 @@ final class UserRepositoryTests: XCTestCase {
         try await repository.update(user)
         
         let updatedUser = try await UserAccountModel.find(user.id!, on: app.db)
-        XCTAssertEqual(updatedUser?.firstName, "Updated")
-        XCTAssertEqual(updatedUser?.lastName, "UpdatedName")
-        XCTAssertEqual(updatedUser?.email, "updated@test.com")
+        #expect(updatedUser?.firstName == "Updated")
+        #expect(updatedUser?.lastName == "UpdatedName")
+        #expect(updatedUser?.email == "updated@test.com")
     }
 }
