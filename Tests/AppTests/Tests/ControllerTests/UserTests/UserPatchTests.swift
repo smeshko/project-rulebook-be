@@ -2,20 +2,20 @@
 import Fluent
 import XCTVapor
 import Crypto
+import Testing
 
 extension User.Update.Request: Content {}
 
-final class UserPatchTests: XCTestCase {
-    var app: Application!
-    var user: UserAccountModel!
-    var testWorld: TestWorld!
-    var request: User.Update.Request!
+struct UserPatchTests {
+    let app: Application
+    let user: UserAccountModel
+    let testWorld: TestWorld
+    let request: User.Update.Request
     let patchPath = "api/user/update"
 
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
-        
+    init() async throws {
+        app = try await withApp { app in return app }
+        testWorld = try TestWorld(app: app)
         user = try UserAccountModel.mock(app: app)
         request = .init(
             email: "new_mail@test.com",
@@ -24,29 +24,28 @@ final class UserPatchTests: XCTestCase {
         )
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testPatchHappyPath() async throws {
+    @Test("User patch updates user details successfully")
+    func patchHappyPath() async throws {
         try await app.repositories.users.create(user)
                 
         try await app.test(.PATCH, patchPath, user: user, content: request, afterResponse: { res in
-            XCTAssertContent(User.Update.Response.self, res) { patchContent in
-                XCTAssertEqual(patchContent.email, "new_mail@test.com")
-                XCTAssertEqual(patchContent.firstName, "New")
-                XCTAssertEqual(patchContent.lastName, "Name")
+            expectContent(User.Update.Response.self, res) { patchContent in
+                #expect(patchContent.email == "new_mail@test.com")
+                #expect(patchContent.firstName == "New")
+                #expect(patchContent.lastName == "Name")
             }
         })
     }
     
-    func testPatchNotLoggedIn() async throws {
+    @Test("User patch fails when not logged in")
+    func patchNotLoggedIn() async throws {
         try await app.test(.PATCH, patchPath, content: request, afterResponse: { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         })
     }
     
-    func testPatchPartialUpdate() async throws {
+    @Test("User patch allows partial updates")
+    func patchPartialUpdate() async throws {
         try await app.repositories.users.create(user)
 
         // Test updating only email
@@ -57,16 +56,17 @@ final class UserPatchTests: XCTestCase {
         )
         
         try await app.test(.PATCH, patchPath, user: user, content: partialRequest, afterResponse: { res in
-            XCTAssertContent(User.Update.Response.self, res) { patchContent in
-                XCTAssertEqual(patchContent.email, "updated@test.com")
+            expectContent(User.Update.Response.self, res) { patchContent in
+                #expect(patchContent.email == "updated@test.com")
                 // Original values should be preserved
-                XCTAssertEqual(patchContent.firstName, user.firstName)
-                XCTAssertEqual(patchContent.lastName, user.lastName)
+                #expect(patchContent.firstName == user.firstName)
+                #expect(patchContent.lastName == user.lastName)
             }
         })
     }
     
-    func testPatchWithEmptyValues() async throws {
+    @Test("User patch handles empty values")
+    func patchWithEmptyValues() async throws {
         try await app.repositories.users.create(user)
 
         // Test with empty strings (should be treated as nil/no change)
@@ -77,9 +77,9 @@ final class UserPatchTests: XCTestCase {
         )
         
         try await app.test(.PATCH, patchPath, user: user, content: emptyRequest, afterResponse: { res in
-            XCTAssertContent(User.Update.Response.self, res) { patchContent in
+            expectContent(User.Update.Response.self, res) { patchContent in
                 // Empty values might be converted to nil or preserved - depends on implementation
-                XCTAssertEqual(patchContent.id, user.id!)
+                #expect(patchContent.id == user.id!)
             }
         })
     }
