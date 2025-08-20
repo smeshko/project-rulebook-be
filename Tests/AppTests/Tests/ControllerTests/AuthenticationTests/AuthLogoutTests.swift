@@ -1,37 +1,35 @@
 @testable import App
 import XCTVapor
+import Testing
 
-final class AuthLogoutTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+struct AuthLogoutTests {
+    let app: Application
+    let testWorld: TestWorld
     let logoutPath = "api/auth/logout"
-    var user: UserAccountModel!
+    let user: UserAccountModel
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
+    init() async throws {
+        self.app = try await withApp { app in return app }
         self.testWorld = try TestWorld(app: app)
-        
-        user = try UserAccountModel.mock(app: app)
+        self.user = try UserAccountModel.mock(app: app)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testLogoutHappyPath() async throws {
+    @Test("User can logout successfully")
+    func logoutHappyPath() async throws {
         try await app.repositories.users.create(user)
         
         try await app.test(.POST, logoutPath, user: user) { res in
-            XCTAssertEqual(res.status, .ok)
+            #expect(res.status == .ok)
             
             let count = try await app.repositories.refreshTokens.count()
-            XCTAssertEqual(count, 0)
+            #expect(count == 0)
         }
     }
     
-    func testLogoutNotLoggedIn() throws {
+    @Test("Logout requires authentication")
+    func logoutNotLoggedIn() throws {
         try app.test(.POST, logoutPath) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         }
     }
 }
