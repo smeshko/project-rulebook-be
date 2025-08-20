@@ -1,61 +1,65 @@
 @testable import App
-import XCTest
+import Testing
 import XCTVapor
 
-final class ConfigurationIntegrationTests: XCTestCase {
-    func testApplicationStartupWithValidConfiguration() async throws {
+struct ConfigurationIntegrationTests {
+    @Test("Application startup works with valid configuration")
+    func applicationStartupWithValidConfiguration() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
         
-        XCTAssertNoThrow(try app.setupConfiguration())
-        XCTAssertNotNil(app.configuration)
+        #expect(throws: Never.self) { try app.setupConfiguration() }
+        #expect(app.configuration != nil)
         
         // Verify configuration is accessible
         let db = try app.configuration.database
-        XCTAssertEqual(db.name, "test_db")
+        #expect(db.name == "test_db")
         
         let security = try app.configuration.security
-        XCTAssertEqual(security.baseURL, "http://localhost:8080")
+        #expect(security.baseURL == "http://localhost:8080")
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testApplicationCanConfigureServices() async throws {
+    @Test("Application can configure services properly")
+    func applicationCanConfigureServices() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
         
         try configure(app)
         
         // Configuration should be initialized
-        XCTAssertNotNil(app.configuration)
+        #expect(app.configuration != nil)
         
         // Should be able to access configuration values
         let services = try app.configuration.services
-        XCTAssertFalse(services.brevoAPIKey.isEmpty)
-        XCTAssertFalse(services.openAIKey.isEmpty)
+        #expect(!services.brevoAPIKey.isEmpty)
+        #expect(!services.openAIKey.isEmpty)
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testTestingEnvironmentUsesTestingDefaults() async throws {
+    @Test("Testing environment uses testing defaults")
+    func testingEnvironmentUsesTestingDefaults() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
         
         try app.setupConfiguration()
         
         let db = try app.configuration.database
-        XCTAssertEqual(db.host, "localhost")
-        XCTAssertEqual(db.port, 5432)
+        #expect(db.host == "localhost")
+        #expect(db.port == 5432)
         // In testing environment, reads from .env.testing
-        XCTAssertEqual(db.name, "test_db")
+        #expect(db.name == "test_db")
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testConfigurationLoggingDoesNotExposeSecrets() async throws {
+    @Test("Configuration logging does not expose secrets")
+    func configurationLoggingDoesNotExposeSecrets() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
         
@@ -63,7 +67,7 @@ final class ConfigurationIntegrationTests: XCTestCase {
         // In a real implementation, you would capture log output and verify
         // that passwords, API keys, etc. are not present
         
-        XCTAssertNoThrow(try app.setupConfiguration())
+        #expect(throws: Never.self) { try app.setupConfiguration() }
         
         // The setupConfiguration method should log safely without exposing secrets
         // We can't easily test log output here, but this verifies no exceptions are thrown
