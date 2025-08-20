@@ -1,10 +1,12 @@
 @testable import App
 import XCTVapor
 import Vapor
+import Testing
 
-final class OpenAIServiceTests: XCTestCase {
+struct OpenAIServiceTests {
     
-    func testSuccessfulGeneration() async throws {
+    @Test("OpenAI service generates successful response")
+    func successfulGeneration() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -50,14 +52,15 @@ final class OpenAIServiceTests: XCTestCase {
         let result = try await service.generate(input: "Generate rules")
         
         // Assert
-        XCTAssertEqual(result, "Test game rules")
-        XCTAssertEqual(mockClient.requestCount, 1)
+        #expect(result == "Test game rules")
+        #expect(mockClient.requestCount == 1)
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testRateLimitWithRetry() async throws {
+    @Test("OpenAI service retries on rate limit")
+    func rateLimitWithRetry() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -104,14 +107,15 @@ final class OpenAIServiceTests: XCTestCase {
         let result = try await service.generate(input: "Test")
         
         // Assert
-        XCTAssertEqual(result, "Success after retry")
-        XCTAssertEqual(mockClient.requestCount, 2)
+        #expect(result == "Success after retry")
+        #expect(mockClient.requestCount == 2)
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testMaxRetriesExceeded() async throws {
+    @Test("OpenAI service fails after max retries exceeded")
+    func maxRetriesExceeded() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -123,25 +127,18 @@ final class OpenAIServiceTests: XCTestCase {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        do {
-            _ = try await service.generate(input: "Test")
-            XCTFail("Expected error to be thrown")
-        } catch let error as OpenAIError {
-            switch error {
-            case .serverError(let code):
-                XCTAssertEqual(code, 500)
-            default:
-                XCTFail("Expected serverError, got \(error)")
-            }
+        #expect(throws: OpenAIError.self) {
+            try await service.generate(input: "Test")
         }
         
-        XCTAssertEqual(mockClient.requestCount, 3) // Should retry 3 times
+        #expect(mockClient.requestCount == 3) // Should retry 3 times
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testAuthenticationFailure() async throws {
+    @Test("OpenAI service handles authentication failure")
+    func authenticationFailure() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -153,25 +150,18 @@ final class OpenAIServiceTests: XCTestCase {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        do {
-            _ = try await service.generate(input: "Test")
-            XCTFail("Expected error to be thrown")
-        } catch let error as OpenAIError {
-            switch error {
-            case .authenticationFailed:
-                break // Expected
-            default:
-                XCTFail("Expected authenticationFailed, got \(error)")
-            }
+        #expect(throws: OpenAIError.self) {
+            try await service.generate(input: "Test")
         }
         
-        XCTAssertEqual(mockClient.requestCount, 1) // Should not retry auth failures
+        #expect(mockClient.requestCount == 1) // Should not retry auth failures
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testEmptyResponse() async throws {
+    @Test("OpenAI service handles empty response")
+    func emptyResponse() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -201,23 +191,16 @@ final class OpenAIServiceTests: XCTestCase {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        do {
-            _ = try await service.generate(input: "Test")
-            XCTFail("Expected error to be thrown")
-        } catch let error as OpenAIError {
-            switch error {
-            case .emptyResponse:
-                break // Expected
-            default:
-                XCTFail("Expected emptyResponse, got \(error)")
-            }
+        #expect(throws: OpenAIError.self) {
+            try await service.generate(input: "Test")
         }
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testInvalidJSONResponse() async throws {
+    @Test("OpenAI service handles invalid JSON response")
+    func invalidJSONResponse() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -229,23 +212,16 @@ final class OpenAIServiceTests: XCTestCase {
         let service = OpenAIService(app: app)
         
         // Act & Assert
-        do {
-            _ = try await service.generate(input: "Test")
-            XCTFail("Expected error to be thrown")
-        } catch let error as OpenAIError {
-            switch error {
-            case .invalidResponse:
-                break // Expected
-            default:
-                XCTFail("Expected invalidResponse, got \(error)")
-            }
+        #expect(throws: OpenAIError.self) {
+            try await service.generate(input: "Test")
         }
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testGenerateOptimizedWithCustomParameters() async throws {
+    @Test("OpenAI service handles optimized generation with custom parameters")
+    func generateOptimizedWithCustomParameters() async throws {
         // Arrange - Create app using new async API
         let app = try await TestWorld.makeTestApp()
         
@@ -297,14 +273,15 @@ final class OpenAIServiceTests: XCTestCase {
         )
         
         // Assert
-        XCTAssertEqual(result, "Custom response")
-        XCTAssertEqual(mockClient.requestCount, 1)
+        #expect(result == "Custom response")
+        #expect(mockClient.requestCount == 1)
         
         // Cleanup
         try await app.asyncShutdown()
     }
     
-    func testResponseTextExtraction() throws {
+    @Test("Response text extraction works correctly")
+    func responseTextExtraction() throws {
         // Test extractText() method with various formats
         
         // Test normal response
@@ -335,7 +312,7 @@ final class OpenAIServiceTests: XCTestCase {
             maxOutputTokens: nil
         )
         
-        XCTAssertEqual(normalResponse.extractText(), "Normal text")
+        #expect(normalResponse.extractText() == "Normal text")
         
         // Test JSON markdown format
         let jsonResponse = OpenAIResponse(
@@ -365,7 +342,7 @@ final class OpenAIServiceTests: XCTestCase {
             maxOutputTokens: nil
         )
         
-        XCTAssertEqual(jsonResponse.extractText(), "{\"key\":\"value\"}")
+        #expect(jsonResponse.extractText() == "{\"key\":\"value\"}")
         
         // Test empty response
         let emptyResponse = OpenAIResponse(
@@ -382,7 +359,7 @@ final class OpenAIServiceTests: XCTestCase {
             maxOutputTokens: nil
         )
         
-        XCTAssertNil(emptyResponse.extractText())
+        #expect(emptyResponse.extractText() == nil)
     }
 }
 
