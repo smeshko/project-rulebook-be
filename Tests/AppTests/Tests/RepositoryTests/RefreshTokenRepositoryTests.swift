@@ -1,72 +1,73 @@
 @testable import App
 import Fluent
 import XCTVapor
+import Testing
 
-final class RefreshTokenRepositoryTests: XCTestCase {
-    var app: Application!
-    var repository: (any RefreshTokenRepository)!
-    var user: UserAccountModel!
+struct RefreshTokenRepositoryTests {
+    let app: Application
+    let repository: any RefreshTokenRepository
+    let user: UserAccountModel
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        repository = DatabaseRefreshTokenRepository(database: app.db)
-        try app.autoMigrate().wait()
-        user = UserAccountModel(
+    init() async throws {
+        self.app = try TestWorld.makeTestAppSync()
+        self.repository = DatabaseRefreshTokenRepository(database: app.db)
+        try await app.autoMigrate()
+        self.user = UserAccountModel(
             email: "test@test.com",
             password: "123"
         )
     }
     
-    override func tearDownWithError() throws {
-        try app.migrator.revertAllBatches().wait()
-        app.shutdown()
-    }
-    
-    func testCreatingToken() async throws {
+    @Test("Refresh token can be created and retrieved")
+    func creatingToken() async throws {
         try await user.create(on: app.db)
         let token = try RefreshTokenModel(value: "123", userID: user.requireID())
         try await repository.create(token)
         
-        XCTAssertNotNil(token.id)
+        #expect(token.id != nil)
         
         let tokenRetrieved = try await RefreshTokenModel.find(token.id, on: app.db)
-        XCTAssertNotNil(tokenRetrieved)
-        XCTAssertEqual(tokenRetrieved!.$user.id, try user.requireID())
+        #expect(tokenRetrieved != nil)
+        #expect(tokenRetrieved!.$user.id == try user.requireID())
     }
     
-    func testFindingTokenById() async throws {
+    @Test("Refresh token can be found by ID")
+    func findingTokenById() async throws {
         try await user.create(on: app.db)
         let token = try RefreshTokenModel(value: "123", userID: user.requireID())
         try await token.create(on: app.db)
         let tokenId = try token.requireID()
         let tokenFound = try await repository.find(id: tokenId)
-        XCTAssertNotNil(tokenFound)
+        #expect(tokenFound != nil)
     }
     
-    func testFindingTokenByTokenString() async throws {
+    @Test("Refresh token can be found by token string")
+    func findingTokenByTokenString() async throws {
         try await user.create(on: app.db)
         let token = try RefreshTokenModel(value: "123", userID: user.requireID())
         try await token.create(on: app.db)
         let tokenFound = try await repository.find(token: "123")
-        XCTAssertNotNil(tokenFound)
+        #expect(tokenFound != nil)
     }
     
-    func testDeletingToken() async throws {
+    @Test("Refresh token can be deleted")
+    func deletingToken() async throws {
         try await user.create(on: app.db)
         let token = try RefreshTokenModel(value: "123", userID: user.requireID())
         try await token.create(on: app.db)
         let tokenCount = try await RefreshTokenModel.query(on: app.db).count()
-        XCTAssertEqual(tokenCount, 1)
+        #expect(tokenCount == 1)
         try await repository.delete(id: token.requireID())
         let newTokenCount = try await RefreshTokenModel.query(on: app.db).count()
-        XCTAssertEqual(newTokenCount, 0)
+        #expect(newTokenCount == 0)
     }
     
-    func testGetCount() async throws {
+    @Test("Repository can count refresh tokens")
+    func getCount() async throws {
         try await user.create(on: app.db)
         let token = try RefreshTokenModel(value: "123", userID: user.requireID())
         try await token.create(on: app.db)
         let tokenCount = try await repository.count()
-        XCTAssertEqual(tokenCount, 1)
+        #expect(tokenCount == 1)
     }
 }
