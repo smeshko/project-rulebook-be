@@ -2,40 +2,39 @@
 import Fluent
 import XCTVapor
 import Crypto
+import Testing
 
-final class UserGetCurrentUserTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+struct UserGetCurrentUserTests {
+    let app: Application
+    let testWorld: TestWorld
     let path = "api/user/me"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
+    init() async throws {
+        app = try await withApp { app in return app }
+        testWorld = try TestWorld(app: app)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testCurrentUserHappyPath() async throws {
+    @Test("Get current user returns user details")
+    func currentUserHappyPath() async throws {
         let user = try UserAccountModel.mock(app: app)
         try await app.repositories.users.create(user)
         
         try await app.test(.GET, path, user: user) { res in
-            XCTAssertEqual(res.status, .ok)
-            XCTAssertContent(User.Detail.Response.self, res) { userContent in
-                XCTAssertEqual(userContent.email, "test@test.com")
-                XCTAssertEqual(userContent.isAdmin, false)
-                XCTAssertEqual(userContent.firstName, user.firstName)
-                XCTAssertEqual(userContent.lastName, user.lastName)
-                XCTAssertEqual(userContent.id, user.id)
+            #expect(res.status == .ok)
+            expectContent(User.Detail.Response.self, res) { userContent in
+                #expect(userContent.email == "test@test.com")
+                #expect(userContent.isAdmin == false)
+                #expect(userContent.firstName == user.firstName)
+                #expect(userContent.lastName == user.lastName)
+                #expect(userContent.id == user.id)
             }
         }
     }
     
-    func testCurrentUserNotLoggedIn() throws {
+    @Test("Get current user fails when not logged in")
+    func currentUserNotLoggedIn() throws {
         try app.test(.GET, path) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         }
     }
 }
