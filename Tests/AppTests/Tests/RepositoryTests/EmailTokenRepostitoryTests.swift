@@ -1,50 +1,47 @@
 @testable import App
 import Fluent
 import XCTVapor
+import Testing
 
-final class EmailTokenRepositoryTests: XCTestCase {
-    var app: Application!
-    var repository: (any EmailTokenRepository)!
-    var user: UserAccountModel!
+struct EmailTokenRepositoryTests {
+    let app: Application
+    let repository: any EmailTokenRepository
+    let user: UserAccountModel
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        repository = DatabaseEmailTokenRepository(database: app.db)
-        try app.autoMigrate().wait()
+    init() async throws {
+        self.app = try TestWorld.makeTestAppSync()
+        self.repository = DatabaseEmailTokenRepository(database: app.db)
+        try await app.autoMigrate()
         
-        user = .init(email: "test@test.com", password: "123")
+        self.user = .init(email: "test@test.com", password: "123")
     }
     
-    override func tearDownWithError() throws {
-        try app.autoRevert().wait()
-        app.shutdown()
-    }
-    
-    func testCreatingEmailToken() async throws {
+    @Test("Email token can be created")
+    func creatingEmailToken() async throws {
         try await user.create(on: app.db)
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: "emailToken")
         try await repository.create(emailToken)
         
         let count = try await EmailTokenModel.query(on: app.db).count()
-        XCTAssertEqual(count, 1)
+        #expect(count == 1)
     }
     
-    func testFindingEmailTokenByToken() async throws {
+    @Test("Email token can be found by token value")
+    func findingEmailTokenByToken() async throws {
         try await user.create(on: app.db)
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: "123")
         try await emailToken.create(on: app.db)
         let found = try await repository.find(token: "123")
-        XCTAssertNotNil(found)
+        #expect(found != nil)
     }
     
-    func testDeleteEmailToken() async throws {
+    @Test("Email token can be deleted")
+    func deleteEmailToken() async throws {
         try await user.create(on: app.db)
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: "123")
         try await emailToken.create(on: app.db)
         try await repository.delete(id: emailToken.requireID())
         let count = try await EmailTokenModel.query(on: app.db).count()
-        XCTAssertEqual(count, 0)
+        #expect(count == 0)
     }
 }
-    
-
