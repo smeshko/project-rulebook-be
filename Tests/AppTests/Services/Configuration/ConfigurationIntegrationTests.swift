@@ -25,12 +25,10 @@ struct ConfigurationIntegrationTests {
     
     @Test("Application can configure services properly")
     func applicationCanConfigureServices() async throws {
-        let app = try await Application.make(.testing)
-        // No defer needed - will clean up at end
+        let testWorld = try await TestWorld()
+        let app = testWorld.app
         
-        try configure(app)
-        
-        // Configuration should be initialized
+        // Configuration should be initialized by TestWorld
         #expect(app.configuration != nil)
         
         // Should be able to access configuration values
@@ -38,8 +36,7 @@ struct ConfigurationIntegrationTests {
         #expect(!services.brevoAPIKey.isEmpty)
         #expect(!services.openAIKey.isEmpty)
         
-        // Cleanup
-        try await app.asyncShutdown()
+        // TestWorld manages app lifecycle, no manual cleanup needed
     }
     
     @Test("Testing environment uses testing defaults")

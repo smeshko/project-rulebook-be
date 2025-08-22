@@ -17,7 +17,7 @@ struct UserGetCurrentUserTests {
     
     @Test("Get current user returns user details")
     func currentUserHappyPath() async throws {
-        let user = try UserAccountModel.mock(app: app)
+        let user = try UserAccountModel.mock(app: app, email: "test@test.com")
         try await app.repositories.users.create(user)
         
         try await app.test(.GET, path, user: user) { res in

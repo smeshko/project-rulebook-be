@@ -18,16 +18,17 @@ struct EmailVerificationTests {
     
     @Test("Email verification succeeds with valid token")
     func verifyingEmailHappyPath() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
-        let expectedHash = SHA256.hash("token123")
+        let plainToken = "token123"
+        let expectedHash = SHA256.hash(plainToken)
         
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash)
         emailToken.$user.value = user
         try await app.repositories.emailTokens.create(emailToken)
         
         try await app.test(.GET, verifyURL, beforeRequest: { req in
-            try req.query.encode(["token": expectedHash])
+            try req.query.encode(["token": plainToken])
         }, afterResponse: { res in
             #expect(res.status == .ok)
             let foundUser = try await app.repositories.users.find(id: user.id!)
@@ -56,16 +57,17 @@ struct EmailVerificationTests {
     
     @Test("Email verification fails with expired token")
     func verifyingEmailWithExpiredTokenFails() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+        let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
-        let expectedHash = SHA256.hash("token123")
+        let plainToken = "token123"
+        let expectedHash = SHA256.hash(plainToken)
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash, expiresAt: Date().addingTimeInterval(-15 * 60 - 1) ) // -15 minutes - 1 second
         emailToken.$user.value = user
 
         try await app.repositories.emailTokens.create(emailToken)
         
         try await app.test(.GET, verifyURL, beforeRequest: { req in
-            try req.query.encode(["token": expectedHash])
+            try req.query.encode(["token": plainToken])
         }, afterResponse: { res in
             guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
                 Issue.record("Failed to decode response body as UTF-8 string")

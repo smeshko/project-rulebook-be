@@ -59,7 +59,8 @@ struct AuthSignupTests {
                 Issue.record("User password is nil")
                 return
             }
-            #expect(try BCryptDigest().verify("password123", created: password))
+            // In test environment, passwords are stored as plaintext (configured in TestWorld)
+            #expect(password == "password123", "Password should be stored as plaintext in test environment")
             
             // TODO: Restore email token verification when email verification is re-enabled
             // let emailToken = try await app.repositories.emailTokens.find(forUserID: content.user.id)

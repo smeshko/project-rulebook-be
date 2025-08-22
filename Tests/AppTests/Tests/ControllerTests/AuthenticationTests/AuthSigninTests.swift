@@ -17,8 +17,6 @@ struct AuthSigninTests {
     
     @Test("User can login with valid credentials")
     func loginHappyPath() async throws {
-        app.passwords.use(.plaintext)
-        
         let user = try UserAccountModel.mock(app: app)
         
         try await app.repositories.users.create(user)
@@ -47,8 +45,6 @@ struct AuthSigninTests {
     
     @Test("Login fails with incorrect password")
     func loginWithIncorrectPasswordFails() async throws {
-        app.passwords.use(.plaintext)
-
         let user = try UserAccountModel.mock(app: app)
 
         try await app.repositories.users.create(user)
@@ -62,8 +58,6 @@ struct AuthSigninTests {
     
     @Test("Login requires email verification")
     func loginRequiresEmailVerification() async throws {
-        app.passwords.use(.plaintext)
-        
         let user = try UserAccountModel.mock(app: app, isEmailVerified: false)
 
         try await app.repositories.users.create(user)
@@ -77,8 +71,6 @@ struct AuthSigninTests {
     
     @Test("Login removes old refresh tokens")
     func loginDeletesOldRefreshTokens() async throws {
-        app.passwords.use(.plaintext)
-        
         let user = try UserAccountModel.mock(app: app)
 
         try await app.repositories.users.create(user)

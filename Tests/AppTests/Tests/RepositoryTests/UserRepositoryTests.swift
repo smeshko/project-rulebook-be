@@ -14,6 +14,17 @@ struct UserRepositoryTests {
         self.app = testWorld.app
         self.repository = DatabaseUserRepository(database: app.db)
         try await app.autoMigrate()
+        
+        // Clear any existing data from shared database
+        try await clearDatabaseData()
+    }
+    
+    private func clearDatabaseData() async throws {
+        // Clear all data from tables in reverse dependency order to avoid foreign key constraints
+        try await RefreshTokenModel.query(on: app.db).delete()
+        try await EmailTokenModel.query(on: app.db).delete() 
+        try await PasswordTokenModel.query(on: app.db).delete()
+        try await UserAccountModel.query(on: app.db).delete()
     }
     
     @Test("DatabaseUserRepository can be instantiated with database")
@@ -32,6 +43,9 @@ struct UserRepositoryTests {
         
         let userRetrieved = try await UserAccountModel.find(user.id, on: app.db)
         #expect(userRetrieved != nil)
+        
+        // Cleanup
+        try await clearDatabaseData()
     }
     
     @Test("User can be deleted")
@@ -48,14 +62,25 @@ struct UserRepositoryTests {
     
     @Test("Repository can retrieve all users")
     func getAllUsers() async throws {
-        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
-        let user2 = UserAccountModel(email: "test2@test.com", password: "123")
+        // Clean database before this test to ensure clean state
+        try await clearDatabaseData()
         
-        try await user.create(on: app.db)
+        let user1Email = "test-\(UUID().uuidString.lowercased())@test.com"
+        let user2Email = "test2-\(UUID().uuidString.lowercased())@test.com"
+        
+        let user1 = UserAccountModel(email: user1Email, password: "123")
+        let user2 = UserAccountModel(email: user2Email, password: "123")
+        
+        try await user1.create(on: app.db)
         try await user2.create(on: app.db)
         
         let users = try await repository.all()
         #expect(users.count == 2)
+        
+        // Verify that our specific users are included
+        let foundEmails = Set(users.map { $0.email })
+        #expect(foundEmails.contains(user1Email))
+        #expect(foundEmails.contains(user2Email))
     }
     
     @Test("User can be found by ID")
@@ -78,16 +103,18 @@ struct UserRepositoryTests {
 
     @Test("User can be found by email")
     func findByEmail() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123", appleUserIdentifier: "1")
+        let email = "test-find-\(UUID().uuidString.lowercased())@test.com"
+        let user = UserAccountModel(email: email, password: "123", appleUserIdentifier: "1")
         try await user.create(on: app.db)
         
-        let foundUser = try await repository.find(email: "test@test.com")
+        let foundUser = try await repository.find(email: email)
         #expect(foundUser != nil)
     }
 
     @Test("User field values can be updated")
     func setFieldValue() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123", isEmailVerified: false)
+        let email = "test-update-\(UUID().uuidString.lowercased())@test.com"
+        let user = UserAccountModel(email: email, password: "123", isEmailVerified: false)
         try await user.create(on: app.db)
         user.isEmailVerified = true
         try await repository.update(user)

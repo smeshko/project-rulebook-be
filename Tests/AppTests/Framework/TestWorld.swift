@@ -82,6 +82,9 @@ private class TestWorldPreConfiguration {
     }
     
     func setupTestServices() {
+        // Configure plaintext password hasher for consistent testing BEFORE ServiceRegistry setup
+        app.passwords.use(.plaintext)
+        
         // Register test/mock external services in service registry BEFORE it gets finalized
         // This ensures ExternalServiceProvider doesn't override them
         
@@ -260,6 +263,9 @@ class TestWorld: @unchecked Sendable {
     
     private func setupJWT() async throws {
         try app.jwt.signers.use(.es256(key: .generate()))
+        // Password hasher is now configured in TestWorldPreConfiguration
+        // HTTP clients are automatically initialized when accessed
+        // No explicit initialization needed
     }
     
     private func setupRepositories() {

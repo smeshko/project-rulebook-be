@@ -8,25 +8,41 @@ struct ConfigurationTests {
     
     @Test("Development configuration provides correct defaults from environment")
     func developmentConfigurationDefaults() async throws {
-        // Test development configuration behavior - this test verifies what development
-        // configuration returns with current environment variables. It uses the .env file loaded
-        // for the given environemtn, in this case .env.testing
-        try await setupApp()
+        // Set up testing environment variables to simulate .env.testing being loaded
+        setenv("DATABASE_NAME", "test_db", 1)
+        setenv("DATABASE_USERNAME", "test_user", 1)
+        setenv("DATABASE_PASSWORD", "test_password", 1)
+        setenv("BREVO_API_KEY", "test_brevo_key", 1)
+        setenv("OPENAI_KEY", "test_openai_key", 1)
+        setenv("AWS_S3_BUCKET_NAME", "test-bucket", 1)
+        setenv("CACHE_MAX_ENTRIES", "100", 1)
+        setenv("CACHE_RULES_TTL", "300", 1)
+        
+        defer {
+            // Clean up environment variables after test
+            unsetenv("DATABASE_NAME")
+            unsetenv("DATABASE_USERNAME")
+            unsetenv("DATABASE_PASSWORD")
+            unsetenv("BREVO_API_KEY")
+            unsetenv("OPENAI_KEY")
+            unsetenv("AWS_S3_BUCKET_NAME")
+            unsetenv("CACHE_MAX_ENTRIES")
+            unsetenv("CACHE_RULES_TTL")
+        }
+        
         let config = DevelopmentConfiguration()
         
         let db = try config.database
         #expect(db.host == "localhost")
         #expect(db.port == 5432)
-        // DevelopmentConfiguration uses environment variables when set, fallbacks otherwise
-        #expect(db.name == "test_db")  // From DATABASE_NAME env.testing var
-        #expect(db.username == "test_user")  // From DATABASE_USERNAME env.testing var
-        #expect(db.password == "test_password")  // From DATABASE_PASSWORD env.testing var
+        #expect(db.name == "test_db")
+        #expect(db.username == "test_user")
+        #expect(db.password == "test_password")
         
         let services = try config.services
         #expect(services.brevoURL == "https://api.brevo.com")
-        #expect(services.brevoAPIKey == "test_brevo_key")  // From .env.testing (loaded by test suite)
-        // OpenAI key from .env.testing
-        #expect(services.openAIKey == "test_openai_key")  // From .env.testing
+        #expect(services.brevoAPIKey == "test_brevo_key")
+        #expect(services.openAIKey == "test_openai_key")
         
         let security = try config.security
         #expect(security.baseURL == "http://localhost:8080")
@@ -35,11 +51,11 @@ struct ConfigurationTests {
         
         let aws = try config.aws
         #expect(aws.region == "us-west-2")
-        #expect(aws.s3BucketName == "test-bucket")  // From .env.testing (loaded by test suite)
+        #expect(aws.s3BucketName == "test-bucket")
         
         let cache = try config.cache
-        #expect(cache.maxEntries == 100)  // From .env.testing (loaded by test suite)
-        #expect(cache.rulesGenerationTTL == 300.0)  // From .env.testing (loaded by test suite)
+        #expect(cache.maxEntries == 100)
+        #expect(cache.rulesGenerationTTL == 300.0)
         
         #expect(throws: Never.self) { try config.validate() }
     }
@@ -109,16 +125,29 @@ struct ConfigurationTests {
     
     @Test("Cache configuration provides correct defaults")
     func cacheConfigurationDefaults() async throws {
-        try await setupApp()
+        // Set up testing environment variables to simulate .env.testing being loaded
+        setenv("CACHE_MAX_ENTRIES", "100", 1)
+        setenv("CACHE_RULES_TTL", "300", 1)
+        setenv("CACHE_IMAGE_TTL", "300", 1)
+        setenv("CACHE_CLEANUP_INTERVAL", "60", 1)
+        setenv("CACHE_ENABLE_LOGGING", "false", 1)
+        
+        defer {
+            unsetenv("CACHE_MAX_ENTRIES")
+            unsetenv("CACHE_RULES_TTL")
+            unsetenv("CACHE_IMAGE_TTL")
+            unsetenv("CACHE_CLEANUP_INTERVAL")
+            unsetenv("CACHE_ENABLE_LOGGING")
+        }
+        
         let devConfig = DevelopmentConfiguration()
         let cache = try devConfig.cache
         
-        // DevelopmentConfiguration uses .env.testing values when they're loaded
-        #expect(cache.maxEntries == 100)  // From .env.testing
-        #expect(cache.rulesGenerationTTL == 300.0)  // From .env.testing
-        #expect(cache.imageAnalysisTTL == 300.0)  // From .env.testing
-        #expect(cache.cleanupInterval == 60.0)  // From .env.testing
-        #expect(cache.enableLogging == false)  // From .env.testing (disabled)
+        #expect(cache.maxEntries == 100)
+        #expect(cache.rulesGenerationTTL == 300.0)
+        #expect(cache.imageAnalysisTTL == 300.0)
+        #expect(cache.cleanupInterval == 60.0)
+        #expect(cache.enableLogging == false)
         
         let testConfig = TestingConfiguration()
         let testCache = try testConfig.cache
@@ -131,6 +160,14 @@ struct ConfigurationTests {
     
     @Test("Security configuration provides correct defaults")
     func securityConfigurationDefaults() async throws {
+        setenv("RATE_LIMIT_MAX_REQUESTS", "1000", 1)
+        setenv("RATE_LIMIT_WINDOW_MINUTES", "1", 1)
+        
+        defer {
+            unsetenv("RATE_LIMIT_MAX_REQUESTS")
+            unsetenv("RATE_LIMIT_WINDOW_MINUTES")
+        }
+        
         let devConfig = DevelopmentConfiguration()
         let security = try devConfig.security
         
@@ -138,8 +175,8 @@ struct ConfigurationTests {
         #expect(security.corsAllowedOrigins.contains("http://localhost:3000"))
         #expect(security.corsAllowedOrigins.contains("http://localhost:8080"))
         
-        // Check rate limiting - from .env.testing when loaded
-        #expect(security.rateLimitMaxRequests == 1000)  // From .env.testing
+        // Check rate limiting
+        #expect(security.rateLimitMaxRequests == 1000)
         #expect(security.rateLimitWindowMinutes == 1)
         
         let testConfig = TestingConfiguration()
@@ -152,12 +189,18 @@ struct ConfigurationTests {
     
     @Test("AWS configuration provides correct defaults")
     func awsConfigurationDefaults() async throws {
-        try await setupApp()
+        setenv("AWS_S3_BUCKET_NAME", "test-bucket", 1)
+        setenv("AWS_ACCESS_KEY", "test_access_key", 1)
+        
+        defer {
+            unsetenv("AWS_S3_BUCKET_NAME")
+            unsetenv("AWS_ACCESS_KEY")
+        }
+        
         let devConfig = DevelopmentConfiguration()
         let aws = try devConfig.aws
         
         #expect(aws.region == "us-west-2")
-        // From .env.testing when loaded
         #expect(aws.s3BucketName == "test-bucket")
         #expect(aws.accessKey == "test_access_key")
         
@@ -170,11 +213,17 @@ struct ConfigurationTests {
     
     @Test("APNS configuration provides correct defaults")
     func apnsConfigurationDefaults() async throws {
-        try await setupApp()
+        setenv("APNS_TEAM_ID", "TEST_TEAM_ID", 1)
+        setenv("APNS_KEY", "test_apns_key", 1)
+        
+        defer {
+            unsetenv("APNS_TEAM_ID")
+            unsetenv("APNS_KEY")
+        }
+        
         let devConfig = DevelopmentConfiguration()
         let apns = try devConfig.apns
         
-        // From .env.testing when loaded
         #expect(apns.teamId == "TEST_TEAM_ID")
         #expect(apns.key == "test_apns_key")
         
