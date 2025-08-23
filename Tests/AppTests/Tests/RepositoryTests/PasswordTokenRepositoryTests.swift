@@ -2,17 +2,18 @@
 import Fluent
 import VaporTesting
 import Testing
+import Crypto
 
 @Suite(.serialized)
 struct PasswordTokenRepositoryTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let repository: any PasswordTokenRepository
     let userRepository: any UserRepository
     let user: UserAccountModel
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         self.app = testWorld.app
         self.repository = testWorld.passwordTokens
         self.userRepository = testWorld.users
@@ -29,8 +30,9 @@ struct PasswordTokenRepositoryTests {
     @Test("Password token can be found by user ID")
     func findByUserID() async throws {
         let userID = try user.requireID()
-        let tokenValue = "password-\(UUID().uuidString)"
-        let token = PasswordTokenModel(userID: userID, value: tokenValue)
+        let plainToken = "password-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: userID, value: hashedToken)
         try await repository.create(token)
         
         let foundToken = try await repository.find(forUserID: userID)
@@ -39,19 +41,22 @@ struct PasswordTokenRepositoryTests {
     
     @Test("Password token can be found by token value")
     func findByToken() async throws {
-        let tokenValue = "find-\(UUID().uuidString)"
-        let token = PasswordTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "find-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
         try await repository.create(token)
-        let foundToken = try await repository.find(token: tokenValue)
+        let foundToken = try await repository.find(token: plainToken)
         #expect(foundToken != nil)
     }
     
     @Test("Repository can count password tokens")
     func count() async throws {
-        let token1Value = "count1-\(UUID().uuidString)"
-        let token2Value = "count2-\(UUID().uuidString)"
-        let token = PasswordTokenModel(userID: try user.requireID(), value: token1Value)
-        let token2 = PasswordTokenModel(userID: try user.requireID(), value: token2Value)
+        let plainToken1 = "count1-\(UUID().uuidString)"
+        let plainToken2 = "count2-\(UUID().uuidString)"
+        let hashedToken1 = SHA256.hash(plainToken1)
+        let hashedToken2 = SHA256.hash(plainToken2)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken1)
+        let token2 = PasswordTokenModel(userID: try user.requireID(), value: hashedToken2)
         try await repository.create(token)
         try await repository.create(token2)
         let count = try await repository.count()
@@ -60,8 +65,9 @@ struct PasswordTokenRepositoryTests {
     
     @Test("Password token can be created")
     func create() async throws {
-        let tokenValue = "token-\(UUID().uuidString)"
-        let token = PasswordTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "token-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
         try await repository.create(token)
         let foundToken = try await repository.find(id: token.requireID())
         #expect(foundToken != nil)
@@ -69,8 +75,9 @@ struct PasswordTokenRepositoryTests {
     
     @Test("Password token can be deleted")
     func delete() async throws {
-        let tokenValue = "token-\(UUID().uuidString)"
-        let token = PasswordTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "token-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
         try await repository.create(token)
         try await repository.delete(id: token.requireID())
         let count = try await repository.count()

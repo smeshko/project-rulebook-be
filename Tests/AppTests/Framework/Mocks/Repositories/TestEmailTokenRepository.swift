@@ -1,5 +1,6 @@
 @testable import App
 import Vapor
+import Crypto
 
 final class TestEmailTokenRepository: EmailTokenRepository, TestRepository {
     typealias Model = EmailTokenModel
@@ -16,7 +17,8 @@ final class TestEmailTokenRepository: EmailTokenRepository, TestRepository {
     }
     
     func find(token: String) async throws -> EmailTokenModel? {
-        tokens.first(where: { $0.value == token })
+        let hashedToken = SHA256.hash(token)
+        return tokens.first(where: { $0.value == hashedToken })
     }
     
     func find(forUserID id: UUID) async throws -> EmailTokenModel? {

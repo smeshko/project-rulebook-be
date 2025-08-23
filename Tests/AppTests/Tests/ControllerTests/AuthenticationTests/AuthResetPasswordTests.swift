@@ -10,17 +10,18 @@ extension PasswordResetInput: Content {}
 @Suite(.serialized)
 struct AuthResetPasswordTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let path = "api/auth/reset-password"
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
     }
     
     @Test("Password reset creates token for valid user")
     func resetPassword() async throws {
-        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: try app.password.hash("123"))
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await app.repositories.users.create(user)
         
         let resetPasswordRequest = Auth.PasswordReset.Request(email: user.email)
@@ -36,6 +37,7 @@ struct AuthResetPasswordTests {
     
     @Test("Password reset fails with non-existing email")
     func resetPasswordSucceedsWithNonExistingEmail() async throws {
+        await testWorld.resetAll() // Clean state before test
         let resetPasswordRequest = Auth.PasswordReset.Request(email: "none@test.com")
         
         try await app.test(.POST, path, content: resetPasswordRequest, afterResponse: { res in
@@ -45,7 +47,8 @@ struct AuthResetPasswordTests {
 
     @Test("Account can be recovered with valid token")
     func recoverAccount() async throws {
-        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: try app.password.hash("oldpassword"))
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "oldpassword")
         try await app.repositories.users.create(user)
         let plainToken = "passwordtoken"
         let hashedToken = SHA256.hash(plainToken)
@@ -63,7 +66,8 @@ struct AuthResetPasswordTests {
                 Issue.record("User not found after password reset")
                 return
             }
-            #expect(try app.password.verify("newpassword", created: foundUser.password!))
+            // In test environment with plaintext hasher, password should be stored as plaintext
+            #expect(foundUser.password == "newpassword")
             let count = try await app.repositories.passwordTokens.count()
             #expect(count == 0)
         })
@@ -71,6 +75,7 @@ struct AuthResetPasswordTests {
 
     @Test("Account recovery fails with expired token")
     func recoverAccountWithExpiredTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         let plainToken = "passwordtoken"
         let hashedToken = SHA256.hash(plainToken)
         let token = PasswordTokenModel(userID: UUID(), value: hashedToken, expiresAt: Date().addingTimeInterval(-60))
@@ -85,13 +90,14 @@ struct AuthResetPasswordTests {
             }
             #expect(html.contains("Token expired"))
             // Verify token still exists since it was expired (not deleted)
-            let remainingToken = try await app.repositories.passwordTokens.find(token: hashedToken)
+            let remainingToken = try await app.repositories.passwordTokens.find(token: plainToken)
             #expect(remainingToken != nil)
         })
     }
     
     @Test("Account recovery fails with invalid token")
     func recoverAccountWithInvalidTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, "reset-password?token=blah", afterResponse: { res in
             guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
                 Issue.record("Failed to decode response body as UTF-8 string")

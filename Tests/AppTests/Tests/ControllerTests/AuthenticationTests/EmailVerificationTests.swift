@@ -8,16 +8,17 @@ import Testing
 @Suite(.serialized)
 struct EmailVerificationTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let verifyURL = "verify-email"
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
     }
     
     @Test("Email verification succeeds with valid token")
     func verifyingEmailHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
         let plainToken = "token123"
@@ -44,6 +45,7 @@ struct EmailVerificationTests {
     
     @Test("Email verification fails with invalid token")
     func verifyingEmailWithInvalidTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": "blabla"])
         }, afterResponse: { res in
@@ -57,6 +59,7 @@ struct EmailVerificationTests {
     
     @Test("Email verification fails with expired token")
     func verifyingEmailWithExpiredTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
         let plainToken = "token123"

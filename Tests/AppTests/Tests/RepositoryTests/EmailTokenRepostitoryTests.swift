@@ -2,16 +2,17 @@
 import Fluent
 import VaporTesting
 import Testing
+import Crypto
 
 @Suite(.serialized)
 struct EmailTokenRepositoryTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let repository: any EmailTokenRepository
     let user: UserAccountModel
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         self.app = testWorld.app
         self.repository = DatabaseEmailTokenRepository(database: app.db)
         try await app.autoMigrate()
@@ -33,8 +34,9 @@ struct EmailTokenRepositoryTests {
     @Test("Email token can be created")
     func creatingEmailToken() async throws {
         try await user.create(on: app.db)
-        let tokenValue = "email-\(UUID().uuidString)"
-        let emailToken = EmailTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "email-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let emailToken = EmailTokenModel(userID: try user.requireID(), value: hashedToken)
         try await repository.create(emailToken)
         
         let count = try await EmailTokenModel.query(on: app.db).count()
@@ -44,18 +46,20 @@ struct EmailTokenRepositoryTests {
     @Test("Email token can be found by token value")
     func findingEmailTokenByToken() async throws {
         try await user.create(on: app.db)
-        let tokenValue = "email-find-\(UUID().uuidString)"
-        let emailToken = EmailTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "email-find-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let emailToken = EmailTokenModel(userID: try user.requireID(), value: hashedToken)
         try await emailToken.create(on: app.db)
-        let found = try await repository.find(token: tokenValue)
+        let found = try await repository.find(token: plainToken)
         #expect(found != nil)
     }
     
     @Test("Email token can be deleted")
     func deleteEmailToken() async throws {
         try await user.create(on: app.db)
-        let tokenValue = "email-delete-\(UUID().uuidString)"
-        let emailToken = EmailTokenModel(userID: try user.requireID(), value: tokenValue)
+        let plainToken = "email-delete-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let emailToken = EmailTokenModel(userID: try user.requireID(), value: hashedToken)
         try await emailToken.create(on: app.db)
         try await repository.delete(id: emailToken.requireID())
         let count = try await EmailTokenModel.query(on: app.db).count()

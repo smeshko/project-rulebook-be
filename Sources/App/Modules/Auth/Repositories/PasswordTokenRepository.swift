@@ -1,5 +1,6 @@
 import Fluent
 import Vapor
+import Crypto
 
 protocol PasswordTokenRepository: Repository {
     func find(forUserID id: UUID) async throws -> PasswordTokenModel?
@@ -23,8 +24,9 @@ struct DatabasePasswordTokenRepository: PasswordTokenRepository, DatabaseReposit
      }
     
     func find(token: String) async throws -> PasswordTokenModel? {
-        try await PasswordTokenModel.query(on: database)
-            .filter(\.$value == token)
+        let hashedToken = SHA256.hash(token)
+        return try await PasswordTokenModel.query(on: database)
+            .filter(\.$value == hashedToken)
             .with(\.$user)
             .first()
     }

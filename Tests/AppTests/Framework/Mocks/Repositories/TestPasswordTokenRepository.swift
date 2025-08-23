@@ -1,5 +1,6 @@
 @testable import App
 import Vapor
+import Crypto
 
 final class TestPasswordTokenRepository: PasswordTokenRepository, TestRepository {
     var tokens: [PasswordTokenModel]
@@ -16,7 +17,8 @@ final class TestPasswordTokenRepository: PasswordTokenRepository, TestRepository
     }
     
     func find(token: String) async throws -> PasswordTokenModel? {
-        tokens.first(where: { $0.value == token })
+        let hashedToken = SHA256.hash(token)
+        return tokens.first(where: { $0.value == hashedToken })
     }
     
     func find(forUserID id: UUID) async throws -> PasswordTokenModel? {
@@ -41,6 +43,7 @@ final class TestPasswordTokenRepository: PasswordTokenRepository, TestRepository
     }
     
     func delete(id: UUID) async throws {
+        guard tokens.count > 0 else { return }
         tokens.removeAll(where: { $0.id == id })
     }
     
