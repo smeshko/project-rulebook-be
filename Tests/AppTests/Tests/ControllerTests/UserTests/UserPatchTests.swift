@@ -10,12 +10,12 @@ extension User.Update.Request: Content {}
 struct UserPatchTests {
     let app: Application
     let user: UserAccountModel
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let request: User.Update.Request
     let patchPath = "api/user/update"
 
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
         user = try UserAccountModel.mock(app: app)
         request = .init(
@@ -27,6 +27,7 @@ struct UserPatchTests {
     
     @Test("User patch updates user details successfully")
     func patchHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
                 
         try await app.test(.PATCH, patchPath, user: user, content: request, afterResponse: { res in
@@ -40,6 +41,7 @@ struct UserPatchTests {
     
     @Test("User patch fails when not logged in")
     func patchNotLoggedIn() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.test(.PATCH, patchPath, content: request, afterResponse: { response in
             #expect(response.status == .unauthorized)
         })
@@ -47,6 +49,7 @@ struct UserPatchTests {
     
     @Test("User patch allows partial updates")
     func patchPartialUpdate() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
 
         // Test updating only email
@@ -68,6 +71,7 @@ struct UserPatchTests {
     
     @Test("User patch handles empty values")
     func patchWithEmptyValues() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
 
         // Test with empty strings (should be treated as nil/no change)

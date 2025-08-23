@@ -7,16 +7,17 @@ import Testing
 @Suite(.serialized)
 struct UserGetCurrentUserTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let path = "api/user/me"
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
     }
     
     @Test("Get current user returns user details")
     func currentUserHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app, email: "test@test.com")
         try await app.repositories.users.create(user)
         
@@ -34,6 +35,7 @@ struct UserGetCurrentUserTests {
     
     @Test("Get current user fails when not logged in")
     func currentUserNotLoggedIn() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, path) { response in
             #expect(response.status == .unauthorized)
         }

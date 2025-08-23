@@ -103,6 +103,13 @@ private class TestWorldPreConfiguration {
     }
 }
 
+/// ⚠️ DEPRECATED: Use IsolatedTestWorld instead for new tests.
+///
+/// This TestWorld class uses shared singletons that can cause test interference
+/// between concurrent Swift Testing suites. For new tests, use IsolatedTestWorld
+/// which provides complete suite-level isolation.
+///
+/// @deprecated Use IsolatedTestWorld for new tests
 /// Enhanced test world for comprehensive testing with mock services and repositories.
 ///
 /// TestWorld provides a complete testing environment with all necessary mock services

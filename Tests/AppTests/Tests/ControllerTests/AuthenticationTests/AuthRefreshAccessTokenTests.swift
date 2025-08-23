@@ -9,18 +9,19 @@ extension Auth.TokenRefresh.Request: Content {}
 @Suite(.serialized)
 struct AuthRefreshAccessTokenTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let accessTokenPath = "api/auth/refresh"
     let user: UserAccountModel
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
         self.user = UserAccountModel(email: "test@test.com", password: "123")
     }
     
     @Test("Access token can be refreshed with valid refresh token")
     func refreshAccessToken() async throws {
+        await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
         // No need to reconfigure - just use the TestWorld configured value
         
@@ -52,12 +53,18 @@ struct AuthRefreshAccessTokenTests {
     
     @Test("Token refresh fails with expired refresh token")
     func refreshAccessTokenFailsWithExpiredRefreshToken() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
-        let token = try RefreshTokenModel(value: SHA256.hash("123"), userID: user.requireID(), expiresAt: Date().addingTimeInterval(-60))
+        let expiredTokenValue = "expired_refresh_token_123"
+        let token = try RefreshTokenModel(
+            value: SHA256.hash(expiredTokenValue), 
+            userID: user.requireID(), 
+            expiresAt: Date().addingTimeInterval(-60)
+        )
         
         try await app.repositories.refreshTokens.create(token)
         
-        let accessTokenRequest = Auth.TokenRefresh.Request(refreshToken: "123")
+        let accessTokenRequest = Auth.TokenRefresh.Request(refreshToken: expiredTokenValue)
 
         try await app.test(.POST, accessTokenPath, content: accessTokenRequest, afterResponse: { res in
             expectResponseError(res, AuthenticationError.refreshTokenHasExpired)
@@ -66,6 +73,7 @@ struct AuthRefreshAccessTokenTests {
     
     @Test("Token refresh fails when user doesn't exist")
     func refreshAccessTokenFailsWhenUserDoesntExist() async throws {
+        await testWorld.resetAll() // Clean state before test
         // Create a user that will be deleted
         let tempUser = UserAccountModel(email: "temp@test.com", password: "123")
         try await app.repositories.users.create(tempUser)

@@ -6,26 +6,19 @@ import Testing
 @Suite(.serialized)
 struct UserRepositoryTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let repository: DatabaseUserRepository
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         self.app = testWorld.app
         self.repository = DatabaseUserRepository(database: app.db)
         try await app.autoMigrate()
         
-        // Clear any existing data from shared database
-        try await clearDatabaseData()
+        // Database is automatically clean with IsolatedTestWorld (in-memory SQLite)
+        // No need to clear data as each suite gets its own isolated database
     }
     
-    private func clearDatabaseData() async throws {
-        // Clear all data from tables in reverse dependency order to avoid foreign key constraints
-        try await RefreshTokenModel.query(on: app.db).delete()
-        try await EmailTokenModel.query(on: app.db).delete() 
-        try await PasswordTokenModel.query(on: app.db).delete()
-        try await UserAccountModel.query(on: app.db).delete()
-    }
     
     @Test("DatabaseUserRepository can be instantiated with database")
     func defaultProvider() async throws {
@@ -45,7 +38,6 @@ struct UserRepositoryTests {
         #expect(userRetrieved != nil)
         
         // Cleanup
-        try await clearDatabaseData()
     }
     
     @Test("User can be deleted")
@@ -63,7 +55,6 @@ struct UserRepositoryTests {
     @Test("Repository can retrieve all users")
     func getAllUsers() async throws {
         // Clean database before this test to ensure clean state
-        try await clearDatabaseData()
         
         let user1Email = "test-\(UUID().uuidString.lowercased())@test.com"
         let user2Email = "test2-\(UUID().uuidString.lowercased())@test.com"

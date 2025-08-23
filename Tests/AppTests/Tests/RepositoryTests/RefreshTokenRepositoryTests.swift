@@ -6,13 +6,13 @@ import Testing
 @Suite(.serialized)
 struct RefreshTokenRepositoryTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let repository: any RefreshTokenRepository
     let userRepository: any UserRepository
     let user: UserAccountModel
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         self.app = testWorld.app
         self.repository = testWorld.refreshTokens
         self.userRepository = testWorld.users

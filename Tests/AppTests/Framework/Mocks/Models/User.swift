@@ -11,10 +11,10 @@ extension UserAccountModel {
         isAdmin: Bool = false,
         isEmailVerified: Bool = true
     ) throws -> UserAccountModel {
-        try UserAccountModel(
+        UserAccountModel(
             id: id,
             email: email,
-            password: app.password.hash("password"),
+            password: "password", // Use plaintext password since TestWorld configures plaintext hasher
             firstName: firstName,
             lastName: lastName,
             isAdmin: isAdmin,

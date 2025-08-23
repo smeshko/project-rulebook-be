@@ -5,10 +5,10 @@ import Testing
 @Suite(.serialized)
 struct ServiceContainerTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
     }
     

@@ -7,18 +7,22 @@ import Vapor
 /// This struct provides common functionality for testing individual components in isolation,
 /// with minimal application setup and maximum control over dependencies.
 /// Use this for tests that don't require HTTP functionality or full application stack.
+///
+/// Uses IsolatedTestWorld for complete suite-level isolation, preventing shared state
+/// contamination between concurrent test suites in Swift Testing.
 struct SwiftTestingUnitTestCase {
     let app: Application
+    let testWorld: IsolatedTestWorld
     
-    /// Initializes a new unit test case with minimal application setup.
+    /// Initializes a new unit test case with isolated application setup.
     ///
-    /// Creates a lightweight application instance suitable for unit testing
-    /// with just the essential services configured.
+    /// Creates an IsolatedTestWorld instance suitable for unit testing
+    /// with all necessary services configured in isolation.
     ///
     /// - Throws: Configuration or setup errors
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
-        // Configuration is handled by TestWorld
+        self.testWorld = try await IsolatedTestWorld()
+        self.app = testWorld.app
     }
     
     /// Access to the application instance for service and repository access.

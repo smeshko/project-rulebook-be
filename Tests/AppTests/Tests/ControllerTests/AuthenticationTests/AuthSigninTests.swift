@@ -7,16 +7,17 @@ import Testing
 @Suite(.serialized)
 struct AuthSigninTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     let loginPath = "api/auth/sign-in"
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         app = testWorld.app
     }
     
     @Test("User can login with valid credentials")
     func loginHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)
         
         try await app.repositories.users.create(user)
@@ -36,6 +37,7 @@ struct AuthSigninTests {
     
     @Test("Login fails with non-existing user")
     func loginWithNonExistingUserFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         let loginRequest = Auth.Login.Request(email: "none@login.com", password: "123")
         
         try await app.test(.POST, loginPath, content: loginRequest, afterResponse: { res in
@@ -45,6 +47,7 @@ struct AuthSigninTests {
     
     @Test("Login fails with incorrect password")
     func loginWithIncorrectPasswordFails() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)
 
         try await app.repositories.users.create(user)
@@ -58,6 +61,7 @@ struct AuthSigninTests {
     
     @Test("Login requires email verification")
     func loginRequiresEmailVerification() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app, isEmailVerified: false)
 
         try await app.repositories.users.create(user)
@@ -71,6 +75,7 @@ struct AuthSigninTests {
     
     @Test("Login removes old refresh tokens")
     func loginDeletesOldRefreshTokens() async throws {
+        await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)
 
         try await app.repositories.users.create(user)
