@@ -1,7 +1,7 @@
 @testable import App
 import Fluent
 import FluentSQLiteDriver
-import XCTVapor
+import VaporTesting
 
 /// Shared test repositories that get used across the application
 private final class SharedTestRepositories: @unchecked Sendable {
@@ -28,6 +28,40 @@ private final class SharedTestRepositories: @unchecked Sendable {
     }
 }
 
+/// Global shared test application to prevent resource exhaustion
+/// Only creates a single Application instance for all tests
+private actor SharedTestApplication {
+    static let shared = SharedTestApplication()
+    private var _app: Application?
+    
+    private init() {}
+    
+    func getSharedApp() async throws -> Application {
+        if let app = _app {
+            return app
+        }
+        
+        let app = try await Application.make(.testing)
+        
+        // Pre-configure test repositories and services BEFORE running configure()
+        let testWorld = try TestWorldPreConfiguration(app: app)
+        testWorld.setupTestRepositories() 
+        testWorld.setupTestServices()
+        
+        try configure(app)
+        self._app = app
+        
+        // Reset repositories for clean test state
+        await SharedTestRepositories.shared.reset()
+        
+        return app
+    }
+    
+    func resetRepositories() async {
+        await SharedTestRepositories.shared.reset()
+    }
+}
+
 /// Helper class to set up test repositories before configure() runs
 private class TestWorldPreConfiguration {
     let app: Application
@@ -48,6 +82,9 @@ private class TestWorldPreConfiguration {
     }
     
     func setupTestServices() {
+        // Configure plaintext password hasher for consistent testing BEFORE ServiceRegistry setup
+        app.passwords.use(.plaintext)
+        
         // Register test/mock external services in service registry BEFORE it gets finalized
         // This ensures ExternalServiceProvider doesn't override them
         
@@ -66,6 +103,13 @@ private class TestWorldPreConfiguration {
     }
 }
 
+/// ⚠️ DEPRECATED: Use IsolatedTestWorld instead for new tests.
+///
+/// This TestWorld class uses shared singletons that can cause test interference
+/// between concurrent Swift Testing suites. For new tests, use IsolatedTestWorld
+/// which provides complete suite-level isolation.
+///
+/// @deprecated Use IsolatedTestWorld for new tests
 /// Enhanced test world for comprehensive testing with mock services and repositories.
 ///
 /// TestWorld provides a complete testing environment with all necessary mock services
@@ -90,16 +134,16 @@ class TestWorld: @unchecked Sendable {
     
     /// Initialize TestWorld with comprehensive mock services.
     ///
-    /// Sets up all necessary mocks and configures the application for testing.
-    /// This includes JWT configuration, repository mocks, and service mocks.
+    /// Uses a shared application instance to prevent resource exhaustion
+    /// and ensures clean test state through repository resets.
     ///
-    /// - Parameter app: The Vapor application to configure
     /// - Throws: Configuration errors
-    init(app: Application) throws {
-        self.app = app
+    init() async throws {
+        // Use shared application to prevent resource exhaustion
+        self.app = try await SharedTestApplication.shared.getSharedApp()
         
         // Reset shared repositories to ensure clean state for each test
-        SharedTestRepositories.shared.resetSync()
+        await SharedTestApplication.shared.resetRepositories()
         
         // Initialize mock services
         self.fakeLLMService = FakeLLMService(app: app)
@@ -109,9 +153,29 @@ class TestWorld: @unchecked Sendable {
         // Initialize data factory
         self.dataFactory = TestDataFactory(app: app)
         
-        try setupJWT()
+        try await setupJWT()
         setupRepositories()
-        // Services are now registered in ServiceRegistry during makeTestAppSync()
+    }
+    
+    /// Legacy initializer for backward compatibility
+    /// - Parameter app: The Vapor application to configure
+    /// - Throws: Configuration errors
+    init(app: Application) async throws {
+        self.app = app
+        
+        // Reset shared repositories to ensure clean state for each test
+        await SharedTestRepositories.shared.reset()
+        
+        // Initialize mock services
+        self.fakeLLMService = FakeLLMService(app: app)
+        self.mockAICacheService = MockAICacheService(app: app)
+        self.constantUUIDGenerator = ConstantUUIDGeneratorService(app: app)
+        
+        // Initialize data factory
+        self.dataFactory = TestDataFactory(app: app)
+        
+        try await setupJWT()
+        setupRepositories()
     }
     
     // MARK: - Public Access to Mock Services
@@ -204,8 +268,11 @@ class TestWorld: @unchecked Sendable {
     
     // MARK: - Private Setup Methods
     
-    private func setupJWT() throws {
+    private func setupJWT() async throws {
         try app.jwt.signers.use(.es256(key: .generate()))
+        // Password hasher is now configured in TestWorldPreConfiguration
+        // HTTP clients are automatically initialized when accessed
+        // No explicit initialization needed
     }
     
     private func setupRepositories() {
@@ -250,12 +317,11 @@ class TestWorld: @unchecked Sendable {
         return app
     }
     
-    /// Creates a TestWorld with a new async application.
+    /// Creates a TestWorld with shared application instance.
     ///
-    /// - Returns: TestWorld instance with async application
+    /// - Returns: TestWorld instance with shared application
     /// - Throws: Configuration or setup errors
     static func make() async throws -> TestWorld {
-        let app = try await makeTestApp()
-        return try TestWorld(app: app)
+        return try await TestWorld()
     }
 }

@@ -9,6 +9,7 @@ import Crypto
 ///
 /// This test suite validates JWT token refresh logic including token rotation,
 /// security validation, and proper cleanup of expired tokens.
+@Suite(.serialized)
 final class RefreshTokenUseCaseTests {
     
     /// Test successful token refresh with token rotation.
@@ -387,7 +388,7 @@ private class TestJWTSigner {
     
     init() throws {
         let key = "test-key-for-signing-jwt-tokens-in-tests".data(using: .utf8)!
-        self.realSigner = try JWTSigner.hs256(key: key)
+        self.realSigner = JWTSigner.hs256(key: key)
     }
     
     func sign<Payload: JWTPayload>(_ payload: Payload) throws -> String {

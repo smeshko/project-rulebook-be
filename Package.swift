@@ -33,13 +33,15 @@ let package = Package(
                 .product(name: "Redis", package: "redis"),
             ]
         ),
-        .testTarget(name: "AppTests", dependencies: [
-            .target(name: "App"),
-            .product(name: "XCTVapor", package: "vapor"),
-            .product(name: "VaporTesting", package: "vapor"),
-            .product(name: "Vapor", package: "vapor"),
-            .product(name: "Fluent", package: "Fluent")
-        ], exclude: [
+        .testTarget(
+            name: "AppTests", 
+            dependencies: [
+                .target(name: "App"),
+                .product(name: "VaporTesting", package: "vapor"),
+                .product(name: "Vapor", package: "vapor"),
+                .product(name: "Fluent", package: "Fluent")
+            ],
+            exclude: [
             "Performance/PerformanceTestSuite.swift.disabled",
             "Performance/Load/APILoadTests.swift.disabled", 
             "Performance/Repository/RepositoryPerformanceTests.swift.disabled",

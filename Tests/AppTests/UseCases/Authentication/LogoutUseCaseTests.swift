@@ -6,6 +6,7 @@ import Vapor
 ///
 /// This test suite shows how to test use cases in isolation from controllers
 /// and HTTP concerns, focusing purely on business logic validation.
+@Suite(.serialized)
 final class LogoutUseCaseTests {
     
     /// Test that logout use case successfully deletes refresh tokens.

@@ -1,36 +1,37 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
+import Testing
 
-final class UserDeleteTests: XCTestCase {
-    var app: Application!
-    var user: UserAccountModel!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct UserDeleteTests {
+    let app: Application
+    let user: UserAccountModel
+    let testWorld: IsolatedTestWorld
     let deletePath = "api/user/delete"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        testWorld = try TestWorld(app: app)
-        
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
         user = try UserAccountModel.mock(app: app)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testDeleteHappyPath() async throws {
+    @Test("User delete removes user successfully")
+    func deleteHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
         try await app.test(.DELETE, deletePath, user: user) { response in
             let users = try await app.repositories.users.all()
-            XCTAssertEqual(response.status, .ok)
-            XCTAssertEqual(users.count, 0)
+            #expect(response.status == .ok)
+            #expect(users.count == 0)
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() throws {
-        try app.test(.DELETE, deletePath) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+    @Test("User delete fails when not authenticated")
+    func deleteUnauthenticatedRequestShouldFail() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.DELETE, deletePath) { response in
+            #expect(response.status == .unauthorized)
         }
     }
 }

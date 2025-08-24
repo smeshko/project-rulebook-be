@@ -6,6 +6,7 @@ import Vapor
 ///
 /// This test suite validates user listing operations including pagination, filtering,
 /// administrative access controls, and bulk data handling for admin interfaces.
+@Suite(.serialized)
 final class ListUsersUseCaseTests {
     
     /// Test successful user listing with basic parameters.

@@ -1,5 +1,5 @@
 @testable import App
-import XCTVapor
+import VaporTesting
 
 extension Application {
     // Authenticated test method
@@ -11,11 +11,11 @@ extension Application {
         accessToken: String? = nil,
         user: UserAccountModel? = nil,
         content: C,
-        beforeRequest: (inout XCTHTTPRequest) async throws -> () = { _ in },
-        afterResponse: (XCTHTTPResponse) async throws -> () = { _ in },
+        beforeRequest: (inout TestingHTTPRequest) async throws -> () = { _ in },
+        afterResponse: (TestingHTTPResponse) async throws -> () = { _ in },
         file: StaticString = #file,
         line: UInt = #line
-    ) async throws -> XCTApplicationTester {
+    ) async throws -> TestingApplicationTester {
         var headers = headers
         
         if let token = accessToken {
@@ -39,10 +39,10 @@ extension Application {
         _ path: String,
         headers: HTTPHeaders = [:],
         user: UserAccountModel,
-        afterResponse: (XCTHTTPResponse) async throws -> () = { _ in },
+        afterResponse: (TestingHTTPResponse) async throws -> () = { _ in },
         file: StaticString = #file,
         line: UInt = #line
-    ) async throws -> XCTApplicationTester {
+    ) async throws -> TestingApplicationTester {
         let payload = try TokenPayload(with: user)
         let accessToken = try self.jwt.signers.sign(payload)
         var headers = headers

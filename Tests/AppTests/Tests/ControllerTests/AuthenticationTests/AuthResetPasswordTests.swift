@@ -1,52 +1,57 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
+import Testing
 
 extension Auth.PasswordReset.Request: Content {}
 extension PasswordResetInput: Content {}
 
-final class AuthResetPasswordTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct AuthResetPasswordTests {
+    let app: Application
+    let testWorld: IsolatedTestWorld
     let path = "api/auth/reset-password"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testResetPassword() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+    @Test("Password reset creates token for valid user")
+    func resetPassword() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await app.repositories.users.create(user)
         
-        let resetPasswordRequest = Auth.PasswordReset.Request(email: "test@test.com")
+        let resetPasswordRequest = Auth.PasswordReset.Request(email: user.email)
         
         try await app.test(.POST, path, beforeRequest: { req in
             try req.content.encode(resetPasswordRequest)
         }, afterResponse: { res in
-            XCTAssertEqual(res.status, .ok)
+            #expect(res.status == .ok)
             let count = try await app.repositories.passwordTokens.count()
-            XCTAssertEqual(count, 1)
+            #expect(count == 1)
         })
     }
     
-    func testResetPasswordSucceedsWithNonExistingEmail() async throws {
+    @Test("Password reset fails with non-existing email")
+    func resetPasswordFailsWithNonExistingEmail() async throws {
+        await testWorld.resetAll() // Clean state before test
         let resetPasswordRequest = Auth.PasswordReset.Request(email: "none@test.com")
         
         try await app.test(.POST, path, content: resetPasswordRequest, afterResponse: { res in
-            XCTAssertResponseError(res, UserError.userNotFound)
+            expectResponseError(res, UserError.userNotFound)
         })
     }
 
-    func testRecoverAccount() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "oldpassword")
+    @Test("Account can be recovered with valid token")
+    func recoverAccount() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "oldpassword")
         try await app.repositories.users.create(user)
-        let hashedToken = SHA256.hash("passwordtoken")
+        let plainToken = "passwordtoken"
+        let hashedToken = SHA256.hash(plainToken)
         let tokenModel = try PasswordTokenModel(userID: user.requireID(), value: hashedToken)
         tokenModel.$user.value = user
         
@@ -54,35 +59,51 @@ final class AuthResetPasswordTests: XCTestCase {
         
         let recoverRequest = PasswordResetInput(password: "newpassword", confirmPassword: "newpassword")
         
-        try await app.test(.POST, "reset-password?token=\(hashedToken)", content: recoverRequest, afterResponse: { res in
-            XCTAssertEqual(res.status, .ok)
-            let user = try await app.repositories.users.find(id: user.requireID())!
-            try XCTAssertTrue(BCryptDigest().verify("newpassword", created: user.password!))
+        try await app.test(.POST, "reset-password?token=\(plainToken)", content: recoverRequest, afterResponse: { res in
+            #expect(res.status == .ok)
+            let foundUser = try await app.repositories.users.find(id: user.requireID())
+            guard let foundUser else {
+                Issue.record("User not found after password reset")
+                return
+            }
+            // In test environment with plaintext hasher, password should be stored as plaintext
+            #expect(foundUser.password == "newpassword")
             let count = try await app.repositories.passwordTokens.count()
-            XCTAssertEqual(count, 0)
+            #expect(count == 0)
         })
     }
 
-    func testRecoverAccountWithExpiredTokenFails() async throws {
-        let hashedToken = SHA256.hash("passwordtoken")
+    @Test("Account recovery fails with expired token")
+    func recoverAccountWithExpiredTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let plainToken = "passwordtoken"
+        let hashedToken = SHA256.hash(plainToken)
         let token = PasswordTokenModel(userID: UUID(), value: hashedToken, expiresAt: Date().addingTimeInterval(-60))
         try await app.repositories.passwordTokens.create(token)
         
         try await app.test(.GET, "reset-password", beforeRequest: { req in
-            try req.query.encode(["token": hashedToken])
+            try req.query.encode(["token": plainToken])
         }, afterResponse: { res in
-            let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
-            XCTAssertTrue(html.contains("Token expired"))
+            guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
+                Issue.record("Failed to decode response body as UTF-8 string")
+                return
+            }
+            #expect(html.contains("Token expired"))
             // Verify token still exists since it was expired (not deleted)
-            let remainingToken = try await app.repositories.passwordTokens.find(token: hashedToken)
-            XCTAssertNotNil(remainingToken)
+            let remainingToken = try await app.repositories.passwordTokens.find(token: plainToken)
+            #expect(remainingToken != nil)
         })
     }
     
-    func testRecoverAccountWithInvalidTokenFails() throws {
-        try app.test(.GET, "reset-password?token=blah", afterResponse: { res in
-            let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
-            XCTAssertTrue(html.contains("Token not found"))
+    @Test("Account recovery fails with invalid token")
+    func recoverAccountWithInvalidTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.GET, "reset-password?token=blah", afterResponse: { res in
+            guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
+                Issue.record("Failed to decode response body as UTF-8 string")
+                return
+            }
+            #expect(html.contains("Token not found"))
         })
     }
 }

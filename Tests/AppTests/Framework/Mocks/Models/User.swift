@@ -5,16 +5,16 @@ extension UserAccountModel {
     static func mock(
         app: Application,
         id: UUID = .init(),
-        email: String = "test@test.com",
+        email: String = "test-\(UUID().uuidString.lowercased())@test.com",
         firstName: String? = "John",
         lastName: String? = "Doe",
         isAdmin: Bool = false,
         isEmailVerified: Bool = true
     ) throws -> UserAccountModel {
-        try UserAccountModel(
+        UserAccountModel(
             id: id,
             email: email,
-            password: app.password.hash("password"),
+            password: "password", // Use plaintext password since TestWorld configures plaintext hasher
             firstName: firstName,
             lastName: lastName,
             isAdmin: isAdmin,

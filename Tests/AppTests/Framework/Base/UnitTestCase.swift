@@ -1,30 +1,28 @@
-@testable import App
-import XCTest
+import Testing
 import Vapor
+@testable import App
 
-/// Base test case for unit tests that test individual services, repositories, and business logic.
+/// Unit test case for isolated business logic testing.
 /// 
-/// This class provides common functionality for testing individual components in isolation,
+/// This struct provides common functionality for testing individual components in isolation,
 /// with minimal application setup and maximum control over dependencies.
 /// Use this for tests that don't require HTTP functionality or full application stack.
-final class UnitTestCase {
-    private let app: Application
+///
+/// Uses IsolatedTestWorld for complete suite-level isolation, preventing shared state
+/// contamination between concurrent test suites in Swift Testing.
+struct UnitTestCase {
+    let app: Application
+    let testWorld: IsolatedTestWorld
     
-    /// Initializes a new unit test case with minimal application setup.
+    /// Initializes a new unit test case with isolated application setup.
     ///
-    /// Creates a lightweight application instance suitable for unit testing
-    /// with just the essential services configured.
+    /// Creates an IsolatedTestWorld instance suitable for unit testing
+    /// with all necessary services configured in isolation.
     ///
     /// - Throws: Configuration or setup errors
     init() async throws {
-        self.app = try TestWorld.makeTestAppSync()
-        // Configuration is handled by TestWorld
-    }
-    
-    /// Cleans up resources and shuts down the application.
-    /// Should be called from test tearDown methods.
-    func shutdown() async throws {
-        try await app.asyncShutdown()
+        self.testWorld = try await IsolatedTestWorld()
+        self.app = testWorld.app
     }
     
     /// Access to the application instance for service and repository access.
@@ -47,5 +45,4 @@ final class UnitTestCase {
             on: app.eventLoopGroup.next()
         )
     }
-    
 }

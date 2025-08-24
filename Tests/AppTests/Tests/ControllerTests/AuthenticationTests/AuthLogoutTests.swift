@@ -1,37 +1,43 @@
 @testable import App
-import XCTVapor
+import VaporTesting
+import Testing
+import Crypto
 
-final class AuthLogoutTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct AuthLogoutTests {
+    let app: Application
+    let testWorld: IsolatedTestWorld
     let logoutPath = "api/auth/logout"
-    var user: UserAccountModel!
+    let user: UserAccountModel
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
-        
-        user = try UserAccountModel.mock(app: app)
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
+        self.user = try UserAccountModel.mock(app: app)
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testLogoutHappyPath() async throws {
+    @Test("User can logout successfully")
+    func logoutHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
         
+        // Create a refresh token for the user so logout has something to delete
+        let refreshToken = try RefreshTokenModel(value: SHA256.hash("test_token"), userID: user.requireID())
+        try await app.repositories.refreshTokens.create(refreshToken)
+        
         try await app.test(.POST, logoutPath, user: user) { res in
-            XCTAssertEqual(res.status, .ok)
+            #expect(res.status == .ok)
             
             let count = try await app.repositories.refreshTokens.count()
-            XCTAssertEqual(count, 0)
+            #expect(count == 0)
         }
     }
     
-    func testLogoutNotLoggedIn() throws {
-        try app.test(.POST, logoutPath) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+    @Test("Logout requires authentication")
+    func logoutNotLoggedIn() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.POST, logoutPath) { response in
+            #expect(response.status == .unauthorized)
         }
     }
 }

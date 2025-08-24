@@ -44,7 +44,7 @@ protocol PromptSanitizerServiceInterface: Sendable {
     ///
     /// - Parameter title: The raw game title to sanitize
     /// - Returns: A sanitized game title safe for AI processing
-    /// - Throws: ``ValidationError`` for validation failures or suspicious content
+    /// - Throws: ``AIProcessingError`` for validation failures or suspicious content
     func sanitizeGameTitle(_ title: String) throws -> String
     
     /// Sanitizes generic input text with configurable length limits.
@@ -59,7 +59,7 @@ protocol PromptSanitizerServiceInterface: Sendable {
     ///   - input: The raw text input to sanitize
     ///   - maxLength: Maximum allowed input length (default: 500)
     /// - Returns: Sanitized input safe for processing
-    /// - Throws: ``ValidationError`` for validation failures or suspicious patterns
+    /// - Throws: ``AIProcessingError`` for validation failures or suspicious patterns
     func sanitizeInput(_ input: String, maxLength: Int) throws -> String
     
     /// Removes potentially dangerous characters from input text.
@@ -297,7 +297,7 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
     ///
     /// - Parameter title: The raw game title from user input
     /// - Returns: A sanitized game title safe for AI processing
-    /// - Throws: ``ValidationError`` for various validation failures
+    /// - Throws: ``AIProcessingError`` for various validation failures
     func sanitizeGameTitle(_ title: String) throws -> String {
         // Log sanitization attempt
         logger?.debug("Sanitizing game title input", metadata: [
@@ -306,19 +306,19 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         
         // Basic validation
         guard !title.isEmpty else {
-            throw ValidationError.emptyGameTitle
+            throw AIProcessingError.emptyInput(context: "game_title")
         }
         
         // Remove leading/trailing whitespace
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmed.isEmpty else {
-            throw ValidationError.emptyGameTitle
+            throw AIProcessingError.emptyInput(context: "game_title")
         }
         
         // Check length limits
         guard trimmed.count <= maxGameTitleLength else {
-            throw ValidationError.gameTitleTooLong(maxLength: maxGameTitleLength)
+            throw AIProcessingError.inputTooLarge(maxSize: maxGameTitleLength, context: "game_title")
         }
         
         // Check for injection patterns BEFORE removing characters
@@ -327,7 +327,7 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
             logger?.warning("Potential injection pattern detected in game title", metadata: [
                 "pattern": .string(pattern)
             ])
-            throw ValidationError.suspiciousContent(pattern: pattern)
+            throw AIProcessingError.suspiciousContent(pattern: pattern, context: "game_title")
         }
         
         // Remove dangerous characters
@@ -335,7 +335,7 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         
         // Ensure we still have valid content
         guard sanitized.count >= 2 else {
-            throw ValidationError.gameTitleTooShort
+            throw AIProcessingError.inputTooShort(minSize: 2, context: "game_title")
         }
         
         // Normalize whitespace
@@ -354,19 +354,19 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
     func sanitizeInput(_ input: String, maxLength: Int = 500) throws -> String {
         // Basic validation
         guard !input.isEmpty else {
-            throw ValidationError.emptyInput
+            throw AIProcessingError.emptyInput(context: "generic_input")
         }
         
         // Remove leading/trailing whitespace
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmed.isEmpty else {
-            throw ValidationError.emptyInput
+            throw AIProcessingError.emptyInput(context: "generic_input")
         }
         
         // Check length limits
         guard trimmed.count <= maxLength else {
-            throw ValidationError.inputTooLong(maxLength: maxLength)
+            throw AIProcessingError.inputTooLarge(maxSize: maxLength, context: "generic_input")
         }
         
         // Remove dangerous characters
@@ -374,7 +374,7 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
         
         // Ensure we still have valid content
         guard !sanitized.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw ValidationError.noValidContentAfterSanitization
+            throw AIProcessingError.noValidContentAfterSanitization
         }
         
         // Check for injection patterns
@@ -383,7 +383,7 @@ struct DefaultPromptSanitizerService: PromptSanitizerServiceInterface {
             logger?.warning("Potential injection pattern detected in input", metadata: [
                 "pattern": .string(pattern)
             ])
-            throw ValidationError.suspiciousContent(pattern: pattern)
+            throw AIProcessingError.suspiciousContent(pattern: pattern, context: "generic_input")
         }
         
         // Normalize whitespace

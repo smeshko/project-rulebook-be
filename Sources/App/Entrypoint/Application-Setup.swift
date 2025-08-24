@@ -180,8 +180,9 @@ extension Application {
 
   func setupServices() throws {
     // ServiceRegistry setup (replaces old Vapor DI system completely)
-    // Create a semaphore to block until async setup completes
-    let semaphore = DispatchSemaphore(value: 0)
+    // Use RunLoop-based approach to avoid deadlock in test environments
+    let runLoop = RunLoop.current
+    var setupComplete = false
     var setupError: Error?
     
     Task {
@@ -190,10 +191,18 @@ extension Application {
       } catch {
         setupError = error
       }
-      semaphore.signal()
+      setupComplete = true
     }
     
-    semaphore.wait()
+    // Process run loop until setup completes, but avoid infinite blocking
+    let timeout = Date().addingTimeInterval(30) // 30 second timeout
+    while !setupComplete && Date() < timeout {
+      runLoop.run(mode: .default, before: Date(timeIntervalSinceNow: 0.1))
+    }
+    
+    if !setupComplete {
+      throw ServiceRegistryError.initializationTimeout("Service registry setup timed out after 30 seconds")
+    }
     
     if let error = setupError {
       throw error

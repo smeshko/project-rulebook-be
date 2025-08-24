@@ -1,41 +1,43 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
+import Testing
 
-final class UserGetCurrentUserTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct UserGetCurrentUserTests {
+    let app: Application
+    let testWorld: IsolatedTestWorld
     let path = "api/user/me"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testCurrentUserHappyPath() async throws {
-        let user = try UserAccountModel.mock(app: app)
+    @Test("Get current user returns user details")
+    func currentUserHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let user = try UserAccountModel.mock(app: app, email: "test@test.com")
         try await app.repositories.users.create(user)
         
         try await app.test(.GET, path, user: user) { res in
-            XCTAssertEqual(res.status, .ok)
-            XCTAssertContent(User.Detail.Response.self, res) { userContent in
-                XCTAssertEqual(userContent.email, "test@test.com")
-                XCTAssertEqual(userContent.isAdmin, false)
-                XCTAssertEqual(userContent.firstName, user.firstName)
-                XCTAssertEqual(userContent.lastName, user.lastName)
-                XCTAssertEqual(userContent.id, user.id)
+            #expect(res.status == .ok)
+            expectContent(User.Detail.Response.self, res) { userContent in
+                #expect(userContent.email == "test@test.com")
+                #expect(userContent.isAdmin == false)
+                #expect(userContent.firstName == user.firstName)
+                #expect(userContent.lastName == user.lastName)
+                #expect(userContent.id == user.id)
             }
         }
     }
     
-    func testCurrentUserNotLoggedIn() throws {
-        try app.test(.GET, path) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+    @Test("Get current user fails when not logged in")
+    func currentUserNotLoggedIn() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.GET, path) { response in
+            #expect(response.status == .unauthorized)
         }
     }
 }

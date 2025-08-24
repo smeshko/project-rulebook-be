@@ -123,12 +123,18 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
         )
         
         // Validate GameboxRecognition-specific required fields
-        guard validatedResponse.contains("\"guessedTitle\"") && 
-              validatedResponse.contains("\"confidence\"") else {
+        let requiredFields = ["guessedTitle", "confidence"]
+        let missingFields = requiredFields.filter { !validatedResponse.contains("\"\($0)\"") }
+        
+        guard missingFields.isEmpty else {
             logger.warning("GameboxRecognition response missing required fields", metadata: [
+                "missing_fields": .string(missingFields.joined(separator: ", ")),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
+            throw AIProcessingError.responseMissingFields(
+                fields: missingFields,
+                responseType: "GameboxRecognition"
+            )
         }
         
         // Additional validation for specific fields
@@ -169,13 +175,19 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
         )
         
         // Validate RulesSummary-specific required fields
-        guard validatedResponse.contains("\"title\"") && 
-              validatedResponse.contains("\"summary\"") else {
+        let coreRequiredFields = ["title", "summary"]
+        let missingCoreFields = coreRequiredFields.filter { !validatedResponse.contains("\"\($0)\"") }
+        
+        guard missingCoreFields.isEmpty else {
             logger.warning("RulesSummary response missing required fields", metadata: [
+                "missing_fields": .string(missingCoreFields.joined(separator: ", ")),
                 "game_title": .string(gameTitle),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response missing required fields")
+            throw AIProcessingError.responseMissingFields(
+                fields: missingCoreFields,
+                responseType: "RulesSummary"
+            )
         }
         
         // Additional validation for specific fields
@@ -250,7 +262,10 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                 "context": .string(context),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.payloadTooLarge, reason: "AI response too large")
+            throw AIProcessingError.responseTooLarge(
+                maxSize: ValidationConstants.maxResponseSize,
+                context: context
+            )
         }
         
         // Check minimum size (quality assurance)
@@ -261,7 +276,10 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                 "context": .string(context),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response too short")
+            throw AIProcessingError.responseTooShort(
+                minSize: ValidationConstants.minResponseSize,
+                context: context
+            )
         }
     }
     
@@ -280,7 +298,7 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                 "context": .string(context),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response is not valid JSON")
+            throw AIProcessingError.responseStructureInvalid(context: context)
         }
         
         // Attempt basic JSON parsing to validate structure
@@ -292,7 +310,10 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                 "context": .string(context),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response contains invalid JSON")
+            throw AIProcessingError.responseInvalid(
+                reason: "Invalid JSON structure: \(error.localizedDescription)",
+                responseType: context
+            )
         }
     }
     
@@ -313,7 +334,10 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                     "context": .string(context),
                     "client_ip": .string(clientIP)
                 ])
-                throw Abort(.unprocessableEntity, reason: "AI response contains suspicious content")
+                throw AIProcessingError.suspiciousContent(
+                    pattern: pattern,
+                    context: context
+                )
             }
         }
         
@@ -324,7 +348,7 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
                 "context": .string(context),
                 "client_ip": .string(clientIP)
             ])
-            throw Abort(.unprocessableEntity, reason: "AI response contains suspicious content")
+            throw AIProcessingError.suspiciousBinaryContent(context: context)
         }
     }
 }

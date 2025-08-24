@@ -1,74 +1,84 @@
 import Vapor
 import Foundation
 
-// MARK: - AI Validation Error
+// MARK: - AI Processing Error
 
-/// Errors related to AI input validation and security screening.
+/// Unified error type for all AI processing validation and security screening.
 ///
-/// This enum represents various validation failures that can occur when processing
-/// user inputs for AI services. Each error type corresponds to specific security
-/// or data quality issues that prevent safe processing.
+/// This enum represents all validation failures that can occur during the AI processing
+/// pipeline, from initial input validation through response validation. Each error type
+/// corresponds to specific security or data quality issues that prevent safe processing.
 ///
 /// ## Error Categories
 ///
-/// ### Image Validation Errors
-/// - **Data Issues**: Empty data, oversized files, format problems
-/// - **Security Issues**: Suspicious content, invalid formats
-/// - **Performance Issues**: Size limits to prevent resource exhaustion
+/// ### Input Validation Errors
+/// - **Empty Data**: Required fields that are empty or whitespace-only
+/// - **Size Limits**: Inputs that exceed reasonable length constraints or are too small
+/// - **Format Issues**: Invalid formats, character composition problems
 ///
-/// ### Text Validation Errors  
-/// - **Format Issues**: Invalid game title formats, character composition problems
-/// - **Security Issues**: Prompt injection attempts, suspicious patterns
-/// - **Content Issues**: Repetitive patterns, encoded content attacks
+/// ### Security Errors
+/// - **Injection Attacks**: Prompt injection attempts, suspicious patterns
+/// - **Malicious Content**: Encoded content attacks, suspicious binary data
+/// - **DoS Prevention**: Excessive repetition, oversized inputs
+///
+/// ### AI Response Validation Errors
+/// - **Structure Issues**: Invalid JSON, missing required fields
+/// - **Content Quality**: Insufficient or invalid response content
+/// - **Security Scanning**: Suspicious content in AI responses
+///
+/// ### Image Processing Errors
+/// - **Data Issues**: Empty data, invalid formats, unsupported types
+/// - **Security Issues**: Suspicious image content, malicious data
+/// - **Performance Issues**: Size limits to prevent resource exhaustion
 ///
 /// ## HTTP Response Mapping
 ///
 /// Errors are automatically converted to appropriate HTTP status codes:
 /// - `400 Bad Request`: Invalid format, empty data, general validation failures
-/// - `413 Payload Too Large`: Oversized images or text inputs
-/// - `403 Forbidden`: Security violations, prompt injection attempts
+/// - `413 Payload Too Large`: Oversized inputs or responses
+/// - `403 Forbidden`: Security violations, injection attempts, suspicious content
+/// - `422 Unprocessable Entity`: AI response validation failures
 ///
 /// ## Usage in Security Pipeline
 ///
 /// These errors are thrown by:
 /// - ``AIInputValidatorService`` during input validation
 /// - ``PromptSanitizerService`` during content sanitization
+/// - ``AIResponseValidationService`` during response validation
 /// - Image processing and validation routines
 /// - Security scanning and pattern detection systems
-enum AIValidationError: Error, CustomStringConvertible {
-    /// Image data is empty or not provided.
-    ///
-    /// Thrown when required image data is missing from the request.
-    /// HTTP Status: 400 Bad Request
-    case emptyImageData
+enum AIProcessingError: Error, CustomStringConvertible {
     
-    /// Image exceeds the maximum allowed size limit.
+    // MARK: - Input Validation Errors
+    
+    /// Input is empty or contains only whitespace.
     ///
-    /// Thrown when uploaded images exceed the 10MB size limit to prevent
+    /// Thrown when required input fields are empty after trimming whitespace.
+    /// HTTP Status: 400 Bad Request
+    case emptyInput(context: String)
+    
+    /// Input exceeds maximum allowed length.
+    ///
+    /// Thrown when inputs exceed their configured length limits to prevent
     /// resource exhaustion and potential DoS attacks.
     /// HTTP Status: 413 Payload Too Large
-    case imageTooLarge(maxSizeMB: Int)
+    case inputTooLarge(maxSize: Int, context: String)
     
-    /// Image format is invalid or unsupported.
+    /// Input is too short after processing.
     ///
-    /// Thrown when image data is not valid base64 or doesn't have a proper
-    /// data URL prefix with supported MIME type.
+    /// Thrown when input has insufficient content remaining after sanitization
+    /// or doesn't meet minimum length requirements.
     /// HTTP Status: 400 Bad Request
-    case invalidImageFormat
+    case inputTooShort(minSize: Int, context: String)
     
-    /// Image data contains suspicious or potentially malicious content.
+    /// Input format is invalid.
     ///
-    /// Thrown when image data validation detects patterns that could
-    /// indicate security threats or malicious content.
+    /// Thrown when input doesn't meet format requirements such as insufficient
+    /// alphanumeric characters, invalid structure, or unsupported encoding.
     /// HTTP Status: 400 Bad Request
-    case suspiciousImageContent
+    case invalidFormat(reason: String, context: String)
     
-    /// Game title format is invalid.
-    ///
-    /// Thrown when game title doesn't meet format requirements such as
-    /// insufficient alphanumeric characters or excessive special characters.
-    /// HTTP Status: 400 Bad Request
-    case invalidGameTitleFormat(String)
+    // MARK: - Security Errors
     
     /// Prompt injection attack detected in user input.
     ///
@@ -76,6 +86,13 @@ enum AIValidationError: Error, CustomStringConvertible {
     /// injection attempts designed to manipulate AI behavior.
     /// HTTP Status: 403 Forbidden
     case promptInjectionDetected(pattern: String, category: String, context: String)
+    
+    /// Suspicious content pattern detected.
+    ///
+    /// Thrown when pattern scanning identifies known attack patterns or
+    /// potentially malicious content during validation.
+    /// HTTP Status: 403 Forbidden
+    case suspiciousContent(pattern: String, context: String)
     
     /// Excessive character repetition detected.
     ///
@@ -91,102 +108,68 @@ enum AIValidationError: Error, CustomStringConvertible {
     /// HTTP Status: 403 Forbidden
     case suspiciousBinaryContent(context: String)
     
-    var description: String {
-        switch self {
-        case .emptyImageData:
-            return "Image data cannot be empty"
-        case .imageTooLarge(let maxSizeMB):
-            return "Image size exceeds \(maxSizeMB)MB limit"
-        case .invalidImageFormat:
-            return "Invalid image format - must be valid base64 encoded image"
-        case .suspiciousImageContent:
-            return "Image data contains suspicious content"
-        case .invalidGameTitleFormat(let reason):
-            return "Invalid game title format: \(reason)"
-        case .promptInjectionDetected(let pattern, let category, let context):
-            return "Potential prompt injection detected in \(context): '\(pattern)' (\(category))"
-        case .excessiveRepetition(let context):
-            return "Excessive character repetition detected in \(context)"
-        case .suspiciousBinaryContent(let context):
-            return "Suspicious encoded content detected in \(context)"
-        }
-    }
-}
-
-// MARK: - Validation Error
-
-/// Errors related to general input validation and sanitization.
-///
-/// This enum represents validation failures from the sanitization layer,
-/// focusing on content cleaning and basic format validation before
-/// more advanced security screening.
-///
-/// ## Validation Categories
-///
-/// ### Length Validation
-/// - **Empty Inputs**: Required fields that are empty or whitespace-only
-/// - **Size Limits**: Inputs that exceed reasonable length constraints
-/// - **Minimum Requirements**: Inputs too short to be meaningful
-///
-/// ### Content Validation
-/// - **Sanitization Results**: Content that becomes invalid after cleaning
-/// - **Suspicious Patterns**: Basic pattern detection for known attack vectors
-/// - **Format Requirements**: Content that doesn't meet basic format expectations
-///
-/// ## Processing Pipeline
-///
-/// These errors are typically thrown by:
-/// - ``PromptSanitizerService`` during initial content cleaning
-/// - Basic validation routines before advanced security screening
-/// - Length and format validation before AI processing
-///
-/// ## HTTP Response Mapping
-///
-/// - `400 Bad Request`: Empty inputs, format issues, insufficient content
-/// - `413 Payload Too Large`: Inputs exceeding length limits
-/// - `403 Forbidden`: Suspicious content patterns detected
-enum ValidationError: Error, CustomStringConvertible {
-    /// Game title is empty or contains only whitespace.
-    ///
-    /// Thrown when required game title field is not provided or contains
-    /// only whitespace characters after trimming.
-    /// HTTP Status: 400 Bad Request
-    case emptyGameTitle
+    // MARK: - AI Response Validation Errors
     
-    /// Generic input is empty or contains only whitespace.
+    /// AI response is invalid or malformed.
     ///
-    /// Thrown when required input fields are empty after trimming whitespace.
-    /// HTTP Status: 400 Bad Request
-    case emptyInput
+    /// Thrown when AI response doesn't meet basic validity requirements
+    /// such as proper JSON structure or expected format.
+    /// HTTP Status: 422 Unprocessable Entity
+    case responseInvalid(reason: String, responseType: String)
     
-    /// Game title exceeds maximum allowed length.
+    /// AI response is missing required fields.
     ///
-    /// Thrown when game title is longer than the 100-character limit
-    /// designed to prevent resource exhaustion.
+    /// Thrown when AI response doesn't contain required fields for the
+    /// specific response type being validated.
+    /// HTTP Status: 422 Unprocessable Entity
+    case responseMissingFields(fields: [String], responseType: String)
+    
+    /// AI response structure is invalid.
+    ///
+    /// Thrown when AI response has structural issues such as invalid JSON
+    /// or doesn't conform to expected schema.
+    /// HTTP Status: 422 Unprocessable Entity
+    case responseStructureInvalid(context: String)
+    
+    /// AI response exceeds size limits.
+    ///
+    /// Thrown when AI response is too large and could cause resource
+    /// exhaustion or performance issues.
     /// HTTP Status: 413 Payload Too Large
-    case gameTitleTooLong(maxLength: Int)
+    case responseTooLarge(maxSize: Int, context: String)
     
-    /// Game title is too short after sanitization.
+    /// AI response is too short or empty.
     ///
-    /// Thrown when game title has fewer than 2 characters remaining
-    /// after dangerous character removal.
+    /// Thrown when AI response doesn't contain sufficient content to
+    /// be meaningful or useful.
+    /// HTTP Status: 422 Unprocessable Entity
+    case responseTooShort(minSize: Int, context: String)
+    
+    // MARK: - Image Processing Errors
+    
+    /// Image data is empty or not provided.
+    ///
+    /// Thrown when required image data is missing from the request.
     /// HTTP Status: 400 Bad Request
-    case gameTitleTooShort
+    case imageDataEmpty
     
-    /// Input exceeds maximum allowed length.
+    /// Image data format is invalid.
     ///
-    /// Thrown when generic input fields exceed their configured length limits.
-    /// HTTP Status: 413 Payload Too Large
-    case inputTooLong(maxLength: Int)
+    /// Thrown when image data is not valid base64 or doesn't have proper
+    /// data URL prefix with supported MIME type.
+    /// HTTP Status: 400 Bad Request
+    case imageFormatInvalid(reason: String)
     
-    /// Suspicious content pattern detected during basic validation.
+    /// Image data contains suspicious content.
     ///
-    /// Thrown when initial pattern scanning identifies known attack patterns
-    /// before more sophisticated validation occurs.
-    /// HTTP Status: 403 Forbidden
-    case suspiciousContent(pattern: String)
+    /// Thrown when image data validation detects patterns that could
+    /// indicate security threats or malicious content.
+    /// HTTP Status: 400 Bad Request
+    case imageContentSuspicious
     
-    /// No valid content remains after sanitization process.
+    // MARK: - Content Processing Errors
+    
+    /// No valid content remains after sanitization.
     ///
     /// Thrown when character filtering removes all meaningful content,
     /// leaving only whitespace or empty strings.
@@ -195,18 +178,47 @@ enum ValidationError: Error, CustomStringConvertible {
     
     var description: String {
         switch self {
-        case .emptyGameTitle:
-            return "Game title cannot be empty"
-        case .emptyInput:
-            return "Input cannot be empty"
-        case .gameTitleTooLong(let maxLength):
-            return "Game title exceeds maximum length of \(maxLength) characters"
-        case .gameTitleTooShort:
-            return "Game title is too short after sanitization"
-        case .inputTooLong(let maxLength):
-            return "Input exceeds maximum length of \(maxLength) characters"
-        case .suspiciousContent(let pattern):
-            return "Suspicious content detected: \(pattern)"
+        // Input Validation Errors
+        case .emptyInput(let context):
+            return "Input cannot be empty in \(context)"
+        case .inputTooLarge(let maxSize, let context):
+            return "Input exceeds maximum size of \(maxSize) in \(context)"
+        case .inputTooShort(let minSize, let context):
+            return "Input is too short (minimum \(minSize) required) in \(context)"
+        case .invalidFormat(let reason, let context):
+            return "Invalid format in \(context): \(reason)"
+            
+        // Security Errors
+        case .promptInjectionDetected(let pattern, let category, let context):
+            return "Potential prompt injection detected in \(context): '\(pattern)' (\(category))"
+        case .suspiciousContent(let pattern, let context):
+            return "Suspicious content detected in \(context): \(pattern)"
+        case .excessiveRepetition(let context):
+            return "Excessive character repetition detected in \(context)"
+        case .suspiciousBinaryContent(let context):
+            return "Suspicious encoded content detected in \(context)"
+            
+        // AI Response Validation Errors
+        case .responseInvalid(let reason, let responseType):
+            return "AI response invalid for \(responseType): \(reason)"
+        case .responseMissingFields(let fields, let responseType):
+            return "AI response missing required fields for \(responseType): \(fields.joined(separator: ", "))"
+        case .responseStructureInvalid(let context):
+            return "AI response structure invalid in \(context)"
+        case .responseTooLarge(let maxSize, let context):
+            return "AI response too large (max \(maxSize)) in \(context)"
+        case .responseTooShort(let minSize, let context):
+            return "AI response too short (min \(minSize)) in \(context)"
+            
+        // Image Processing Errors
+        case .imageDataEmpty:
+            return "Image data cannot be empty"
+        case .imageFormatInvalid(let reason):
+            return "Invalid image format: \(reason)"
+        case .imageContentSuspicious:
+            return "Image data contains suspicious content"
+            
+        // Content Processing Errors
         case .noValidContentAfterSanitization:
             return "No valid content remaining after sanitization"
         }
@@ -215,34 +227,28 @@ enum ValidationError: Error, CustomStringConvertible {
 
 // MARK: - HTTP Error Extension
 
-extension AIValidationError: AbortError {
+extension AIProcessingError: AbortError {
     var status: HTTPResponseStatus {
         switch self {
-        case .emptyImageData:
+        // Input Validation Errors
+        case .emptyInput, .inputTooShort, .invalidFormat, .noValidContentAfterSanitization:
             return .badRequest
-        case .imageTooLarge:
+        case .inputTooLarge:
             return .payloadTooLarge
-        case .invalidImageFormat, .suspiciousImageContent, .invalidGameTitleFormat:
-            return .badRequest
-        case .promptInjectionDetected, .excessiveRepetition, .suspiciousBinaryContent:
+            
+        // Security Errors
+        case .promptInjectionDetected, .suspiciousContent, .excessiveRepetition, .suspiciousBinaryContent:
             return .forbidden
-        }
-    }
-    
-    var reason: String {
-        return description
-    }
-}
-
-extension ValidationError: AbortError {
-    var status: HTTPResponseStatus {
-        switch self {
-        case .emptyGameTitle, .emptyInput, .gameTitleTooShort, .noValidContentAfterSanitization:
-            return .badRequest
-        case .gameTitleTooLong, .inputTooLong:
+            
+        // AI Response Validation Errors
+        case .responseInvalid, .responseMissingFields, .responseStructureInvalid, .responseTooShort:
+            return .unprocessableEntity
+        case .responseTooLarge:
             return .payloadTooLarge
-        case .suspiciousContent:
-            return .forbidden
+            
+        // Image Processing Errors
+        case .imageDataEmpty, .imageFormatInvalid, .imageContentSuspicious:
+            return .badRequest
         }
     }
     

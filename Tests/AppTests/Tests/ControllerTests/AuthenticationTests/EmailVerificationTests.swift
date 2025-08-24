@@ -1,69 +1,85 @@
 
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
 import Crypto
+import Testing
 
-final class EmailVerificationTests: XCTestCase {
-    var app: Application!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct EmailVerificationTests {
+    let app: Application
+    let testWorld: IsolatedTestWorld
     let verifyURL = "verify-email"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        self.testWorld = try TestWorld(app: app)
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testVerifyingEmailHappyPath() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+    @Test("Email verification succeeds with valid token")
+    func verifyingEmailHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
-        let expectedHash = SHA256.hash("token123")
+        let plainToken = "token123"
+        let expectedHash = SHA256.hash(plainToken)
         
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash)
         emailToken.$user.value = user
         try await app.repositories.emailTokens.create(emailToken)
         
         try await app.test(.GET, verifyURL, beforeRequest: { req in
-            try req.query.encode(["token": expectedHash])
+            try req.query.encode(["token": plainToken])
         }, afterResponse: { res in
-            XCTAssertEqual(res.status, .ok)
-            let user = try await XCTUnwrapAsync(await app.repositories.users.find(id: user.id!))
-            XCTAssertEqual(user.isEmailVerified, true)
+            #expect(res.status == .ok)
+            let foundUser = try await app.repositories.users.find(id: user.id!)
+            guard let foundUser = foundUser else {
+                Issue.record("User not found after email verification")
+                return
+            }
+            #expect(foundUser.isEmailVerified == true)
             let token = try await app.repositories.emailTokens.find(forUserID: user.requireID())
-            XCTAssertNil(token)
+            #expect(token == nil)
         })
     }
     
-    func testVerifyingEmailWithInvalidTokenFails() throws {
-        try app.test(.GET, verifyURL, beforeRequest: { req in
+    @Test("Email verification fails with invalid token")
+    func verifyingEmailWithInvalidTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.GET, verifyURL, beforeRequest: { req in
             try req.query.encode(["token": "blabla"])
         }, afterResponse: { res in
-            let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
-            XCTAssertTrue(html.contains("Token not found"))
+            guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
+                Issue.record("Failed to decode response body as UTF-8 string")
+                return
+            }
+            #expect(html.contains("Token not found"))
         })
     }
     
-    func testVerifyingEmailWithExpiredTokenFails() async throws {
-        let user = UserAccountModel(email: "test@test.com", password: "123")
+    @Test("Email verification fails with expired token")
+    func verifyingEmailWithExpiredTokenFails() async throws {
+        await testWorld.resetAll() // Clean state before test
+        let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
         try await app.repositories.users.create(user)
-        let expectedHash = SHA256.hash("token123")
+        let plainToken = "token123"
+        let expectedHash = SHA256.hash(plainToken)
         let emailToken = EmailTokenModel(userID: try user.requireID(), value: expectedHash, expiresAt: Date().addingTimeInterval(-15 * 60 - 1) ) // -15 minutes - 1 second
         emailToken.$user.value = user
 
         try await app.repositories.emailTokens.create(emailToken)
         
         try await app.test(.GET, verifyURL, beforeRequest: { req in
-            try req.query.encode(["token": expectedHash])
+            try req.query.encode(["token": plainToken])
         }, afterResponse: { res in
-            let html = try XCTUnwrap(String(data: Data(buffer: res.body), encoding: .utf8))
-            XCTAssertTrue(html.contains("Token expired"))
+            guard let html = String(data: Data(buffer: res.body), encoding: .utf8) else {
+                Issue.record("Failed to decode response body as UTF-8 string")
+                return
+            }
+            #expect(html.contains("Token expired"))
             // Verify token was deleted after the expired check
             let remainingToken = try await app.repositories.emailTokens.find(forUserID: user.requireID())
-            XCTAssertNil(remainingToken)
+            #expect(remainingToken == nil)
         })
     }
 }

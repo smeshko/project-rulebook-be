@@ -1,6 +1,7 @@
 import Fluent
 import Foundation
 import Vapor
+import Crypto
 
 protocol EmailTokenRepository: Repository {
     func find(forUserID id: UUID) async throws -> EmailTokenModel?
@@ -24,8 +25,9 @@ struct DatabaseEmailTokenRepository: EmailTokenRepository, DatabaseRepository {
     }
     
     func find(token: String) async throws -> EmailTokenModel? {
-        try await EmailTokenModel.query(on: database)
-            .filter(\.$value == token)
+        let hashedToken = SHA256.hash(token)
+        return try await EmailTokenModel.query(on: database)
+            .filter(\.$value == hashedToken)
             .with(\.$user)
             .first()
     }

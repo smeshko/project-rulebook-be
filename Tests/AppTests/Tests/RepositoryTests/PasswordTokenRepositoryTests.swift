@@ -1,59 +1,86 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
+import Testing
+import Crypto
 
-final class PasswordTokenRepositoryTests: XCTestCase {
-    var app: Application!
-    var repository: (any PasswordTokenRepository)!
-    var user: UserAccountModel!
+@Suite(.serialized)
+struct PasswordTokenRepositoryTests {
+    let app: Application
+    let testWorld: IsolatedTestWorld
+    let repository: any PasswordTokenRepository
+    let userRepository: any UserRepository
+    let user: UserAccountModel
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        repository = DatabasePasswordTokenRepository(database: app.db)
-        try app.autoMigrate().wait()
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        self.app = testWorld.app
+        self.repository = testWorld.passwordTokens
+        self.userRepository = testWorld.users
+        try await app.autoMigrate()
         
-        user = .init(email: "test@test.com", password: "123")
-        try user.create(on: app.db).wait()
+        self.user = .init(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
+        
+        // Clear any existing data from test repositories
+        await testWorld.resetAll()
+        
+        try await userRepository.create(user)
     }
     
-    override func tearDownWithError() throws {
-        try app.migrator.revertAllBatches().wait()
-        app.shutdown()
-    }
-    
-    func testFindByUserID() async throws {
+    @Test("Password token can be found by user ID")
+    func findByUserID() async throws {
         let userID = try user.requireID()
-        let token = PasswordTokenModel(userID: userID, value: "123")
-        try await token.create(on: app.db)
-        
-        try await XCTAssertNotNilAsync(await repository.find(forUserID: userID))
-    }
-    
-    func testFindByToken() async throws {
-        let token = PasswordTokenModel(userID: try user.requireID(), value: "token123")
-        try await token.create(on: app.db)
-        try await XCTAssertNotNilAsync(await repository.find(token: "token123"))
-    }
-    
-    func testCount() async throws {
-        let token = PasswordTokenModel(userID: try user.requireID(), value: "token123")
-        let token2 = PasswordTokenModel(userID: try user.requireID(), value: "token1234")
-        try await [token, token2].create(on: app.db)
-        let count = try await repository.count()
-        XCTAssertEqual(count, 2)
-    }
-    
-    func testCreate() async throws {
-        let token = PasswordTokenModel(userID: try user.requireID(), value: "token123")
+        let plainToken = "password-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: userID, value: hashedToken)
         try await repository.create(token)
-        try XCTAssertNotNil(PasswordTokenModel.find(try token.requireID(), on: app.db).wait())
+        
+        let foundToken = try await repository.find(forUserID: userID)
+        #expect(foundToken != nil)
     }
     
-    func testDelete() async throws {
-        let token = PasswordTokenModel(userID: try user.requireID(), value: "token123")
-        try await token.create(on: app.db)
+    @Test("Password token can be found by token value")
+    func findByToken() async throws {
+        let plainToken = "find-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
+        try await repository.create(token)
+        let foundToken = try await repository.find(token: plainToken)
+        #expect(foundToken != nil)
+    }
+    
+    @Test("Repository can count password tokens")
+    func count() async throws {
+        let plainToken1 = "count1-\(UUID().uuidString)"
+        let plainToken2 = "count2-\(UUID().uuidString)"
+        let hashedToken1 = SHA256.hash(plainToken1)
+        let hashedToken2 = SHA256.hash(plainToken2)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken1)
+        let token2 = PasswordTokenModel(userID: try user.requireID(), value: hashedToken2)
+        try await repository.create(token)
+        try await repository.create(token2)
+        let count = try await repository.count()
+        #expect(count == 2)
+    }
+    
+    @Test("Password token can be created")
+    func create() async throws {
+        let plainToken = "token-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
+        try await repository.create(token)
+        let foundToken = try await repository.find(id: token.requireID())
+        #expect(foundToken != nil)
+    }
+    
+    @Test("Password token can be deleted")
+    func delete() async throws {
+        let plainToken = "token-\(UUID().uuidString)"
+        let hashedToken = SHA256.hash(plainToken)
+        let token = PasswordTokenModel(userID: try user.requireID(), value: hashedToken)
+        try await repository.create(token)
         try await repository.delete(id: token.requireID())
-        let count = try await PasswordTokenModel.query(on: app.db).count()
-        XCTAssertEqual(count, 0)
+        let count = try await repository.count()
+        #expect(count == 0)
     }
 }

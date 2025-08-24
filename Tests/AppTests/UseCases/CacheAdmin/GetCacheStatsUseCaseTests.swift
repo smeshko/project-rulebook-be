@@ -7,6 +7,7 @@ import Logging
 ///
 /// This test suite validates cache monitoring queries including statistics retrieval,
 /// performance metrics, and administrative data access patterns.
+@Suite(.serialized)
 final class GetCacheStatsUseCaseTests: Sendable {
     
     /// Test successful cache statistics retrieval.

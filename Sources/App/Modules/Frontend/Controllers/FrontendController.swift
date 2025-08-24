@@ -12,14 +12,17 @@ struct FrontendController {
             )))
         }
         
-        try await req.repositories.emailTokens.delete(id: token.requireID())
-        
         guard token.expiresAt > .now else {
+            // Delete expired token to clean up the database
+            try await req.repositories.emailTokens.delete(id: token.requireID())
             return req.templates.renderHtml(OutcomeMessageTemplate(.init(
                 text: "Token expired, please request verification again.",
                 title: "Token expired"
             )))
         }
+        
+        // Delete valid token after successful validation
+        try await req.repositories.emailTokens.delete(id: token.requireID())
         
         token.user.isEmailVerified = true
         try await req.repositories.users.update(token.user)

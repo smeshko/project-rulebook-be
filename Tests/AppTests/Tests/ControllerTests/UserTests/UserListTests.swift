@@ -1,45 +1,48 @@
 @testable import App
 import Fluent
-import XCTVapor
+import VaporTesting
+import Testing
 
-final class UserListTests: XCTestCase {
-    var app: Application!
-    var user: UserAccountModel!
-    var testWorld: TestWorld!
+@Suite(.serialized)
+struct UserListTests {
+    let app: Application
+    let user: UserAccountModel
+    let testWorld: IsolatedTestWorld
     let listPath = "api/user/list"
     
-    override func setUpWithError() throws {
-        app = try TestWorld.makeTestAppSync()
-        testWorld = try TestWorld(app: app)
-        
-        user = try UserAccountModel.mock(app: app, isAdmin: true)
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+        app = testWorld.app
+        user = try await testWorld.dataFactory.createAdminUser()
     }
     
-    override func tearDown() {
-        app.shutdown()
-    }
-    
-    func testListHappyPath() async throws {
+    @Test("User list returns all users for admin")
+    func listHappyPath() async throws {
+        await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
         try await app.test(.GET, listPath, user: user) { response in
-            XCTAssertContent([User.List.Response].self, response) { listResponse in
-                XCTAssertEqual(listResponse.count, 1)
+            expectContent([User.List.Response].self, response) { listResponse in
+                #expect(listResponse.count == 1)
             }
         }
     }
     
-    func testListRequestedByNonAdminShouldFail() async throws {
+    @Test("User list fails for non-admin user")
+    func listRequestedByNonAdminShouldFail() async throws {
+        await testWorld.resetAll() // Clean state before test
         let nonAdmin = try UserAccountModel.mock(app: app)
         try await app.repositories.users.create(nonAdmin)
         
         try await app.test(.GET, listPath, user: nonAdmin) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+            #expect(response.status == .unauthorized)
         }
     }
     
-    func testListUnauthenticatedRequestShouldFail() throws {
-        try app.test(.GET, listPath) { response in
-            XCTAssertEqual(response.status, .unauthorized)
+    @Test("User list fails for unauthenticated request")
+    func listUnauthenticatedRequestShouldFail() async throws {
+        await testWorld.resetAll() // Clean state before test
+        try await app.test(.GET, listPath) { response in
+            #expect(response.status == .unauthorized)
         }
     }
 }

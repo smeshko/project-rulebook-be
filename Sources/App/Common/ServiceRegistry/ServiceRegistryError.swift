@@ -88,6 +88,20 @@ public enum ServiceRegistryError: AppError {
     /// - Parameter type: String representation of the service type with type mismatch
     case factoryTypeMismatch(String)
     
+    /// Service registry initialization timed out.
+    ///
+    /// This error occurs when the service registry setup takes longer than the
+    /// configured timeout period. This prevents indefinite blocking during
+    /// application startup and provides clear feedback about setup issues.
+    ///
+    /// **Common Causes:**
+    /// - Slow external service connections during startup
+    /// - Deadlock in service initialization
+    /// - Resource contention during concurrent test execution
+    ///
+    /// - Parameter message: Descriptive message about the timeout condition
+    case initializationTimeout(String)
+    
     // MARK: - AppError Conformance
     
     /// HTTP status code for ServiceRegistry errors.
@@ -112,6 +126,8 @@ public enum ServiceRegistryError: AppError {
             return "Circular dependency detected in service resolution: \(chain.joined(separator: " → "))"
         case .factoryTypeMismatch(let type):
             return "Factory function type mismatch for service '\(type)'. Verify factory signature matches service type."
+        case .initializationTimeout(let message):
+            return "Service registry initialization timed out: \(message)"
         }
     }
     
@@ -129,6 +145,8 @@ public enum ServiceRegistryError: AppError {
             return "circular_dependency"
         case .factoryTypeMismatch:
             return "factory_type_mismatch"
+        case .initializationTimeout:
+            return "initialization_timeout"
         }
     }
     
