@@ -73,7 +73,7 @@ final class AIResponseValidationServiceTests: Sendable {
         """
         
         // Act & Assert
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateRulesSummaryResponse(
                 maliciousResponseJSON,
                 gameTitle: "Malicious Game",
@@ -110,7 +110,7 @@ final class AIResponseValidationServiceTests: Sendable {
         """
         
         // Act & Assert - This will fail due to suspicious JavaScript patterns
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateRulesSummaryResponse(
                 jsInjectionResponseJSON,
                 gameTitle: "JS Game",
@@ -158,7 +158,7 @@ final class AIResponseValidationServiceTests: Sendable {
         // Test too short response
         let tooShortJSON = "{}"
         
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateRulesSummaryResponse(
                 tooShortJSON,
                 gameTitle: "Short Game",
@@ -170,7 +170,7 @@ final class AIResponseValidationServiceTests: Sendable {
         // Test too large response
         let tooLargeJSON = "\"" + String(repeating: "x", count: 60000) + "\""
         
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateGenericResponse(
                 tooLargeJSON,
                 context: "test",
@@ -227,7 +227,7 @@ final class AIResponseValidationServiceTests: Sendable {
         let invalidJSON = "{ incomplete json here"
         
         // Act & Assert - Should throw for invalid JSON
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateGenericResponse(
                 invalidJSON,
                 context: "test",
@@ -254,7 +254,7 @@ final class AIResponseValidationServiceTests: Sendable {
         """
         
         // Act & Assert - Should throw for missing title field
-        #expect(throws: Abort.self) {
+        #expect(throws: AIProcessingError.self) {
             try service.validateRulesSummaryResponse(
                 incompleteJSON,
                 gameTitle: "Test Game",
@@ -341,7 +341,7 @@ final class AIResponseValidationServiceTests: Sendable {
             }
             
             group.addTask {
-                #expect(throws: Abort.self) {
+                #expect(throws: AIProcessingError.self) {
                     try service.validateRulesSummaryResponse(maliciousJSON, gameTitle: "Game2", clientIP: "127.0.0.1", logger: logger)
                 }
             }

@@ -42,7 +42,7 @@ protocol AIInputValidatorServiceInterface: Sendable {
     /// - Character composition analysis
     ///
     /// - Parameter gameTitle: The raw game title input to validate
-    /// - Throws: ``AIValidationError`` if validation fails
+    /// - Throws: ``AIProcessingError`` if validation fails
     func validateGameTitle(_ gameTitle: String) throws
     
     /// Validates and sanitizes a game title, returning the safe version.
@@ -54,7 +54,7 @@ protocol AIInputValidatorServiceInterface: Sendable {
     ///
     /// - Parameter gameTitle: The raw game title input
     /// - Returns: The sanitized and validated game title
-    /// - Throws: ``AIValidationError`` for validation failures, ``ValidationError`` for sanitization failures
+    /// - Throws: ``AIProcessingError`` for validation failures
     func validateAndSanitizeGameTitle(_ gameTitle: String) throws -> String
     
     /// Validates image data for AI analysis and processing.
@@ -73,7 +73,7 @@ protocol AIInputValidatorServiceInterface: Sendable {
     /// - WebP (data:image/webp;base64,...)
     ///
     /// - Parameter imageData: Base64-encoded image data with data URL prefix
-    /// - Throws: ``AIValidationError`` for invalid image data or security violations
+    /// - Throws: ``AIProcessingError`` for invalid image data or security violations
     func validateImageData(_ imageData: String) throws
 }
 
@@ -164,19 +164,19 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
     func validateImageData(_ imageData: String) throws {
         // Check if base64 data is valid
         guard !imageData.isEmpty else {
-            throw AIValidationError.emptyImageData
+            throw AIProcessingError.imageDataEmpty
         }
         
         // Check reasonable size limits (base64 encoded, so ~4/3 of actual size)
         // Max 10MB actual image = ~13.3MB base64
         let maxBase64Size = 14_000_000 // ~10MB image
         guard imageData.count <= maxBase64Size else {
-            throw AIValidationError.imageTooLarge(maxSizeMB: 10)
+            throw AIProcessingError.inputTooLarge(maxSize: 10_000_000, context: "image_data")
         }
         
         // Basic base64 validation
         guard isValidBase64(imageData) else {
-            throw AIValidationError.invalidImageFormat
+            throw AIProcessingError.imageFormatInvalid(reason: "Invalid base64 encoding")
         }
         
         // Check for suspicious patterns that might indicate non-image content
@@ -194,14 +194,14 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         // Must contain at least one alphanumeric character
         let alphanumericPattern = ".*[a-zA-Z0-9].*"
         guard title.range(of: alphanumericPattern, options: .regularExpression) != nil else {
-            throw AIValidationError.invalidGameTitleFormat("Must contain at least one letter or number")
+            throw AIProcessingError.invalidFormat(reason: "Must contain at least one letter or number", context: "game_title")
         }
         
         // Check for excessive special characters (more than 30% of the string)
         let specialCharCount = title.filter { !$0.isLetter && !$0.isNumber && !$0.isWhitespace }.count
         let specialCharRatio = Double(specialCharCount) / Double(title.count)
         if specialCharRatio > 0.3 {
-            throw AIValidationError.invalidGameTitleFormat("Too many special characters")
+            throw AIProcessingError.invalidFormat(reason: "Too many special characters", context: "game_title")
         }
     }
     
@@ -283,7 +283,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
                     "category": .string(category),
                     "context": .string(context)
                 ])
-                throw AIValidationError.promptInjectionDetected(
+                throw AIProcessingError.promptInjectionDetected(
                     pattern: pattern,
                     category: category,
                     context: context
@@ -327,7 +327,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
             logger?.warning("Excessive repetition detected", metadata: [
                 "context": .string(context)
             ])
-            throw AIValidationError.excessiveRepetition(context: context)
+            throw AIProcessingError.excessiveRepetition(context: context)
         }
     }
     
@@ -342,7 +342,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
                 logger?.warning("Suspicious hex content detected", metadata: [
                     "context": .string(context)
                 ])
-                throw AIValidationError.suspiciousBinaryContent(context: context)
+                throw AIProcessingError.suspiciousBinaryContent(context: context)
             }
         }
         
@@ -352,7 +352,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
             logger?.warning("Suspicious base64-like content detected", metadata: [
                 "context": .string(context)
             ])
-            throw AIValidationError.suspiciousBinaryContent(context: context)
+            throw AIProcessingError.suspiciousBinaryContent(context: context)
         }
     }
     
@@ -392,7 +392,7 @@ struct DefaultAIInputValidatorService: AIInputValidatorServiceInterface {
         // Check if the image data has a valid prefix
         let hasValidPrefix = validPrefixes.contains { imageData.hasPrefix($0) }
         if !hasValidPrefix {
-            throw AIValidationError.invalidImageFormat
+            throw AIProcessingError.imageFormatInvalid(reason: "Invalid image data URL prefix")
         }
         
         // Additional validation could be added here

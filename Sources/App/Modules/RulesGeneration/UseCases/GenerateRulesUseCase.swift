@@ -107,8 +107,7 @@ struct GenerateRulesUseCase: Command {
     /// 6. Returns structured response with comprehensive metadata
     ///
     /// ## Error Handling
-    /// - Propagates AIValidationError for invalid or malicious game titles
-    /// - Propagates ValidationError for sanitization failures
+    /// - Propagates AIProcessingError for invalid or malicious game titles or sanitization failures
     /// - Propagates ContentError for external service failures
     /// - Provides detailed logging for debugging and monitoring
     ///
@@ -151,22 +150,14 @@ struct GenerateRulesUseCase: Command {
         let sanitizedGameTitle: String
         do {
             sanitizedGameTitle = try aiInputValidator.validateAndSanitizeGameTitle(request.gameTitle)
-        } catch let validationError as AIValidationError {
-            context.logger.warning("Game title validation failed", metadata: [
-                "error": .string(validationError.description),
+        } catch let processingError as AIProcessingError {
+            context.logger.warning("Game title processing failed", metadata: [
+                "error": .string(processingError.description),
                 "raw_title": .string(request.gameTitle),
                 "client_ip": .string(context.clientIP),
                 "request_id": .string(context.requestID)
             ])
-            throw validationError
-        } catch let sanitizationError as ValidationError {
-            context.logger.warning("Game title sanitization failed", metadata: [
-                "error": .string(sanitizationError.description),
-                "raw_title": .string(request.gameTitle),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            throw Abort(.badRequest, reason: sanitizationError.description)
+            throw processingError
         }
         
         // PERFORMANCE OPTIMIZATION: Check cache first

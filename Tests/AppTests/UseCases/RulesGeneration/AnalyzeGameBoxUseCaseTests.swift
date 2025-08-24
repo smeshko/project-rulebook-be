@@ -208,13 +208,13 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
         // 4. Security validation failures (AIValidationError)
         
         // Test image validation errors
-        let emptyImageError = AIValidationError.emptyImageData
+        let emptyImageError = AIProcessingError.imageDataEmpty
         #expect(emptyImageError.description.contains("empty"))
         
-        let imageTooLargeError = AIValidationError.imageTooLarge(maxSizeMB: 10)
-        #expect(imageTooLargeError.description.contains("10MB"))
+        let imageTooLargeError = AIProcessingError.inputTooLarge(maxSize: 10, context: "image_data")
+        #expect(imageTooLargeError.description.contains("10"))
         
-        let invalidFormatError = AIValidationError.invalidImageFormat
+        let invalidFormatError = AIProcessingError.imageFormatInvalid(reason: "invalid format")
         #expect(invalidFormatError.description.contains("format"))
         
         // Error types are properly defined and can be thrown/caught

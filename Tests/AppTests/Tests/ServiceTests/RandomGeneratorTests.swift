@@ -5,10 +5,10 @@ import Testing
 @Suite(.serialized)
 struct RandomGeneratorTests {
     let app: Application
-    let testWorld: TestWorld
+    let testWorld: IsolatedTestWorld
     
     init() async throws {
-        testWorld = try await TestWorld()
+        testWorld = try await IsolatedTestWorld()
         self.app = testWorld.app
     }
     

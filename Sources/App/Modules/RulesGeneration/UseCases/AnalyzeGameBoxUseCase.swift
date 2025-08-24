@@ -105,7 +105,7 @@ struct AnalyzeGameBoxUseCase: Query {
     /// 6. Returns structured response with metadata
     ///
     /// ## Error Handling
-    /// - Throws AIValidationError for invalid or malicious image data
+    /// - Throws AIProcessingError for invalid or malicious image data
     /// - Throws ContentError for external service failures
     /// - Provides comprehensive logging for debugging and monitoring
     ///
@@ -223,7 +223,7 @@ struct AnalyzeGameBoxUseCase: Query {
                             "request_id": .string(context.requestID),
                             "data_size": .string("\(imageData.count) bytes")
                         ])
-                        throw AIValidationError.invalidImageFormat
+                        throw AIProcessingError.imageFormatInvalid(reason: "Failed to convert data to base64")
                     }
                 } else {
                     context.logger.warning("Invalid image format - truncated RIFF header", metadata: [
@@ -231,7 +231,7 @@ struct AnalyzeGameBoxUseCase: Query {
                         "request_id": .string(context.requestID),
                         "data_size": .string("\(imageData.count) bytes")
                     ])
-                    throw AIValidationError.invalidImageFormat
+                    throw AIProcessingError.imageFormatInvalid(reason: "Invalid WebP format")
                 }
             } else {
                 context.logger.warning("Invalid image format - unrecognized header", metadata: [
@@ -240,7 +240,7 @@ struct AnalyzeGameBoxUseCase: Query {
                     "header_bytes": .string(Array(header).map { String(format: "%02X", $0) }.joined(separator: " ")),
                     "data_size": .string("\(imageData.count) bytes")
                 ])
-                throw AIValidationError.invalidImageFormat
+                throw AIProcessingError.imageFormatInvalid(reason: "Invalid image format")
             }
         } else {
             context.logger.warning("Invalid image format - insufficient data", metadata: [
@@ -248,7 +248,7 @@ struct AnalyzeGameBoxUseCase: Query {
                 "request_id": .string(context.requestID),
                 "data_size": .string("\(imageData.count) bytes")
             ])
-            throw AIValidationError.invalidImageFormat
+            throw AIProcessingError.imageFormatInvalid(reason: "Invalid image format")
         }
         
         // Create data URL format for validation
@@ -257,7 +257,7 @@ struct AnalyzeGameBoxUseCase: Query {
         // Validate image data for security and compliance
         do {
             try aiInputValidator.validateImageData(dataURL)
-        } catch let validationError as AIValidationError {
+        } catch let validationError as AIProcessingError {
             context.logger.warning("Image validation failed", metadata: [
                 "error": .string(validationError.description),
                 "client_ip": .string(context.clientIP),

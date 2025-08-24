@@ -13,6 +13,8 @@ struct FrontendController {
         }
         
         guard token.expiresAt > .now else {
+            // Delete expired token to clean up the database
+            try await req.repositories.emailTokens.delete(id: token.requireID())
             return req.templates.renderHtml(OutcomeMessageTemplate(.init(
                 text: "Token expired, please request verification again.",
                 title: "Token expired"

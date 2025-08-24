@@ -201,14 +201,14 @@ final class GenerateRulesUseCaseTests: Sendable {
         // 4. Security validation failures (AIValidationError)
         
         // Test validation errors
-        let emptyTitleError = ValidationError.emptyGameTitle
-        #expect(emptyTitleError.description.contains("title"))
+        let emptyTitleError = AIProcessingError.emptyInput(context: "game_title")
+        #expect(emptyTitleError.description.contains("game_title"))
         
-        let emptyInputError = ValidationError.emptyInput
-        #expect(emptyInputError.description.contains("Input"))
+        let emptyInputError = AIProcessingError.emptyInput(context: "generic_input")
+        #expect(emptyInputError.description.contains("generic_input"))
         
         // Test AI validation errors  
-        let emptyDataError = AIValidationError.emptyImageData
+        let emptyDataError = AIProcessingError.imageDataEmpty
         #expect(emptyDataError.description.contains("empty"))
         
         // Error types are properly defined and can be thrown/caught
