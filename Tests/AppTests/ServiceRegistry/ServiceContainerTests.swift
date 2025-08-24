@@ -50,14 +50,24 @@ struct ServiceContainerTests {
     
     @Test("ServiceRegistry provides health checks") 
     func healthChecks() async throws {
-        // NOTE: Skipping health checks in test environment as they require external services
-        // This test validates that the health check mechanism exists but doesn't test actual connectivity
-        let registry = app.serviceRegistry
+        let registry = ServiceContainer(application: app)
         
-        // Just verify the health check method exists and can be called
-        // In a real environment this would return actual health statuses
-        // In test environment with mocks, we just ensure the API works
-        print("Health check API available - actual health checks skipped in test environment")
+        // Register real services to test health checks
+        try await RepositoryServiceProvider.register(in: registry, app: app)
+        try await ExternalServiceProvider.register(in: registry, app: app)
+        
+        // Verify the health check method exists and can be called
+        let healthStatus = await registry.healthCheckAll()
+        
+        // The health check method should return an array of service health statuses
+        #expect(healthStatus != nil, "Health check should return a result")
+        
+        // In test environment with mocks, we expect the health check to complete successfully
+        // The actual health values may vary, but the mechanism should work
+        for (serviceName, _) in healthStatus {
+            #expect(!serviceName.isEmpty, "Service name should not be empty")
+            // Note: In test environment, health status values may be mocked
+        }
     }
     
     @Test("ServiceRegistry handles missing services")
