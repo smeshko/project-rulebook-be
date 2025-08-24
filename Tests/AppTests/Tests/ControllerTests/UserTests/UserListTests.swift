@@ -13,7 +13,7 @@ struct UserListTests {
     init() async throws {
         testWorld = try await IsolatedTestWorld()
         app = testWorld.app
-        user = try UserAccountModel.mock(app: app, isAdmin: true)
+        user = try await testWorld.dataFactory.createAdminUser()
     }
     
     @Test("User list returns all users for admin")

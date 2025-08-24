@@ -187,11 +187,6 @@ final class IsolatedTestWorld: @unchecked Sendable {
         try app.setupMiddleware()
         try app.setupModules()
         
-        // Health check endpoint for Railway
-        app.get("health") { req -> [String: String] in
-            return ["status": "healthy"]
-        }
-        
         // Run migrations asynchronously to avoid deadlock in Swift Testing
         _ = try await app.autoMigrate().get()
     }

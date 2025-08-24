@@ -67,7 +67,7 @@ struct AISecurityTests {
         )
         
         for maliciousInput in maliciousInputs {
-            #expect(throws: (any Error).self) {
+            #expect(throws: ValidationError.self) {
                 try request.application.serviceCache.promptSanitizerService.sanitizeGameTitle(maliciousInput)
             }
         }
@@ -172,7 +172,7 @@ struct AISecurityTests {
         )
         
         for attempt in advancedInjectionAttempts {
-            #expect(throws: (any Error).self) {
+            #expect(throws: AIValidationError.self) {
                 try request.application.serviceCache.aiInputValidatorService.validateGameTitle(attempt)
             }
         }
@@ -192,13 +192,13 @@ struct AISecurityTests {
         #expect(throws: Never.self) { try request.application.serviceCache.aiInputValidatorService.validateImageData(validImageData) }
         
         // Empty data should fail
-        #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("") }
+        #expect(throws: AIValidationError.self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("") }
         
         // Invalid base64 should fail
-        #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("invalid!!!") }
+        #expect(throws: AIValidationError.self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("invalid!!!") }
         
         // Suspicious content should fail
-        #expect(throws: (any Error).self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("system:hack") }
+        #expect(throws: AIValidationError.self) { try request.application.serviceCache.aiInputValidatorService.validateImageData("system:hack") }
     }
     
     // MARK: - Unit Tests (Integration tests are skipped due to test framework issues)
@@ -220,7 +220,7 @@ struct AISecurityTests {
         ]
         
         for maliciousResponse in maliciousResponses {
-            #expect(throws: (any Error).self) {
+            #expect(throws: AIValidationError.self) {
                 try validator.validateGenericResponse(
                     maliciousResponse, 
                     context: "test",
@@ -296,7 +296,7 @@ struct AISecurityTests {
         ]
         
         for invalidResponse in invalidJsonResponses {
-            #expect(throws: (any Error).self) {
+            #expect(throws: AIValidationError.self) {
                 try validator.validateGenericResponse(
                     invalidResponse,
                     context: "test",

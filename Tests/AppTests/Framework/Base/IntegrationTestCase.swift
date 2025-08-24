@@ -1,22 +1,28 @@
-@testable import App
+import Testing
 import VaporTesting
-import XCTest
 import Vapor
+@testable import App
 
-/// Base test case for integration tests that test HTTP endpoints.
+/// Integration test case for HTTP endpoint testing.
 /// 
 /// This struct provides common functionality for testing Vapor routes and controllers,
 /// including application setup, test world initialization, and endpoint testing helpers.
 /// Use this for tests that involve HTTP requests/responses and full application stack.
+///
+/// Uses IsolatedTestWorld for complete suite-level isolation, preventing shared state
+/// contamination between concurrent test suites in Swift Testing.
 struct IntegrationTestCase {
-    private let testWorld: TestWorld
+    let app: Application
+    let testWorld: IsolatedTestWorld
     
-    /// Initializes a new integration test case with a fully configured application.
+    /// Initializes a new integration test case with a fully isolated application.
+    ///
+    /// Creates a fresh IsolatedTestWorld instance for complete suite isolation.
     ///
     /// - Throws: Configuration or setup errors
     init() async throws {
-        let app = try await withApp { app in return app }
-        self.testWorld = try await TestWorld(app: app)
+        self.testWorld = try await IsolatedTestWorld()
+        self.app = testWorld.app
     }
     
     /// Performs an HTTP test against the application.
@@ -37,9 +43,9 @@ struct IntegrationTestCase {
         _ path: String,
         headers: HTTPHeaders = [:],
         beforeRequest: @escaping (inout TestingHTTPRequest) throws -> () = { _ in },
-        afterResponse: @escaping (TestingHTTPResponse) throws -> () = { _ in }
+        afterResponse: @escaping (TestingHTTPResponse) async throws -> () = { _ in }
     ) async throws -> TestingApplicationTester {
-        return try await testWorld.app.test(
+        return try await app.test(
             method,
             path,
             headers: headers,
@@ -49,34 +55,12 @@ struct IntegrationTestCase {
     }
     
     /// Access to the underlying application for advanced test scenarios.
-    var app: Application {
-        testWorld.app
+    var application: Application {
+        app
     }
     
     /// Access to the test world for repository and service mocking.
-    var world: TestWorld {
+    var world: IsolatedTestWorld {
         testWorld
-    }
-}
-
-/// Creates and configures a test application.
-///
-/// This function handles the complete lifecycle of a Vapor application for testing,
-/// ensuring proper setup and cleanup.
-///
-/// - Parameter configure: Optional closure to perform additional configuration
-/// - Returns: Configured application instance
-/// - Throws: Any configuration errors
-func withApp<T>(_ closure: (Application) throws -> T) async throws -> T {
-    let app = try await Application.make(.testing)
-    
-    do {
-        try configure(app)
-        let result = try closure(app)
-        try await app.asyncShutdown()
-        return result
-    } catch {
-        try await app.asyncShutdown()
-        throw error
     }
 }

@@ -36,7 +36,7 @@ struct AuthResetPasswordTests {
     }
     
     @Test("Password reset fails with non-existing email")
-    func resetPasswordSucceedsWithNonExistingEmail() async throws {
+    func resetPasswordFailsWithNonExistingEmail() async throws {
         await testWorld.resetAll() // Clean state before test
         let resetPasswordRequest = Auth.PasswordReset.Request(email: "none@test.com")
         
