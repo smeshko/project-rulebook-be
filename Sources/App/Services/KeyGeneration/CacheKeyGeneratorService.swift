@@ -104,8 +104,8 @@ struct DefaultCacheKeyGeneratorService: CacheKeyGeneratorServiceInterface {
         let validPrefixes = ["rules", "image", "box"]
         guard validPrefixes.contains(prefix) else { return false }
         
-        // Validate hash (16 hex characters)
-        guard hash.count == 16 else { return false }
+        // Validate hash (32 hex characters)
+        guard hash.count == 32 else { return false }
         guard hash.allSatisfy({ $0.isHexDigit }) else { return false }
         
         return true
@@ -170,8 +170,8 @@ struct DefaultCacheKeyGeneratorService: CacheKeyGeneratorServiceInterface {
         }
         let hashString = hashBytes.map { String(format: "%02x", $0) }.joined()
         
-        // Use first 16 characters of hash for reasonable key length
-        let truncatedHash = String(hashString.prefix(16))
+        // Use first 32 characters of hash for better collision resistance
+        let truncatedHash = String(hashString.prefix(32))
         return "\(prefix)_\(truncatedHash)"
     }
 }
