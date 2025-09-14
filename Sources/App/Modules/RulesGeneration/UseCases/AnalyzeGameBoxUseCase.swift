@@ -302,11 +302,7 @@ struct AnalyzeGameBoxUseCase: Query {
         do {
             return try await llmService.analyzeImage(
                 imageData: dataURL,
-                prompt: systemPrompt,
-                model: "gpt-4o-mini",
-                temperature: 0,
-                maxTokens: 1000,
-                useJSONMode: true
+                prompt: systemPrompt
             )
         } catch {
             context.logger.error("LLM service error during game identification", metadata: [

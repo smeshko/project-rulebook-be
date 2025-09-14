@@ -73,10 +73,18 @@ struct ProductionConfiguration: ConfigurationService {
         )
       }
 
+      guard let geminiKey = Environment.get("GEMINI_API_KEY") else {
+        throw ConfigurationError.missingRequired(
+          key: "GEMINI_API_KEY",
+          suggestion: "Set GEMINI_API_KEY environment variable for Gemini LLM service"
+        )
+      }
+
       return ServicesConfig(
         brevoAPIKey: brevoAPIKey,
         brevoURL: Environment.get("BREVO_URL") ?? "https://api.brevo.com",
-        openAIKey: openAIKey
+        openAIKey: openAIKey,
+        geminiApiKey: geminiKey
       )
     }
   }
@@ -296,6 +304,13 @@ struct ProductionConfiguration: ConfigurationService {
       throw ConfigurationError.validationFailed(
         component: "OpenAI",
         reason: "OPENAI_KEY cannot be empty"
+      )
+    }
+
+    if services.geminiApiKey.isEmpty {
+      throw ConfigurationError.validationFailed(
+        component: "Gemini",
+        reason: "GEMINI_API_KEY cannot be empty"
       )
     }
 

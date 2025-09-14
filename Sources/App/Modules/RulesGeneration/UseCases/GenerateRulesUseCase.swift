@@ -23,20 +23,20 @@ import Vapor
 /// - **Scalability**: Efficient use of caching and external services
 /// - **Cost Efficiency**: Intelligent caching reduces AI API costs significantly
 struct GenerateRulesUseCase: Command {
-    
+
     /// Request parameters for rules generation.
     struct Request {
         /// Game title for which rules should be generated
         let gameTitle: String
         /// Request context with client information and logging
         let context: RequestContext
-        
+
         init(gameTitle: String, context: RequestContext) {
             self.gameTitle = gameTitle
             self.context = context
         }
     }
-    
+
     /// Response from rules generation operation.
     struct Response {
         /// Comprehensive rules explanation with structured content
@@ -47,7 +47,7 @@ struct GenerateRulesUseCase: Command {
         let generatedAt: Date
         /// Whether result was served from cache (performance metric)
         let wasCached: Bool
-        
+
         init(
             rulesSummary: RulesSummary.Response,
             processedGameTitle: String,
@@ -60,9 +60,9 @@ struct GenerateRulesUseCase: Command {
             self.wasCached = wasCached
         }
     }
-    
+
     // MARK: - Dependencies
-    
+
     /// Service for validating and sanitizing AI inputs
     private let aiInputValidator: AIInputValidatorServiceInterface
     /// Service for generating cache keys
@@ -75,9 +75,9 @@ struct GenerateRulesUseCase: Command {
     private let aiResponseValidator: AIResponseValidationService
     /// Cache configuration settings
     private let cacheConfiguration: CacheConfig
-    
+
     // MARK: - Initialization
-    
+
     init(
         aiInputValidator: AIInputValidatorServiceInterface,
         cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
@@ -93,9 +93,9 @@ struct GenerateRulesUseCase: Command {
         self.aiResponseValidator = aiResponseValidator
         self.cacheConfiguration = cacheConfiguration
     }
-    
+
     // MARK: - Use Case Execution
-    
+
     /// Executes the rules generation use case.
     ///
     /// This method coordinates the complete rules generation workflow:
@@ -128,144 +128,150 @@ struct GenerateRulesUseCase: Command {
     /// - Throws: Service errors if validation fails or AI service unavailable
     func execute(_ request: Request) async throws -> Response {
         let context = request.context
-        
-        context.logger.info("AI rules generation request initiated", metadata: [
-            "endpoint": "generateRulesSummary",
-            "client_ip": .string(context.clientIP),
-            "request_id": .string(context.requestID),
-            "timestamp": .string(ISO8601DateFormatter().string(from: context.timestamp))
-        ])
-        
+
+        context.logger.info(
+            "AI rules generation request initiated",
+            metadata: [
+                "endpoint": "generateRulesSummary",
+                "client_ip": .string(context.clientIP),
+                "request_id": .string(context.requestID),
+                "timestamp": .string(ISO8601DateFormatter().string(from: context.timestamp)),
+            ])
+
         // Basic input validation
         guard !request.gameTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw Abort(.badRequest, reason: "Game title cannot be empty")
         }
-        
+
         // Check for reasonable title length
         guard request.gameTitle.count <= 200 else {
             throw Abort(.badRequest, reason: "Game title too long (max 200 characters)")
         }
-        
+
         // CRITICAL SECURITY FIX: Validate and sanitize game title before AI processing
         let sanitizedGameTitle: String
         do {
-            sanitizedGameTitle = try aiInputValidator.validateAndSanitizeGameTitle(request.gameTitle)
+            sanitizedGameTitle = try aiInputValidator.validateAndSanitizeGameTitle(
+                request.gameTitle)
         } catch let processingError as AIProcessingError {
-            context.logger.warning("Game title processing failed", metadata: [
-                "error": .string(processingError.description),
-                "raw_title": .string(request.gameTitle),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
+            context.logger.warning(
+                "Game title processing failed",
+                metadata: [
+                    "error": .string(processingError.description),
+                    "raw_title": .string(request.gameTitle),
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                ])
             throw processingError
         }
-        
+
         // PERFORMANCE OPTIMIZATION: Check cache first
         let cacheKey = cacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
         var wasCached = false
-        
+
         if let cachedResponse = await aiCache.get(key: cacheKey) {
-            context.logger.info("Cache hit for rules generation", metadata: [
-                "game_title": .string(sanitizedGameTitle),
-                "cache_key": .string(cacheKey),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            
+            context.logger.info(
+                "Cache hit for rules generation",
+                metadata: [
+                    "game_title": .string(sanitizedGameTitle),
+                    "cache_key": .string(cacheKey),
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                ])
+
             // Parse and return cached response
             let cachedBuffer = ByteBuffer(string: cachedResponse)
-            let rulesSummary = try JSONDecoder().decode(RulesSummary.Response.self, from: cachedBuffer)
+            let rulesSummary = try JSONDecoder().decode(
+                RulesSummary.Response.self, from: cachedBuffer)
             wasCached = true
-            
+
             let response = Response(
                 rulesSummary: rulesSummary,
                 processedGameTitle: rulesSummary.title,
                 generatedAt: Date.now,
                 wasCached: wasCached
             )
-            
+
             return response
         }
-        
-        context.logger.debug("Cache miss for rules generation", metadata: [
-            "game_title": .string(sanitizedGameTitle),
-            "cache_key": .string(cacheKey),
-            "request_id": .string(context.requestID)
-        ])
-        
+
+        context.logger.debug(
+            "Cache miss for rules generation",
+            metadata: [
+                "game_title": .string(sanitizedGameTitle),
+                "cache_key": .string(cacheKey),
+                "request_id": .string(context.requestID),
+            ])
+
         // Enhanced prompt for comprehensive, consistent rule generation
         let systemPrompt = """
-        You are an expert board game rules instructor. Generate a comprehensive rules guide for the specified game.
-        
-        Follow this content framework:
-        1. Overview: Core concept and objective in 2-3 sentences
-        2. Setup: Clear, numbered steps for game preparation
-        3. First Round: Step-by-step guide for new players
-        4. Victory: Win conditions and end game triggers
-        5. Deep Dive: Advanced rules, special cases, strategy tips
-        6. Resources: Helpful links for learning
-        
-        Return JSON with this exact structure:
-        {
-          "title": "exact game name",
-          "playerCount": "X-Y players",
-          "playTime": "X-Y minutes",
-          "summary": "engaging 2-3 sentence overview explaining theme and main objective",
-          "initialSetup": ["numbered setup steps", "be specific about component placement"],
-          "firstRoundGuide": ["step-by-step first turn", "explain decision points", "show example moves"],
-          "winCondition": "clear victory conditions and game end triggers",
-          "deepDive": ["advanced strategies", "common rule clarifications", "variant rules if applicable"],
-          "resources": {
-            "videoLinks": ["up to 3 tutorial video suggestions"],
-            "webLinks": ["official rules", "BGG page", "strategy guides"]
-          },
-          "confidence": 0-100,
-          "notes": "mention any assumptions or uncertainties about specific rules"
-        }
-        
-        Quality standards:
-        - Use clear, friendly language appropriate for ages 10+
-        - Number all setup steps and procedures
-        - Include specific examples where helpful
-        - Mention component names consistently
-        - If unsure about exact rules, note assumptions
-        
-        Confidence scoring:
-        - 90-100: Well-known game with established rules
-        - 70-89: Familiar with game type, some details estimated
-        - 50-69: Making educated guesses based on genre
-        - Below 50: Unfamiliar game, using board game conventions
-        """
-        
+            You are an expert board game rules instructor. Generate a comprehensive rules guide for the specified game.
+
+            Follow this content framework:
+            1. Overview: Core concept and objective in 2-3 sentences
+            2. Setup: Clear, numbered steps for game preparation
+            3. First Round: Step-by-step guide for new players
+            4. Victory: Win conditions and end game triggers
+            5. Deep Dive: Advanced rules, special cases, strategy tips
+            6. Resources: Helpful links for learning
+
+            Respond ONLY in valid JSON WITHOUT any markdown formatting using this structure:
+            {
+              "title": "exact game name",
+              "playerCount": "X-Y players",
+              "playTime": "X-Y minutes",
+              "summary": "engaging 2-3 sentence overview explaining theme and main objective",
+              "initialSetup": ["numbered setup steps", "be specific about component placement"],
+              "firstRoundGuide": ["step-by-step first turn", "explain decision points", "show example moves"],
+              "winCondition": "clear victory conditions and game end triggers",
+              "deepDive": ["advanced strategies", "common rule clarifications", "variant rules if applicable"],
+              "resources": {
+                "videoLinks": ["up to 3 tutorial video suggestions"],
+                "webLinks": ["official rules", "BGG page", "strategy guides"]
+              },
+              "confidence": 0-100,
+              "notes": "mention any assumptions or uncertainties about specific rules"
+            }
+
+            Quality standards:
+            - Use clear, friendly language appropriate for ages 10+
+            - Number all setup steps and procedures
+            - Include specific examples where helpful
+            - Mention component names consistently
+            - If unsure about exact rules, note assumptions
+
+            Confidence scoring:
+            - 90-100: Well-known game with established rules
+            - 70-89: Familiar with game type, some details estimated
+            - 50-69: Making educated guesses based on genre
+            - Below 50: Unfamiliar game, using board game conventions
+            """
+
         let userPrompt = "Game: \(sanitizedGameTitle)"
-        
+
         // Create combined input with system instructions and user prompt
         let combinedPrompt = """
-        \(systemPrompt)
+            \(systemPrompt)
 
-        \(userPrompt)
-        """
-        
+            \(userPrompt)
+            """
+
         let rulesResponse: String
         do {
-            rulesResponse = try await llmService.generateOptimized(
-                input: combinedPrompt,
-                model: "gpt-4o-mini",
-                temperature: 0,
-                maxTokens: 1000,
-                useJSONMode: true
-            )
+            rulesResponse = try await llmService.generate(input: combinedPrompt)
         } catch {
-            context.logger.error("LLM service error during rules generation", metadata: [
-                "error": .string(error.localizedDescription),
-                "game_title": .string(sanitizedGameTitle),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
+            context.logger.error(
+                "LLM service error during rules generation",
+                metadata: [
+                    "error": .string(error.localizedDescription),
+                    "game_title": .string(sanitizedGameTitle),
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                ])
             throw ContentError.externalServiceFailedToRespond
         }
-        
-        // SECURITY FIX: Validate AI response before returning using validation service  
+
+        // SECURITY FIX: Validate AI response before returning using validation service
         do {
             let validatedResponse = try aiResponseValidator.validateRulesSummaryResponse(
                 rulesResponse,
@@ -274,41 +280,46 @@ struct GenerateRulesUseCase: Command {
                 logger: context.logger
             )
             let rulesBuffer = ByteBuffer(string: validatedResponse)
-            let rulesSummary = try JSONDecoder().decode(RulesSummary.Response.self, from: rulesBuffer)
-            
+            let rulesSummary = try JSONDecoder().decode(
+                RulesSummary.Response.self, from: rulesBuffer)
+
             // PERFORMANCE OPTIMIZATION: Cache successful response
             await aiCache.set(
                 key: cacheKey,
                 value: validatedResponse,
                 ttl: cacheConfiguration.rulesGenerationTTL
             )
-            
+
             // Log successful generation and caching
-            context.logger.info("AI rules generation completed successfully", metadata: [
-                "game_title": .string(sanitizedGameTitle),
-                "confidence": .string("\(rulesSummary.confidence)"),
-                "cached": .string("true"),
-                "cache_key": .string(cacheKey),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
-            
+            context.logger.info(
+                "AI rules generation completed successfully",
+                metadata: [
+                    "game_title": .string(sanitizedGameTitle),
+                    "confidence": .string("\(rulesSummary.confidence)"),
+                    "cached": .string("true"),
+                    "cache_key": .string(cacheKey),
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                ])
+
             let response = Response(
                 rulesSummary: rulesSummary,
                 processedGameTitle: rulesSummary.title,
                 generatedAt: Date.now,
                 wasCached: wasCached
             )
-            
+
             return response
         } catch {
-            context.logger.error("AI response validation failed for rules generation", metadata: [
-                "error": .string(error.localizedDescription),
-                "game_title": .string(sanitizedGameTitle),
-                "response_length": .string("\(rulesResponse.count)"),
-                "client_ip": .string(context.clientIP),
-                "request_id": .string(context.requestID)
-            ])
+            context.logger.error(
+                "AI response validation failed for rules generation",
+                metadata: [
+                    "error": .string(error.localizedDescription),
+                    "game_title": .string(sanitizedGameTitle),
+                    "response_length": .string("\(rulesResponse.count)"),
+                    "client_ip": .string(context.clientIP),
+                    "request_id": .string(context.requestID),
+                ])
             throw ContentError.externalServiceFailedToRespond
         }
     }

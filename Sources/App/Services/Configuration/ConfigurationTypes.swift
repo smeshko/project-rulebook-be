@@ -67,6 +67,14 @@ struct ServicesConfig: Sendable {
     /// ## Important
     /// This key provides access to OpenAI's `/v1/responses` endpoint (not Chat Completions).
     let openAIKey: String
+
+    /// API key for Google Gemini service integration.
+    ///
+    /// Required for AI-powered features using Google's Gemini models:
+    /// - Game rules generation
+    /// - Board game box image analysis
+    /// - Content validation and processing
+    let geminiApiKey: String
 }
 
 /// Security configuration including authentication, CORS, and rate limiting settings.

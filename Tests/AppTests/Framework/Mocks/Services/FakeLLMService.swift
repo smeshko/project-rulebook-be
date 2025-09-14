@@ -83,24 +83,14 @@ final class FakeLLMService: LLMService, @unchecked Sendable {
         return findMatchingResponse(for: input)
     }
     
-    func generateOptimized(
-        input: String,
-        model: String,
-        temperature: Double,
-        maxTokens: Int,
-        useJSONMode: Bool
-    ) async throws -> String {
-        logger.info("FakeLLMService generating optimized response - model: \(model), temp: \(temperature), tokens: \(maxTokens)")
+    func generateOptimized(input: String) async throws -> String {
+        logger.info("FakeLLMService generating optimized response")
         return findMatchingResponse(for: input)
     }
     
     func analyzeImage(
         imageData: String,
-        prompt: String,
-        model: String,
-        temperature: Double,
-        maxTokens: Int,
-        useJSONMode: Bool
+        prompt: String
     ) async throws -> String {
         logger.info("FakeLLMService analyzing image with prompt: \(prompt.prefix(50))...")
         return findMatchingResponse(for: prompt)

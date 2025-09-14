@@ -71,9 +71,9 @@ public struct ExternalServiceProvider: ServiceProvider {
         }
         
         if !registry.isRegistered(LLMService.self) {
-            // LLM Service - Redis caching handled at the use case level through AICacheServiceInterface
+            // LLM Service - Can use either OpenAI or Gemini; default to GoogleGeminiService
             registry.register(LLMService.self) { app in
-                return OpenAIService(app: app)
+                return GoogleGeminiService(app: app)
             }
         }
         
