@@ -79,30 +79,6 @@ struct OpenAIService: LLMService {
     }
   }
 
-  /// Generates text using default optimized parameters for cost efficiency.
-  ///
-  /// This convenience method uses the most cost-effective settings optimized
-  /// for the application's typical use cases (game rules generation).
-  ///
-  /// ## Default Parameters
-  /// - Model: gpt-4o-mini (most cost-effective)
-  /// - Temperature: 0 (deterministic responses)
-  /// - Max tokens: 1000 (sufficient for most responses)
-  /// - JSON mode: enabled (structured responses)
-  ///
-  /// - Parameter input: The text prompt for generation
-  /// - Returns: Generated text response
-  /// - Throws: ``OpenAIError`` for API failures
-  func generate(input: String) async throws -> String {
-    return try await generateOptimized(
-      input: input,
-      model: "gpt-4o-mini",
-      temperature: 0,
-      maxTokens: 1000,
-      useJSONMode: true
-    )
-  }
-
   /// Generates text with full parameter control and retry logic.
   ///
   /// This method provides comprehensive text generation with configurable parameters
@@ -122,20 +98,10 @@ struct OpenAIService: LLMService {
   ///   - useJSONMode: Whether to enforce JSON format
   /// - Returns: Generated text response
   /// - Throws: ``OpenAIError`` for API failures after all retries exhausted
-  func generateOptimized(
-    input: String,
-    model: String = "gpt-4o-mini",
-    temperature: Double = 0,
-    maxTokens: Int = 1000,
-    useJSONMode: Bool = true
-  ) async throws -> String {
+  func generate(input: String) async throws -> String {
     return try await withRetry(maxAttempts: maxRetries) { attempt in
       try await performGenerationOptimized(
         input: input,
-        model: model,
-        temperature: temperature,
-        maxTokens: maxTokens,
-        useJSONMode: useJSONMode,
         attempt: attempt
       )
     }
@@ -169,20 +135,12 @@ struct OpenAIService: LLMService {
   /// - Throws: ``OpenAIError`` for API failures, ``AIValidationError`` for invalid images
   func analyzeImage(
     imageData: String,
-    prompt: String,
-    model: String = "gpt-4o-mini",
-    temperature: Double = 0,
-    maxTokens: Int = 1000,
-    useJSONMode: Bool = true
+    prompt: String
   ) async throws -> String {
     return try await withRetry(maxAttempts: maxRetries) { attempt in
       try await performImageAnalysis(
         imageData: imageData,
         prompt: prompt,
-        model: model,
-        temperature: temperature,
-        maxTokens: maxTokens,
-        useJSONMode: useJSONMode,
         attempt: attempt
       )
     }
@@ -214,10 +172,6 @@ struct OpenAIService: LLMService {
   /// - Throws: ``OpenAIError`` for various API failures
   private func performGenerationOptimized(
     input: String,
-    model: String,
-    temperature: Double,
-    maxTokens: Int,
-    useJSONMode: Bool,
     attempt: Int
   ) async throws -> String {
     do {
@@ -225,7 +179,7 @@ struct OpenAIService: LLMService {
         .init(string: "https://api.openai.com/v1/responses"),
         headers: headers,
         content: OpenAIRequest(
-          model: model,
+          model: "gpt-4o-mini",
           input: .text(input),
           instructions: nil,
           temperature: nil,
@@ -268,10 +222,6 @@ struct OpenAIService: LLMService {
   private func performImageAnalysis(
     imageData: String,
     prompt: String,
-    model: String,
-    temperature: Double,
-    maxTokens: Int,
-    useJSONMode: Bool,
     attempt: Int
   ) async throws -> String {
     do {
@@ -289,7 +239,7 @@ struct OpenAIService: LLMService {
         .init(string: "https://api.openai.com/v1/responses"),
         headers: headers,
         content: OpenAIRequest(
-          model: model,
+          model: "gpt-4o-mini",
           input: .messages([message]),
           instructions: nil,
           temperature: nil,

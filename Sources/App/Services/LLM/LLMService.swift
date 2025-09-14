@@ -3,8 +3,9 @@ import Vapor
 /// Protocol defining the interface for Large Language Model service integrations.
 ///
 /// This service provides a unified interface for AI text generation and image analysis
-/// capabilities, currently implemented using OpenAI's API. The service includes
-/// built-in retry logic, error handling, and performance optimizations.
+/// capabilities, supporting multiple Large Language Model (LLM) providers.
+/// The service includes built-in retry logic, error handling, and performance
+/// optimizations to ensure reliable and efficient AI interactions across different providers.
 ///
 /// ## Key Features
 /// - Text generation with configurable parameters
@@ -28,57 +29,20 @@ protocol LLMService {
     /// Generates text using default optimized parameters.
     ///
     /// This is a convenience method that uses the most cost-effective settings:
-    /// - Model: gpt-4o-mini
+    /// - Default model: determined by current LLM provider configuration
     /// - Temperature: 0 (deterministic)
     /// - Max tokens: 1000
     /// - JSON mode: enabled
     ///
     /// - Parameter input: The text prompt for generation
     /// - Returns: Generated text response
-    /// - Throws: ``OpenAIError`` for API-related failures, ``AIValidationError`` for input validation failures
+    /// - Throws: Provider-specific API errors, validation errors for input processing
     ///
     /// ## Usage
     /// ```swift
     /// let response = try await request.services.llm.generate(input: "Generate game rules for Chess")
     /// ```
     func generate(input: String) async throws -> String
-    
-    /// Generates text with full parameter control for advanced use cases.
-    ///
-    /// This method provides complete control over generation parameters, allowing
-    /// fine-tuning for different use cases and cost optimization strategies.
-    ///
-    /// - Parameters:
-    ///   - input: The text prompt for generation
-    ///   - model: OpenAI model to use (default: "gpt-4o-mini" for cost efficiency)
-    ///   - temperature: Randomness in generation (0.0-2.0, where 0 is deterministic)
-    ///   - maxTokens: Maximum tokens in response (affects cost and response length)
-    ///   - useJSONMode: Whether to enforce JSON format in response
-    /// - Returns: Generated text response
-    /// - Throws: ``OpenAIError`` for API-related failures, ``AIValidationError`` for input validation failures
-    ///
-    /// ## Parameter Guidelines
-    /// - **Temperature**: Use 0 for consistent results, 0.7 for creative content
-    /// - **Max Tokens**: Typical values: 500 (short), 1000 (medium), 2000 (long)
-    /// - **JSON Mode**: Enable when expecting structured data responses
-    ///
-    /// ## Usage
-    /// ```swift
-    /// let response = try await request.services.llm.generateOptimized(
-    ///     input: prompt,
-    ///     model: "gpt-4o-mini",
-    ///     temperature: 0.0,
-    ///     maxTokens: 1500,
-    ///     useJSONMode: true
-    /// )
-    /// ```
-    func generateOptimized(
-        input: String,
-        model: String,
-        temperature: Double,
-        maxTokens: Int,
-        useJSONMode: Bool
-    ) async throws -> String
     
     /// Analyzes images using AI vision capabilities.
     ///
@@ -89,12 +53,8 @@ protocol LLMService {
     /// - Parameters:
     ///   - imageData: Base64-encoded image data with data URL prefix (e.g., "data:image/jpeg;base64,...")
     ///   - prompt: Analysis instructions and expected response format
-    ///   - model: Vision-capable model to use (default: "gpt-4o-mini")
-    ///   - temperature: Randomness in analysis (typically 0 for consistent recognition)
-    ///   - maxTokens: Maximum tokens in response (affects analysis detail level)
-    ///   - useJSONMode: Whether to enforce JSON format in response (recommended)
     /// - Returns: Structured analysis response
-    /// - Throws: ``OpenAIError`` for API failures, ``AIValidationError`` for invalid image data
+    /// - Throws: Provider-specific API errors, validation errors for image processing
     ///
     /// ## Image Requirements
     /// - Supported formats: JPEG, PNG, GIF, WebP
@@ -105,20 +65,12 @@ protocol LLMService {
     /// ```swift
     /// let analysis = try await request.services.llm.analyzeImage(
     ///     imageData: "data:image/jpeg;base64,/9j/4AAQSkZJRgABA...",
-    ///     prompt: "Identify the board game in this image and return JSON with title and confidence",
-    ///     model: "gpt-4o-mini",
-    ///     temperature: 0.0,
-    ///     maxTokens: 1000,
-    ///     useJSONMode: true
+    ///     prompt: "Identify the board game in this image and return JSON with title and confidence"
     /// )
     /// ```
     func analyzeImage(
         imageData: String,
-        prompt: String,
-        model: String,
-        temperature: Double,
-        maxTokens: Int,
-        useJSONMode: Bool
+        prompt: String
     ) async throws -> String
 
     /// Returns a service instance configured for the specific request context.

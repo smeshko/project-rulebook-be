@@ -43,7 +43,7 @@ A sophisticated Vapor 4 Swift web application that leverages AI to analyze board
 - Swift 5.9+ and Xcode 15+
 - Docker and Docker Compose (for local development database)
 - PostgreSQL 15.4+ and Redis 7.2+ (provided via Docker for development)
-- OpenAI API key for AI features
+- OpenAI or Google Gemini API key for AI features
 
 ### Installation
 ```bash
@@ -53,7 +53,7 @@ cd project-rulebook
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env with your actual API keys
+# Edit .env with your actual API keys (OPENAI_KEY or GEMINI_API_KEY)
 
 # Start development database services
 docker-compose -f docker-compose.dev.yml up -d
@@ -195,8 +195,8 @@ POST /api/admin/cache/cleanup
 ┌──────────────┬──────────────┬──────────────┬──────────────┐
 │ EmailService │  LLMService  │ CacheService │ConfigService │
 │              │              │              │              │
-│ Brevo email  │ OpenAI API   │ In-memory    │ Environment  │
-│ integration  │ (Responses)  │ AI caching   │ configs      │
+│ Brevo email  │ OpenAI/Gemini│ In-memory    │ Environment  │
+│ integration  │ integrations │ AI caching   │ configs      │
 └──────────────┴──────────────┴──────────────┴──────────────┘
 │                                                             │
 ┌─────────────────────────────────────────────────────────────┐
@@ -218,6 +218,11 @@ Request → Security Headers → CORS → Rate Limiting → Auth → Controllers
            ├─ X-Frame       ├─ Headers     ├─ 100/hr API     ├─ Admin Check
            └─ X-XSS         └─ Credentials └─ IP-based       └─ Validation
 ```
+
+## 🔁 Gemini Integration
+
+- Configuration: set `GEMINI_API_KEY` in your environment. The service uses `x-goog-api-key` with `v1beta/models/*:generateContent` endpoints.
+- Usage: `LLMService` remains the same; provider can be configured to use Google Gemini under the hood. Default mapping targets `gemini-2.5-pro`.
 
 ## 🔒 Security Features
 
