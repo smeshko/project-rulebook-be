@@ -280,8 +280,8 @@ struct AnalyzeGameBoxUseCase: Query {
         2. Note visual indicators (artwork style, component images, age ratings)
         3. Consider franchise/series if applicable
         4. Assess your confidence based on text clarity and distinctive features
-        
-        Return a JSON response with this exact structure:
+
+        Respond ONLY in valid JSON WITHOUT any markdown formatting. Return a JSON response with this exact structure:
         {
           "guessedTitle": "exact game title as shown on box",
           "confidence": 0-100,

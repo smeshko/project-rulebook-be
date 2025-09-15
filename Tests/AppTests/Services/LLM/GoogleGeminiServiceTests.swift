@@ -58,6 +58,26 @@ struct GoogleGeminiServiceTests {
         )
         #expect(fenced.extractText() == "{\"a\":1}")
 
+        let markdown = GeminiResponse(
+            candidates: [
+                .init(
+                    content: .init(
+                        parts: [
+                            .init(text: "## Title\n- First item\n- Second item with [link](https://example.com) and `code`.\n> Quote line\n\n**Bold** and _italic_. ![alt](img.png)")
+                        ],
+                        role: nil
+                    ),
+                    finishReason: "stop",
+                    index: 0
+                )
+            ],
+            usageMetadata: nil,
+            modelVersion: nil,
+            responseId: nil
+        )
+        let expectedPlain = "Title\nFirst item\nSecond item with link and code.\nQuote line\n\nBold and italic. alt"
+        #expect(markdown.extractText() == expectedPlain)
+
         let empty = GeminiResponse(candidates: [], usageMetadata: nil, modelVersion: nil, responseId: nil)
         #expect(empty.extractText() == nil)
     }

@@ -215,7 +215,8 @@ struct GenerateRulesUseCase: Command {
             5. Deep Dive: Advanced rules, special cases, strategy tips
             6. Resources: Helpful links for learning
 
-            Respond ONLY in valid JSON WITHOUT any markdown formatting using this structure:
+            Respond ONLY in valid JSON WITHOUT any markdown formatting. DO NOT use ** for bolding.
+            DO NOT add ANY KIND of numbering to the steps. You MUST use this structure:
             {
               "title": "exact game name",
               "playerCount": "X-Y players",
