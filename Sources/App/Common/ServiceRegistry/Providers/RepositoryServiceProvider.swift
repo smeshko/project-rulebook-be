@@ -22,5 +22,10 @@ public struct RepositoryServiceProvider: ServiceProvider {
         registry.register((any PasswordTokenRepository).self) { app in
             DatabasePasswordTokenRepository(database: app.db)
         }
+
+        // Register Generated Rule Repository
+        registry.register((any GeneratedRuleRepository).self) { app in
+            DatabaseGeneratedRuleRepository(database: app.db)
+        }
     }
 }

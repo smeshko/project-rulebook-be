@@ -80,6 +80,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
     private let tokenRepository: TestRefreshTokenRepository
     private let emailTokenRepository: TestEmailTokenRepository
     private let passwordTokenRepository: TestPasswordTokenRepository
+    private let generatedRuleRepository: TestGeneratedRuleRepository
     
     // MARK: - Mock Services
     private let fakeLLMService: FakeLLMService
@@ -105,6 +106,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         self.tokenRepository = TestRefreshTokenRepository()
         self.emailTokenRepository = TestEmailTokenRepository()
         self.passwordTokenRepository = TestPasswordTokenRepository()
+        self.generatedRuleRepository = TestGeneratedRuleRepository()
         
         // Create fresh service instances
         self.fakeLLMService = FakeLLMService(app: app)
@@ -142,6 +144,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.serviceRegistry.register((any RefreshTokenRepository).self) { _ in self.tokenRepository }
         app.serviceRegistry.register((any EmailTokenRepository).self) { _ in self.emailTokenRepository }
         app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in self.passwordTokenRepository }
+        app.serviceRegistry.register((any GeneratedRuleRepository).self) { _ in self.generatedRuleRepository }
         
         // Configure plaintext password hasher for consistent testing
         app.passwords.use(.plaintext)
@@ -212,6 +215,11 @@ final class IsolatedTestWorld: @unchecked Sendable {
     var passwordTokens: TestPasswordTokenRepository {
         passwordTokenRepository
     }
+
+    /// Access to the isolated generated rule repository.
+    var generatedRules: TestGeneratedRuleRepository {
+        generatedRuleRepository
+    }
     
     // MARK: - Public Access to Mock Services
     
@@ -248,6 +256,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         await tokenRepository.reset()
         await emailTokenRepository.reset()
         await passwordTokenRepository.reset()
+        await generatedRuleRepository.reset()
         
         // Reset services
         fakeLLMService.reset()

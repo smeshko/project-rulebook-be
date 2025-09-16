@@ -11,6 +11,7 @@ private final class SharedTestRepositories: @unchecked Sendable {
     let userRepository: TestUserRepository = .init()
     let emailTokenRepository: TestEmailTokenRepository = .init()
     let passwordTokenRepository: TestPasswordTokenRepository = .init()
+    let generatedRuleRepository: TestGeneratedRuleRepository = .init()
     
     private init() {}
     
@@ -19,6 +20,7 @@ private final class SharedTestRepositories: @unchecked Sendable {
         await userRepository.reset()
         await emailTokenRepository.reset()
         await passwordTokenRepository.reset()
+        await generatedRuleRepository.reset()
     }
     
     func resetSync() {
@@ -79,6 +81,7 @@ private class TestWorldPreConfiguration {
         app.serviceRegistry.register((any RefreshTokenRepository).self) { _ in shared.tokenRepository }
         app.serviceRegistry.register((any EmailTokenRepository).self) { _ in shared.emailTokenRepository }
         app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in shared.passwordTokenRepository }
+        app.serviceRegistry.register((any GeneratedRuleRepository).self) { _ in shared.generatedRuleRepository }
     }
     
     func setupTestServices() {
@@ -220,6 +223,11 @@ class TestWorld: @unchecked Sendable {
     /// Access to the test password token repository.
     var passwordTokens: TestPasswordTokenRepository {
         sharedRepositories.passwordTokenRepository
+    }
+
+    /// Access to the test generated rule repository.
+    var generatedRules: TestGeneratedRuleRepository {
+        sharedRepositories.generatedRuleRepository
     }
     
     // MARK: - Test Utilities

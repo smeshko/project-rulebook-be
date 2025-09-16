@@ -35,6 +35,9 @@ final class ServiceCache: @unchecked Sendable {
     
     /// Cached password token repository for immediate synchronous access.
     private let _passwordTokenRepository: any PasswordTokenRepository
+
+    /// Cached generated rule repository for immediate synchronous access.
+    private let _generatedRuleRepository: any GeneratedRuleRepository
     
     // MARK: - Service Cache
     
@@ -102,6 +105,7 @@ final class ServiceCache: @unchecked Sendable {
         emailTokenRepository: any EmailTokenRepository,
         refreshTokenRepository: any RefreshTokenRepository,
         passwordTokenRepository: any PasswordTokenRepository,
+        generatedRuleRepository: any GeneratedRuleRepository,
         emailService: EmailService,
         llmService: LLMService,
         aiCacheService: AICacheServiceInterface,
@@ -117,6 +121,7 @@ final class ServiceCache: @unchecked Sendable {
         self._emailTokenRepository = emailTokenRepository
         self._refreshTokenRepository = refreshTokenRepository
         self._passwordTokenRepository = passwordTokenRepository
+        self._generatedRuleRepository = generatedRuleRepository
         self._emailService = emailService
         self._llmService = llmService
         self._aiCacheService = aiCacheService
@@ -161,6 +166,13 @@ final class ServiceCache: @unchecked Sendable {
     /// - Returns: The cached password token repository instance
     var passwordTokenRepository: any PasswordTokenRepository {
         _passwordTokenRepository
+    }
+
+    /// Returns the cached generated rule repository for immediate synchronous access.
+    ///
+    /// - Returns: The cached generated rule repository instance
+    var generatedRuleRepository: any GeneratedRuleRepository {
+        _generatedRuleRepository
     }
     
     // MARK: - Service Access
