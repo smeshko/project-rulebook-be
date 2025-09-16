@@ -75,6 +75,8 @@ struct GenerateRulesUseCase: Command {
     private let aiResponseValidator: AIResponseValidationService
     /// Cache configuration settings
     private let cacheConfiguration: CacheConfig
+    /// Repository for persisting and retrieving generated rule summaries
+    private let generatedRuleRepository: any GeneratedRuleRepository
 
     // MARK: - Initialization
 
@@ -84,7 +86,8 @@ struct GenerateRulesUseCase: Command {
         aiCache: AICacheServiceInterface,
         llmService: LLMService,
         aiResponseValidator: AIResponseValidationService,
-        cacheConfiguration: CacheConfig
+        cacheConfiguration: CacheConfig,
+        generatedRuleRepository: any GeneratedRuleRepository
     ) {
         self.aiInputValidator = aiInputValidator
         self.cacheKeyGenerator = cacheKeyGenerator
@@ -92,6 +95,7 @@ struct GenerateRulesUseCase: Command {
         self.llmService = llmService
         self.aiResponseValidator = aiResponseValidator
         self.cacheConfiguration = cacheConfiguration
+        self.generatedRuleRepository = generatedRuleRepository
     }
 
     // MARK: - Use Case Execution
@@ -203,6 +207,77 @@ struct GenerateRulesUseCase: Command {
                 "request_id": .string(context.requestID),
             ])
 
+        // Attempt to hydrate from persisted summaries before invoking the LLM
+        do {
+            if let storedRule = try await generatedRuleRepository.find(bySanitizedTitle: sanitizedGameTitle) {
+                context.logger.info(
+                    "Database hit for persisted rules summary",
+                    metadata: [
+                        "game_title": .string(sanitizedGameTitle),
+                        "cache_key": .string(cacheKey),
+                        "request_id": .string(context.requestID),
+                    ])
+
+                do {
+                    let rulesSummary = makeRulesSummary(from: storedRule)
+
+                    // Refresh Redis cache for future requests
+                    let encodedSummary = try JSONEncoder().encode(rulesSummary)
+                    if let encodedString = String(data: encodedSummary, encoding: .utf8) {
+                        await aiCache.set(
+                            key: cacheKey,
+                            value: encodedString,
+                            ttl: cacheConfiguration.rulesGenerationTTL
+                        )
+                    } else {
+                        context.logger.warning(
+                            "Failed to convert persisted rules summary to UTF-8 for cache hydration",
+                            metadata: [
+                                "game_title": .string(sanitizedGameTitle),
+                                "request_id": .string(context.requestID),
+                            ])
+                    }
+
+                    if let identifier = storedRule.id {
+                        do {
+                            try await generatedRuleRepository.touch(identifier)
+                        } catch {
+                            context.logger.warning(
+                                "Failed to update last accessed timestamp for persisted rules summary",
+                                metadata: [
+                                    "error": .string(error.localizedDescription),
+                                    "game_title": .string(sanitizedGameTitle),
+                                    "request_id": .string(context.requestID),
+                                ])
+                        }
+                    }
+
+                    return Response(
+                        rulesSummary: rulesSummary,
+                        processedGameTitle: rulesSummary.title,
+                        generatedAt: storedRule.createdAt ?? Date.now,
+                        wasCached: wasCached
+                    )
+                } catch {
+                    context.logger.error(
+                        "Failed to map persisted rules summary, falling back to LLM generation",
+                        metadata: [
+                            "error": .string(error.localizedDescription),
+                            "game_title": .string(sanitizedGameTitle),
+                            "request_id": .string(context.requestID),
+                        ])
+                }
+            }
+        } catch {
+            context.logger.error(
+                "Database lookup for persisted rules summary failed",
+                metadata: [
+                    "error": .string(error.localizedDescription),
+                    "game_title": .string(sanitizedGameTitle),
+                    "request_id": .string(context.requestID),
+                ])
+        }
+
         // Enhanced prompt for comprehensive, consistent rule generation
         let systemPrompt = """
             You are an expert board game rules instructor. Generate a comprehensive rules guide for the specified game.
@@ -291,6 +366,14 @@ struct GenerateRulesUseCase: Command {
                 ttl: cacheConfiguration.rulesGenerationTTL
             )
 
+            await persistGeneratedSummary(
+                originalTitle: request.gameTitle,
+                sanitizedTitle: sanitizedGameTitle,
+                cacheKey: cacheKey,
+                rulesSummary: rulesSummary,
+                context: context
+            )
+
             // Log successful generation and caching
             context.logger.info(
                 "AI rules generation completed successfully",
@@ -322,6 +405,110 @@ struct GenerateRulesUseCase: Command {
                     "request_id": .string(context.requestID),
                 ])
             throw ContentError.externalServiceFailedToRespond
+        }
+    }
+}
+
+private extension GenerateRulesUseCase {
+    func makeRulesSummary(from model: GeneratedRuleModel) -> RulesSummary.Response {
+        RulesSummary.Response(
+            title: model.title,
+            playerCount: model.playerCount,
+            playTime: model.playTime,
+            summary: model.summary,
+            initialSetup: model.initialSetup,
+            firstRoundGuide: model.firstRoundGuide,
+            winCondition: model.winCondition,
+            deepDive: model.deepDive,
+            resources: .init(
+                videoLinks: model.resourcesVideoLinks,
+                webLinks: model.resourcesWebLinks
+            ),
+            confidence: model.confidence,
+            notes: model.notes
+        )
+    }
+
+    func persistGeneratedSummary(
+        originalTitle: String,
+        sanitizedTitle: String,
+        cacheKey: String,
+        rulesSummary: RulesSummary.Response,
+        context: RequestContext
+    ) async {
+        let timestamp = Date.now
+        let model = GeneratedRuleModel(
+            originalTitle: originalTitle,
+            sanitizedTitle: sanitizedTitle,
+            cacheKey: cacheKey,
+            title: rulesSummary.title,
+            playerCount: rulesSummary.playerCount,
+            playTime: rulesSummary.playTime,
+            summary: rulesSummary.summary,
+            initialSetup: rulesSummary.initialSetup,
+            firstRoundGuide: rulesSummary.firstRoundGuide,
+            winCondition: rulesSummary.winCondition,
+            deepDive: rulesSummary.deepDive,
+            resourcesVideoLinks: rulesSummary.resources.videoLinks,
+            resourcesWebLinks: rulesSummary.resources.webLinks,
+            confidence: rulesSummary.confidence,
+            notes: rulesSummary.notes,
+            lastAccessedAt: timestamp
+        )
+
+        do {
+            try await generatedRuleRepository.create(model)
+            context.logger.debug(
+                "Persisted generated rules summary",
+                metadata: [
+                    "game_title": .string(sanitizedTitle),
+                    "cache_key": .string(cacheKey),
+                    "request_id": .string(context.requestID),
+                ])
+        } catch {
+            context.logger.warning(
+                "Create persisted rules summary failed, attempting update",
+                metadata: [
+                    "error": .string(error.localizedDescription),
+                    "game_title": .string(sanitizedTitle),
+                    "request_id": .string(context.requestID),
+                ])
+
+            do {
+                if let existing = try await generatedRuleRepository.find(bySanitizedTitle: sanitizedTitle) {
+                    existing.originalTitle = originalTitle
+                    existing.cacheKey = cacheKey
+                    existing.title = rulesSummary.title
+                    existing.playerCount = rulesSummary.playerCount
+                    existing.playTime = rulesSummary.playTime
+                    existing.summary = rulesSummary.summary
+                    existing.initialSetup = rulesSummary.initialSetup
+                    existing.firstRoundGuide = rulesSummary.firstRoundGuide
+                    existing.winCondition = rulesSummary.winCondition
+                    existing.deepDive = rulesSummary.deepDive
+                    existing.resourcesVideoLinks = rulesSummary.resources.videoLinks
+                    existing.resourcesWebLinks = rulesSummary.resources.webLinks
+                    existing.confidence = rulesSummary.confidence
+                    existing.notes = rulesSummary.notes
+                    existing.lastAccessedAt = timestamp
+                    try await generatedRuleRepository.update(existing)
+                } else {
+                    context.logger.error(
+                        "Failed to locate existing summary for upsert",
+                        metadata: [
+                            "game_title": .string(sanitizedTitle),
+                            "request_id": .string(context.requestID),
+                        ])
+                }
+            } catch {
+                context.logger.error(
+                    "Persisting generated rules summary failed",
+                    metadata: [
+                        "error": .string(error.localizedDescription),
+                        "game_title": .string(sanitizedTitle),
+                        "request_id": .string(context.requestID),
+                    ])
+            }
         }
     }
 }

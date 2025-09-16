@@ -9,10 +9,24 @@ import Vapor
 /// error handling scenarios for multi-step AI operations.
 @Suite(.serialized)
 final class GenerateRulesUseCaseTests: Sendable {
-    
+    let world: IsolatedTestWorld
+    let app: Application
+    let cache: MockAICacheService
+    let repository: TestGeneratedRuleRepository
+
+    init() async throws {
+        world = try await IsolatedTestWorld()
+        app = world.app
+        cache = world.aiCache
+        repository = world.generatedRules
+        try await app.autoMigrate()
+        await world.resetAll()
+    }
+
     /// Test use case request structure and validation.
     @Test("GenerateRulesUseCase Request has correct structure")
     func testRequestStructure() async throws {
+        await world.resetAll()
         // Arrange
         let context = RequestContext(
             clientIP: "127.0.0.1",
@@ -36,6 +50,7 @@ final class GenerateRulesUseCaseTests: Sendable {
     /// Test use case response structure and validation.
     @Test("GenerateRulesUseCase Response has correct structure")
     func testResponseStructure() async throws {
+        await world.resetAll()
         // Arrange
         let rulesSummary = RulesSummary.Response(
             title: "Monopoly Rules",
@@ -80,6 +95,7 @@ final class GenerateRulesUseCaseTests: Sendable {
     /// Test use case dependency injection pattern.
     @Test("GenerateRulesUseCase follows dependency injection patterns")
     func testDependencyInjectionPattern() async throws {
+        await world.resetAll()
         // This test validates that the GenerateRulesUseCase follows the established
         // dependency injection pattern used throughout the application
         
@@ -118,6 +134,7 @@ final class GenerateRulesUseCaseTests: Sendable {
     /// Test Command protocol compliance.
     @Test("GenerateRulesUseCase implements Command protocol correctly")
     func testCommandProtocolCompliance() async throws {
+        await world.resetAll()
         // The GenerateRulesUseCase should implement the Command protocol
         // which defines the interface for all use cases in the system
         
@@ -148,6 +165,7 @@ final class GenerateRulesUseCaseTests: Sendable {
     /// Test response JSON serialization for API endpoints.
     @Test("GenerateRulesUseCase Response can be serialized for API responses")
     func testResponseSerialization() async throws {
+        await world.resetAll()
         // Arrange
         let rulesSummary = RulesSummary.Response(
             title: "Scythe Rules",
@@ -194,6 +212,7 @@ final class GenerateRulesUseCaseTests: Sendable {
     /// Test error handling patterns for use case failures.
     @Test("GenerateRulesUseCase handles expected error types")
     func testErrorHandlingPatterns() async throws {
+        await world.resetAll()
         // The use case should handle these error scenarios:
         // 1. Invalid game title (ValidationError)
         // 2. AI service failures (ContentError)
@@ -214,6 +233,108 @@ final class GenerateRulesUseCaseTests: Sendable {
         // Error types are properly defined and can be thrown/caught
         // The use case would catch these errors and transform them into
         // appropriate HTTP responses via the controller layer
+    }
+
+    /// Ensure persisted records are returned when cache misses.
+    @Test("GenerateRulesUseCase rehydrates from persisted summary on cache miss")
+    func testReturnsPersistedSummaryWhenAvailable() async throws {
+        await world.resetAll()
+        cache.configureForceMiss(true)
+
+        let sanitizedTitle = try app.serviceCache.aiInputValidatorService
+            .validateAndSanitizeGameTitle("Catan: Persisted")
+        let cacheKey = app.serviceCache.cacheKeyGeneratorService.generateRulesKey(for: sanitizedTitle)
+        let createdAt = Date(timeIntervalSince1970: 5_000)
+
+        let persisted = GeneratedRuleModel(
+            originalTitle: "Catan: Persisted",
+            sanitizedTitle: sanitizedTitle,
+            cacheKey: cacheKey,
+            title: "Persisted Catan",
+            playerCount: "3-4",
+            playTime: "60-90 minutes",
+            summary: "Use stored summary when available",
+            initialSetup: ["Build the island"],
+            firstRoundGuide: ["Roll dice", "Collect resources"],
+            winCondition: "Reach 10 points",
+            deepDive: ["Trade smart"],
+            resourcesVideoLinks: ["https://videos.example/persisted"],
+            resourcesWebLinks: ["https://persisted.example"],
+            confidence: 88,
+            notes: "Persisted from integration test",
+            lastAccessedAt: Date(timeIntervalSince1970: 0)
+        )
+        persisted.createdAt = createdAt
+        try await repository.create(persisted)
+
+        let useCase = try await app.serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
+        let request = GenerateRulesUseCase.Request(
+            gameTitle: "Catan: Persisted",
+            context: RequestContext(clientIP: "127.0.0.1", logger: app.logger)
+        )
+
+        let response = try await useCase.execute(request)
+
+        #expect(response.rulesSummary.title == "Persisted Catan")
+        #expect(response.wasCached == false)
+        #expect(response.generatedAt == createdAt)
+
+        cache.configureForceMiss(false)
+        let hydrated = await cache.get(key: cacheKey)
+        #expect(hydrated != nil)
+
+        let touched = try await repository.find(bySanitizedTitle: sanitizedTitle)
+        #expect(touched?.lastAccessedAt ?? Date(timeIntervalSince1970: 0) > Date(timeIntervalSince1970: 0))
+    }
+
+    /// Ensure new summaries are persisted and cached after LLM generation.
+    @Test("GenerateRulesUseCase persists new summaries after generation")
+    func testPersistsSummaryAfterGeneration() async throws {
+        await world.resetAll()
+        cache.configureForceMiss(true)
+
+        let sanitizedTitle = try app.serviceCache.aiInputValidatorService
+            .validateAndSanitizeGameTitle("Terraforming Mars")
+        let cacheKey = app.serviceCache.cacheKeyGeneratorService.generateRulesKey(for: sanitizedTitle)
+
+        let llmResponse = """
+        {
+          "title": "Terraforming Mars Deluxe",
+          "playerCount": "1-5",
+          "playTime": "120 minutes",
+          "summary": "Guide corporations to terraform the red planet.",
+          "initialSetup": ["Select corporations", "Deal project cards"],
+          "firstRoundGuide": ["Choose actions", "Manage heat production"],
+          "winCondition": "Highest terraforming rating wins",
+          "deepDive": ["Focus on engine building", "Balance oxygen and oceans"],
+          "resources": {
+            "videoLinks": ["https://videos.example/tm"],
+            "webLinks": ["https://terraformingmars.example"]
+          },
+          "confidence": 82,
+          "notes": "Assumes Prelude expansion"
+        }
+        """
+        world.llm.setDefaultResponse(llmResponse)
+
+        let useCase = try await app.serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
+        let request = GenerateRulesUseCase.Request(
+            gameTitle: "Terraforming Mars",
+            context: RequestContext(clientIP: "192.168.0.1", logger: app.logger)
+        )
+
+        let response = try await useCase.execute(request)
+
+        #expect(response.rulesSummary.title == "Terraforming Mars Deluxe")
+        #expect(response.wasCached == false)
+
+        let stored = try await repository.find(bySanitizedTitle: sanitizedTitle)
+        #expect(stored != nil)
+        #expect(stored?.summary == "Guide corporations to terraform the red planet.")
+
+        cache.configureForceMiss(false)
+        let cached = await cache.get(key: cacheKey)
+        #expect(cached != nil)
     }
 }
 

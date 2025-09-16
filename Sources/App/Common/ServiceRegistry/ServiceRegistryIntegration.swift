@@ -80,7 +80,8 @@ extension Application {
         return serviceRegistry.isRegistered((any UserRepository).self) &&
                serviceRegistry.isRegistered((any RefreshTokenRepository).self) &&
                serviceRegistry.isRegistered((any EmailTokenRepository).self) &&
-               serviceRegistry.isRegistered((any PasswordTokenRepository).self)
+               serviceRegistry.isRegistered((any PasswordTokenRepository).self) &&
+               serviceRegistry.isRegistered((any GeneratedRuleRepository).self)
     }
     
     
@@ -97,7 +98,7 @@ extension Application {
     ///
     /// ## Validated Services
     /// This method validates registration of:
-    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens)
+    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens, generatedRules)
     /// - All external services (email, llm, aiCache, generators, validators)
     /// - All utility services (randomGenerator, uuidGenerator, ipExtractor)
     ///
@@ -108,6 +109,7 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired((any EmailTokenRepository).self)
         _ = try await serviceRegistry.resolveRequired((any RefreshTokenRepository).self)
         _ = try await serviceRegistry.resolveRequired((any PasswordTokenRepository).self)
+        _ = try await serviceRegistry.resolveRequired((any GeneratedRuleRepository).self)
         
         // Validate services are registered
         _ = try await serviceRegistry.resolveRequired(EmailService.self)
@@ -155,7 +157,7 @@ extension Application {
     ///
     /// ## Cached Services
     /// This method pre-resolves and caches:
-    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens)
+    /// - All repository services (users, emailTokens, refreshTokens, passwordTokens, generatedRules)
     /// - All external services (email, llm, aiCache, generators, validators)
     /// - All utility services (randomGenerator, uuidGenerator, ipExtractor)
     ///
@@ -171,6 +173,7 @@ extension Application {
         let emailTokenRepository = try await serviceRegistry.resolveRequired((any EmailTokenRepository).self)
         let refreshTokenRepository = try await serviceRegistry.resolveRequired((any RefreshTokenRepository).self)
         let passwordTokenRepository = try await serviceRegistry.resolveRequired((any PasswordTokenRepository).self)
+        let generatedRuleRepository = try await serviceRegistry.resolveRequired((any GeneratedRuleRepository).self)
         
         // Pre-resolve all external services
         let emailService = try await serviceRegistry.resolveRequired(EmailService.self)
@@ -190,6 +193,7 @@ extension Application {
             emailTokenRepository: emailTokenRepository,
             refreshTokenRepository: refreshTokenRepository,
             passwordTokenRepository: passwordTokenRepository,
+            generatedRuleRepository: generatedRuleRepository,
             emailService: emailService,
             llmService: llmService,
             aiCacheService: aiCacheService,

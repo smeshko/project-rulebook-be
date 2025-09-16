@@ -175,7 +175,8 @@ public struct CQRSServiceProvider: ServiceProvider {
                 aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
                 llmService: try await app.serviceRegistry.resolveRequired(LLMService.self),
                 aiResponseValidator: try await app.serviceRegistry.resolveRequired(AIResponseValidationService.self),
-                cacheConfiguration: try app.configuration.cache
+                cacheConfiguration: try app.configuration.cache,
+                generatedRuleRepository: try await app.serviceRegistry.resolveRequired((any GeneratedRuleRepository).self)
             )
         }
     }
