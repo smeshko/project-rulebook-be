@@ -188,7 +188,7 @@ struct APNSConfig: Sendable {
 /// API calls to external AI services.
 ///
 /// ## Performance Benefits
-/// - Reduces OpenAI API costs by up to 80% through intelligent caching
+/// - Reduces OpenAI API costs through intelligent caching
 /// - Improves response times for repeated queries
 /// - Enables offline-like performance for cached content
 struct CacheConfig: Sendable {
@@ -197,7 +197,7 @@ struct CacheConfig: Sendable {
     /// When this limit is reached, the cache uses an LRU (Least Recently Used)
     /// eviction policy to remove older entries and make room for new ones.
     let maxEntries: Int
-    
+
     /// Time-to-live for rules generation responses in seconds.
     ///
     /// Default: 86400 seconds (24 hours)
@@ -205,21 +205,13 @@ struct CacheConfig: Sendable {
     /// Rules generation results are cached for 24 hours since game rules
     /// are relatively stable and don't change frequently.
     let rulesGenerationTTL: TimeInterval
-    
-    /// Time-to-live for image analysis responses in seconds.
-    ///
-    /// Default: 604800 seconds (7 days)
-    ///
-    /// Image analysis results are cached for 7 days since the same game box
-    /// image will always produce the same recognition results.
-    let imageAnalysisTTL: TimeInterval
-    
+
     /// Interval between automatic cache cleanup operations in seconds.
     ///
     /// The cache automatically removes expired entries at this interval
     /// to prevent memory bloat and maintain optimal performance.
     let cleanupInterval: TimeInterval
-    
+
     /// Whether to enable detailed cache operation logging.
     ///
     /// When enabled, logs cache hits, misses, and performance metrics.

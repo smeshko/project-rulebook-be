@@ -5,8 +5,8 @@ import Vapor
 /// Comprehensive tests for AnalyzeGameBoxUseCase demonstrating Complex Query testing patterns.
 ///
 /// This test suite validates AI-powered game analysis queries that are read-only operations
-/// but involve complex AI service integration, caching strategies, and image processing.
-/// Focus is on data accuracy, performance, and proper error handling for AI queries.
+/// involving complex AI service integration and image processing.
+/// Focus is on data accuracy and proper error handling for AI queries.
 @Suite(.serialized)
 final class AnalyzeGameBoxUseCaseTests: Sendable {
     
@@ -45,28 +45,19 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
             keywordsDetected: ["bird", "engine", "building", "strategy"],
             notes: "Clear game box with excellent visibility"
         )
-        
+
         // Act
         let response = AnalyzeGameBoxUseCase.Response(
             gameboxRecognition: gameboxRecognition,
-            analyzedAt: Date(),
-            wasCached: false
+            analyzedAt: Date()
         )
-        
+
         // Assert
         #expect(response.gameboxRecognition.guessedTitle == "Wingspan")
         #expect(response.gameboxRecognition.confidence == 94)
         #expect(response.gameboxRecognition.alternativeTitles.count == 1)
         #expect(response.gameboxRecognition.keywordsDetected.count == 4)
         #expect(response.analyzedAt <= Date())
-        #expect(response.wasCached == false)
-        
-        // Test cached response
-        let cachedResponse = AnalyzeGameBoxUseCase.Response(
-            gameboxRecognition: gameboxRecognition,
-            wasCached: true
-        )
-        #expect(cachedResponse.wasCached == true)
     }
     
     /// Test Query protocol compliance.
@@ -74,12 +65,12 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
     func testQueryProtocolCompliance() async throws {
         // The AnalyzeGameBoxUseCase should implement the Query protocol
         // which defines the interface for read-only operations in the system
-        
+
         // Query protocol ensures:
         // 1. Read-only operations with no side effects
         // 2. Idempotent behavior (same input produces same output)
-        // 3. Caching-friendly operations
-        // 4. Performance-optimized workflows
+        // 3. Clear request/response contracts
+        // 4. Consistent processing workflows
         
         let context = RequestContext(
             clientIP: "192.168.1.1",
@@ -103,29 +94,26 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
     func testDependencyInjectionPattern() async throws {
         // This test validates that the AnalyzeGameBoxUseCase follows the established
         // dependency injection pattern used throughout the application
-        
+
         // The use case requires these dependencies to be injected via constructor:
         // - aiInputValidator: AIInputValidatorServiceInterface
-        // - cacheKeyGenerator: CacheKeyGeneratorServiceInterface
-        // - aiCache: AICacheServiceInterface
         // - llmService: LLMService
         // - aiResponseValidator: AIResponseValidationService
-        // - cacheConfiguration: CacheConfig
-        
+
         // This validates the architectural decision for use case dependency injection
         // Use cases encapsulate complete business workflows with direct implementation
         // rather than delegating to over-engineered service abstraction layers
-        
+
         let context = RequestContext(
             clientIP: "127.0.0.1",
             logger: Logger(label: "test")
         )
-        
+
         let request = AnalyzeGameBoxUseCase.Request(
             imageData: Data(),
             context: context
         )
-        
+
         #expect(request.imageData.isEmpty == true)
         #expect(request.context.clientIP == "127.0.0.1")
     }
@@ -144,8 +132,7 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
         
         let useResponse = AnalyzeGameBoxUseCase.Response(
             gameboxRecognition: gameboxRecognition,
-            analyzedAt: Date(),
-            wasCached: false
+            analyzedAt: Date()
         )
         
         // Assert - Integration structure
@@ -174,8 +161,7 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
         
         let response = AnalyzeGameBoxUseCase.Response(
             gameboxRecognition: gameboxRecognition,
-            analyzedAt: Date(),
-            wasCached: true
+            analyzedAt: Date()
         )
         
         // Act - Test that nested structure can be encoded
@@ -204,8 +190,7 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
         // The use case should handle these error scenarios:
         // 1. Invalid image data (AIValidationError)
         // 2. AI service failures (ContentError)
-        // 3. Cache failures (graceful degradation)
-        // 4. Security validation failures (AIValidationError)
+        // 3. Security validation failures (AIValidationError)
         
         // Test image validation errors
         let emptyImageError = AIProcessingError.imageDataEmpty
@@ -226,33 +211,32 @@ final class AnalyzeGameBoxUseCaseTests: Sendable {
     @Test("AnalyzeGameBoxUseCase maintains query idempotency characteristics")
     func testQueryIdempotency() async throws {
         // Query use cases should be idempotent - same input produces same output
-        // This is important for caching and performance optimization
-        
+        // This is important for consistent and predictable behavior
+
         let imageData1 = "consistent-image-data".data(using: .utf8)!
         let imageData2 = "consistent-image-data".data(using: .utf8)!
-        
+
         let context = RequestContext(
             clientIP: "127.0.0.1",
             logger: Logger(label: "idempotency-test")
         )
-        
+
         let request1 = AnalyzeGameBoxUseCase.Request(
             imageData: imageData1,
             context: context
         )
-        
+
         let request2 = AnalyzeGameBoxUseCase.Request(
             imageData: imageData2,
             context: context
         )
-        
+
         // Same image data should produce identical requests
         #expect(request1.imageData == request2.imageData)
         #expect(request1.context.clientIP == request2.context.clientIP)
-        
+
         // This validates the foundation for idempotent behavior
-        // The actual use case would leverage caching to ensure
-        // identical inputs produce identical outputs
+        // ensuring identical inputs are processed consistently
     }
 }
 
