@@ -241,7 +241,7 @@ The use case data flow is simplified by removing the cache layer entirely. Image
 
 | Risk | Probability | Impact | Mitigation |
 |------|-------------|--------|------------|
-| Breaking API change (wasCached field removal) | High | Medium | Document breaking change, consider API versioning |
+| Breaking API change (wasCached field removal) | High | Medium | Document breaking change (no versioning required) |
 | Accidental impact on rules caching | Low | High | Comprehensive testing of GenerateRulesUseCase, careful code review |
 | Increased LLM API costs | High (intentional) | Low | User is aware and accepts this trade-off |
 | LLM rate limiting becomes issue | Medium | Medium | Monitor call volume, add rate limiting if needed (future work) |
@@ -292,9 +292,8 @@ The use case data flow is simplified by removing the cache layer entirely. Image
 > Issues that need resolution before or during implementation
 
 - [ ] Are there other components/tests that reference imageAnalysis enum case? (Will discover during Phase 1)
-- [ ] Does the API versioning strategy require a version bump for breaking changes? (To be determined with team)
 
-**Impact:** These unknowns don't block starting Phase 0. If additional references to imageAnalysis are found, they'll be cleaned up in Phase 1. API versioning decision can be made during review.
+**Impact:** This unknown doesn't block starting Phase 0. If additional references to imageAnalysis are found, they'll be cleaned up in Phase 1.
 
 ---
 
