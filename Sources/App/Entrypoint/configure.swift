@@ -53,6 +53,21 @@ public func configure(_ app: Application) throws {
         return try await openAPI.encodeResponse(for: req)
     }
 
+    // Serve Swagger UI at /docs
+    app.get("docs") { req -> Response in
+        let html = try String(contentsOfFile: app.directory.workingDirectory + "Sources/App/Common/OpenAPI/swagger-ui.html", encoding: .utf8)
+        return Response(
+            status: .ok,
+            headers: ["Content-Type": "text/html"],
+            body: .init(string: html)
+        )
+    }
+
+    // Redirect /swagger to /docs for discoverability
+    app.get("swagger") { req -> Response in
+        return req.redirect(to: "/docs", redirectType: .permanent)
+    }
+
     // Health check endpoint for Railway
     app.get("health") { req -> [String: String] in
         return [
