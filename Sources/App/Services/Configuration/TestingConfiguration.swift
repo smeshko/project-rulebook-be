@@ -63,7 +63,6 @@ struct TestingConfiguration: ConfigurationService {
       CacheConfig(
         maxEntries: 100,
         rulesGenerationTTL: 300,  // 5 minutes
-        imageAnalysisTTL: 300,  // 5 minutes
         cleanupInterval: 60,  // 1 minute
         enableLogging: false  // Disabled for tests
       )

@@ -211,7 +211,6 @@ struct ProductionConfiguration: ConfigurationService {
       CacheConfig(
         maxEntries: Int(Environment.get("CACHE_MAX_ENTRIES") ?? "1000") ?? 1000,
         rulesGenerationTTL: Double(Environment.get("CACHE_RULES_TTL") ?? "3600") ?? 3600,  // 1 hour
-        imageAnalysisTTL: Double(Environment.get("CACHE_IMAGE_TTL") ?? "1800") ?? 1800,  // 30 minutes
         cleanupInterval: Double(Environment.get("CACHE_CLEANUP_INTERVAL") ?? "600") ?? 600,  // 10 minutes
         enableLogging: Environment.get("CACHE_ENABLE_LOGGING")?.lowercased() == "true"  // Default disabled for production
       )
@@ -326,13 +325,6 @@ struct ProductionConfiguration: ConfigurationService {
       throw ConfigurationError.validationFailed(
         component: "Cache",
         reason: "CACHE_RULES_TTL must be at least 60 seconds"
-      )
-    }
-
-    if cache.imageAnalysisTTL < 60 {
-      throw ConfigurationError.validationFailed(
-        component: "Cache",
-        reason: "CACHE_IMAGE_TTL must be at least 60 seconds"
       )
     }
   }

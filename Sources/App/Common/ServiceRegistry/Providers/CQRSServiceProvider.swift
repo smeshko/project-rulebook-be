@@ -259,11 +259,8 @@ public struct CQRSServiceProvider: ServiceProvider {
         registry.register(AnalyzeGameBoxUseCase.self) { app in
             AnalyzeGameBoxUseCase(
                 aiInputValidator: try await app.serviceRegistry.resolveRequired(AIInputValidatorServiceInterface.self),
-                cacheKeyGenerator: try await app.serviceRegistry.resolveRequired(CacheKeyGeneratorServiceInterface.self),
-                aiCache: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
                 llmService: try await app.serviceRegistry.resolveRequired(LLMService.self),
-                aiResponseValidator: try await app.serviceRegistry.resolveRequired(AIResponseValidationService.self),
-                cacheConfiguration: try app.configuration.cache
+                aiResponseValidator: try await app.serviceRegistry.resolveRequired(AIResponseValidationService.self)
             )
         }
     }

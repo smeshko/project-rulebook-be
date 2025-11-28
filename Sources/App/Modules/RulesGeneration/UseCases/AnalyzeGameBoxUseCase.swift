@@ -4,7 +4,7 @@ import Vapor
 /// Use case for analyzing board game box images to identify games.
 ///
 /// This use case contains the complete game identification business logic, including
-/// image processing, AI analysis, response validation, and caching. Following the
+/// image processing, AI analysis, and response validation. Following the
 /// "elegant simplicity" architectural principle, the logic is implemented directly
 /// in the use case rather than delegated to an over-engineered service abstraction.
 ///
@@ -12,7 +12,6 @@ import Vapor
 /// - **Image Processing**: Validates and processes uploaded game box images
 /// - **AI Integration**: Coordinates with LLM services for vision-based analysis
 /// - **Response Validation**: Ensures AI responses meet security and quality standards
-/// - **Performance Optimization**: Manages intelligent caching to reduce costs and latency
 /// - **Security Enforcement**: Comprehensive validation and content filtering
 /// - **Error Handling**: Structured error handling with detailed logging
 ///
@@ -20,7 +19,6 @@ import Vapor
 /// - **Simplicity**: Direct implementation without unnecessary abstraction layers
 /// - **Maintainability**: All related logic colocated in one place
 /// - **Testability**: Pure business logic with clear dependencies
-/// - **Performance**: Intelligent caching reduces AI API costs by up to 80%
 struct AnalyzeGameBoxUseCase: Query {
     
     /// Request parameters for game box analysis.
@@ -45,51 +43,35 @@ struct AnalyzeGameBoxUseCase: Query {
         let gameboxRecognition: GameboxRecognition.Response
         /// Timestamp when analysis was completed
         let analyzedAt: Date
-        /// Whether result was served from cache (performance metric)
-        let wasCached: Bool
-        
+
         init(
             gameboxRecognition: GameboxRecognition.Response,
-            analyzedAt: Date = Date.now,
-            wasCached: Bool = false
+            analyzedAt: Date = Date.now
         ) {
             self.gameboxRecognition = gameboxRecognition
             self.analyzedAt = analyzedAt
-            self.wasCached = wasCached
         }
     }
     
     // MARK: - Dependencies
-    
+
     /// Service for validating AI inputs
     private let aiInputValidator: AIInputValidatorServiceInterface
-    /// Service for generating cache keys
-    private let cacheKeyGenerator: CacheKeyGeneratorServiceInterface
-    /// Service for caching AI responses
-    private let aiCache: AICacheServiceInterface
     /// Service for LLM interactions
     private let llmService: LLMService
     /// Service for validating AI responses
     private let aiResponseValidator: AIResponseValidationService
-    /// Cache configuration settings
-    private let cacheConfiguration: CacheConfig
-    
+
     // MARK: - Initialization
-    
+
     init(
         aiInputValidator: AIInputValidatorServiceInterface,
-        cacheKeyGenerator: CacheKeyGeneratorServiceInterface,
-        aiCache: AICacheServiceInterface,
         llmService: LLMService,
-        aiResponseValidator: AIResponseValidationService,
-        cacheConfiguration: CacheConfig
+        aiResponseValidator: AIResponseValidationService
     ) {
         self.aiInputValidator = aiInputValidator
-        self.cacheKeyGenerator = cacheKeyGenerator
-        self.aiCache = aiCache
         self.llmService = llmService
         self.aiResponseValidator = aiResponseValidator
-        self.cacheConfiguration = cacheConfiguration
     }
     
     // MARK: - Use Case Execution
@@ -99,20 +81,14 @@ struct AnalyzeGameBoxUseCase: Query {
     /// This method implements the complete game identification workflow:
     /// 1. Validates input parameters and security requirements
     /// 2. Processes and validates image data for AI analysis
-    /// 3. Checks cache for existing results to optimize performance
-    /// 4. Performs AI image analysis with optimized prompts
-    /// 5. Validates and caches successful responses
-    /// 6. Returns structured response with metadata
+    /// 3. Performs AI image analysis with optimized prompts
+    /// 4. Validates successful responses
+    /// 5. Returns structured response with metadata
     ///
     /// ## Error Handling
     /// - Throws AIProcessingError for invalid or malicious image data
     /// - Throws ContentError for external service failures
     /// - Provides comprehensive logging for debugging and monitoring
-    ///
-    /// ## Performance Characteristics
-    /// - Intelligent caching reduces identical image processing
-    /// - Sub-millisecond responses for cached results
-    /// - Up to 80% reduction in AI API costs through caching
     ///
     /// - Parameter request: Contains image data, client context, and logging
     /// - Returns: Game identification results with analysis metadata
@@ -136,59 +112,33 @@ struct AnalyzeGameBoxUseCase: Query {
         
         // 1. Process and validate image data
         let dataURL = try processImageData(request.imageData, context: request.context)
-        
-        // 2. Check cache for existing results
-        let cacheKey = cacheKeyGenerator.generateBoxPhotoKey(for: request.imageData, context: "box")
-        var wasCached = false
-        
-        if let cachedResponse = await aiCache.get(key: cacheKey) {
-            request.context.logger.info("Cache hit for game identification", metadata: [
-                "cache_key": .string(cacheKey),
-                "client_ip": .string(request.context.clientIP),
-                "request_id": .string(request.context.requestID)
-            ])
-            
-            let cachedBuffer = ByteBuffer(string: cachedResponse)
-            let gameboxRecognition = try JSONDecoder().decode(GameboxRecognition.Response.self, from: cachedBuffer)
-            wasCached = true
-            
-            let response = Response(
-                gameboxRecognition: gameboxRecognition,
-                analyzedAt: Date.now,
-                wasCached: wasCached
-            )
-            
-            return response
-        }
-        
-        request.context.logger.debug("Cache miss for game identification", metadata: [
-            "cache_key": .string(cacheKey),
+
+        // 2. Log LLM API invocation
+        request.context.logger.info("Invoking LLM for image analysis", metadata: [
+            "image_size": .string("\(request.imageData.count) bytes"),
+            "client_ip": .string(request.context.clientIP),
             "request_id": .string(request.context.requestID)
         ])
-        
+
         // 3. Generate AI analysis
         let aiResponse = try await performAIAnalysis(dataURL: dataURL, context: request.context)
-        
-        // 4. Validate and cache response
-        let gameboxRecognition = try await validateAndCacheResponse(
+
+        // 4. Validate response
+        let gameboxRecognition = try await validateResponse(
             response: aiResponse,
-            cacheKey: cacheKey,
             context: request.context
         )
         
         request.context.logger.info("Game identification completed successfully", metadata: [
             "confidence": .string("\(gameboxRecognition.confidence)"),
             "guessed_title": .string(gameboxRecognition.guessedTitle),
-            "cached": .string("true"),
-            "cache_key": .string(cacheKey),
             "client_ip": .string(request.context.clientIP),
             "request_id": .string(request.context.requestID)
         ])
-        
+
         let response = Response(
             gameboxRecognition: gameboxRecognition,
-            analyzedAt: Date.now,
-            wasCached: wasCached
+            analyzedAt: Date.now
         )
         
         return response
@@ -314,31 +264,23 @@ struct AnalyzeGameBoxUseCase: Query {
         }
     }
     
-    /// Validates AI response and caches successful results.
-    private func validateAndCacheResponse(
+    /// Validates AI response.
+    private func validateResponse(
         response: String,
-        cacheKey: String,
         context: RequestContext
     ) async throws -> GameboxRecognition.Response {
-        
+
         // Validate response format and content using the dedicated validation service
         let validatedResponse = try aiResponseValidator.validateGameboxRecognitionResponse(
-            response, 
-            clientIP: context.clientIP, 
+            response,
+            clientIP: context.clientIP,
             logger: context.logger
         )
-        
+
         // Parse validated response
         let responseBuffer = ByteBuffer(string: validatedResponse)
         let result = try JSONDecoder().decode(GameboxRecognition.Response.self, from: responseBuffer)
-        
-        // Cache successful result
-        await aiCache.set(
-            key: cacheKey,
-            value: validatedResponse,
-            ttl: cacheConfiguration.imageAnalysisTTL
-        )
-        
+
         return result
     }
 }
