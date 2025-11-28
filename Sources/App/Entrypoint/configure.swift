@@ -74,6 +74,8 @@ public func configure(_ app: Application) throws {
             "status": "healthy"
         ]
     }
+    .openAPI(description: "Health check endpoint for monitoring and deployment systems. Returns simple status indicator.")
+    .response(statusCode: .ok, body: .type([String: String].self))
 
     try app.autoMigrate().wait()
 }

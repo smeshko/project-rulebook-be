@@ -223,7 +223,7 @@ Integrate VaporToOpenAPI to automatically generate OpenAPI 3.0.1 specifications 
 - [x] No placeholder descriptions remain
 - [x] JWT authentication testable via Swagger UI
 - [x] All 5 module tags present (Auth, User, Rules Generation, Cache Admin, Frontend)
-- [ ] Create PR: `feature/openapi-documentation` → `staging`
+- [x] Create PR: `feature/openapi-documentation` → `staging` (PR #22)
 
 ---
 

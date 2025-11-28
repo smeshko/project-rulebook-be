@@ -10,6 +10,7 @@ let package = Package(
         .macOS(.v15)
     ],
     products: [
+        .executable(name: "App", targets: ["App"])
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.110.1"),

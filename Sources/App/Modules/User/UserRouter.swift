@@ -26,11 +26,13 @@ private extension UserRouter {
                 description: "Permanently delete current user account and all associated data. Requires authentication.",
                 auth: .bearer(id: "bearerAuth")
             )
+            .response(statusCode: .ok, description: "Account successfully deleted")
 
         protectedAPI
             .get("me", use: userController.getCurrentUser)
             .openAPI(
                 description: "Retrieve current authenticated user's profile information including email, name, and account status.",
+                response: .type(User.Detail.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -38,6 +40,8 @@ private extension UserRouter {
             .patch("update", use: userController.patch)
             .openAPI(
                 description: "Update current user's profile information (email, first name, last name). Only modifies provided fields.",
+                body: .type(User.Update.Request.self),
+                response: .type(User.Detail.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -46,6 +50,7 @@ private extension UserRouter {
             .get("list", use: userController.list)
             .openAPI(
                 description: "List all user accounts in the system. Requires admin privileges for security and privacy.",
+                response: .type([User.Detail.Response].self),
                 auth: .bearer(id: "bearerAuth")
             )
     }

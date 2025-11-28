@@ -18,6 +18,7 @@ struct CacheAdminRouter: RouteCollection {
             .get("stats", use: controller.getCacheStatistics)
             .openAPI(
                 description: "Retrieve comprehensive cache statistics including hit/miss rates, entry counts, and memory usage. Admin only.",
+                response: .type(CacheAdmin.Statistics.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -25,6 +26,7 @@ struct CacheAdminRouter: RouteCollection {
             .get("health", use: controller.getCacheHealth)
             .openAPI(
                 description: "Check cache health status with diagnostic information and recommendations. Admin only.",
+                response: .type(CacheAdmin.Health.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -32,6 +34,7 @@ struct CacheAdminRouter: RouteCollection {
             .get("entries", use: controller.getCacheEntries)
             .openAPI(
                 description: "List all cache entries with metadata (age, TTL, hit count). Useful for debugging cache behavior. Admin only.",
+                response: .type(CacheAdmin.Entries.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -40,6 +43,7 @@ struct CacheAdminRouter: RouteCollection {
             .get("redis", "health", use: controller.getRedisHealth)
             .openAPI(
                 description: "Check Redis connection health and latency. Separate from general cache health for infrastructure monitoring. Admin only.",
+                response: .type(CacheAdmin.RedisHealth.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -48,6 +52,7 @@ struct CacheAdminRouter: RouteCollection {
             .delete(use: controller.clearCache)
             .openAPI(
                 description: "Clear all cache entries. Use with caution - will temporarily reduce performance until cache rebuilds. Admin only.",
+                response: .type(CacheAdmin.Clear.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
 
@@ -55,6 +60,7 @@ struct CacheAdminRouter: RouteCollection {
             .post("cleanup", use: controller.manualCleanup)
             .openAPI(
                 description: "Manually trigger cache cleanup to remove expired entries. Normally handled automatically but useful for testing. Admin only.",
+                response: .type(CacheAdmin.Cleanup.Response.self),
                 auth: .bearer(id: "bearerAuth")
             )
     }
