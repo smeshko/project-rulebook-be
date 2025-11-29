@@ -182,29 +182,34 @@ extension Application {
     // ServiceRegistry setup (replaces old Vapor DI system completely)
     // Use RunLoop-based approach to avoid deadlock in test environments
     let runLoop = RunLoop.current
-    var setupComplete = false
-    var setupError: Error?
-    
+
+    // Use a class to hold mutable state for Swift 6 concurrency
+    final class SetupState: @unchecked Sendable {
+      var complete = false
+      var error: Error?
+    }
+    let state = SetupState()
+
     Task {
       do {
         try await setupServiceRegistry()
       } catch {
-        setupError = error
+        state.error = error
       }
-      setupComplete = true
+      state.complete = true
     }
     
     // Process run loop until setup completes, but avoid infinite blocking
     let timeout = Date().addingTimeInterval(30) // 30 second timeout
-    while !setupComplete && Date() < timeout {
+    while !state.complete && Date() < timeout {
       runLoop.run(mode: .default, before: Date(timeIntervalSinceNow: 0.1))
     }
-    
-    if !setupComplete {
+
+    if !state.complete {
       throw ServiceRegistryError.initializationTimeout("Service registry setup timed out after 30 seconds")
     }
-    
-    if let error = setupError {
+
+    if let error = state.error {
       throw error
     }
   }

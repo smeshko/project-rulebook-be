@@ -1,4 +1,6 @@
 import Vapor
+import VaporToOpenAPI
+import SwiftOpenAPI
 
 extension Environment {
     static var staging: Environment {
@@ -16,13 +18,15 @@ public func configure(_ app: Application) throws {
     try app.setupServices()  // Services must be set up before aspects
     try app.setupMiddleware() // Now middleware can access services
     try app.setupModules()
-    
+
     // Health check endpoint for Railway
     app.get("health") { req -> [String: String] in
         return [
             "status": "healthy"
         ]
     }
+    .openAPI(description: "Health check endpoint for monitoring and deployment systems. Returns simple status indicator.")
+    .response(statusCode: .ok, body: .type([String: String].self))
 
     try app.autoMigrate().wait()
 }

@@ -10,6 +10,7 @@ let package = Package(
         .macOS(.v15)
     ],
     products: [
+        .executable(name: "App", targets: ["App"])
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "4.110.1"),
@@ -19,6 +20,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/binarybirds/swift-html", from: "1.7.0"),
+        .package(url: "https://github.com/dankinsoid/VaporToOpenAPI.git", from: "4.8.1"),
     ],
     targets: [
         .executableTarget(
@@ -31,6 +33,7 @@ let package = Package(
                 .product(name: "FluentPostgresDriver", package: "fluent-postgres-driver"),
                 .product(name: "JWT", package: "jwt"),
                 .product(name: "Redis", package: "redis"),
+                .product(name: "VaporToOpenAPI", package: "VaporToOpenAPI"),
             ]
         ),
         .testTarget(
