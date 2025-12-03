@@ -79,6 +79,19 @@ enum RateLimitType: String, CaseIterable {
     ///
     /// **Typical Limits**: 500-10,000 requests per hour depending on environment
     case general = "general"
+
+    /// Waitlist subscription operations for the public signup endpoint.
+    ///
+    /// **Restrictive Category**
+    ///
+    /// Applied to waitlist endpoints including:
+    /// - Email subscription signup
+    /// - Unsubscribe requests
+    ///
+    /// This protects against automated spam while allowing legitimate signups.
+    ///
+    /// **Typical Limits**: 10 requests per hour
+    case waitlist = "waitlist"
 }
 
 /// Container for rate limit information specific to an operation type.

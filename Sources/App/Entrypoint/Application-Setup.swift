@@ -86,6 +86,7 @@ extension Application {
       FrontendModule(),
       RulesGenerationModule(),
       CacheAdminModule(),
+      WaitlistModule(),
     ]
 
     for module in modules {

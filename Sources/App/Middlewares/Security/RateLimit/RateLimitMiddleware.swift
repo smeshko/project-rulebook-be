@@ -184,6 +184,15 @@ struct RateLimitMiddleware: AsyncMiddleware {
             )
         }
         
+        // Waitlist endpoints - must be before general /api/ catch-all
+        if path.hasPrefix("/api/waitlist") {
+            return RateLimitInfo(
+                type: .waitlist,
+                maxRequests: 10,  // 10 requests per hour
+                windowSeconds: 3600  // 1 hour window
+            )
+        }
+
         // Admin endpoints
         if path.contains("/api/admin/") {
             return RateLimitInfo(
@@ -192,7 +201,7 @@ struct RateLimitMiddleware: AsyncMiddleware {
                 windowSeconds: configuration.adminWindow
             )
         }
-        
+
         // API endpoints
         if path.hasPrefix("/api/") {
             return RateLimitInfo(
