@@ -131,7 +131,7 @@ extension Application {
         // Note: RulesOrchestrationService was removed - logic moved to GenerateRulesUseCase
 
         // Validate CQRS use cases are registered
-        _ = try await serviceRegistry.resolveRequired(GetCacheStatsUseCase.self)
+        // Note: Cache use cases were removed - logic moved to CacheAdminController
         _ = try await serviceRegistry.resolveRequired(AnalyzeGameBoxUseCase.self)
         _ = try await serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
     }

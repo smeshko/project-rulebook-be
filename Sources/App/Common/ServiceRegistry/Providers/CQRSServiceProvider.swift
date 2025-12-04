@@ -18,14 +18,9 @@ import JWT
 /// ## Organization Structure
 /// ```
 /// Commands (State-Changing)
-/// ├── Authentication Commands (login, logout, registration)
-/// ├── User Management Commands (create, update, delete)
-/// ├── Cache Management Commands (clear, cleanup)
 /// └── Content Generation Commands (AI rules generation)
 ///
 /// Queries (Read-Only)
-/// ├── User Queries (profile, listing)
-/// ├── Cache Queries (stats, health, entries)
 /// └── Content Queries (game analysis)
 /// ```
 public struct CQRSServiceProvider: ServiceProvider {
@@ -55,33 +50,10 @@ public struct CQRSServiceProvider: ServiceProvider {
     /// Commands are operations that change the state of the system,
     /// such as creating, updating, or deleting entities.
     private static func registerCommands(in registry: ServiceContainer, app: Application) async throws {
-        // Cache Administration Commands
-        try await registerCacheManagementCommands(in: registry, app: app)
-
         // Content Generation Commands
         try await registerContentGenerationCommands(in: registry, app: app)
     }
 
-    /// Cache management commands for cache operations.
-    private static func registerCacheManagementCommands(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Clear cache command
-        registry.register(ClearCacheUseCase.self) { app in
-            ClearCacheUseCase(
-                aiCacheService: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
-                logger: app.logger
-            )
-        }
-        
-        // Manual cleanup command
-        registry.register(ManualCleanupUseCase.self) { app in
-            ManualCleanupUseCase(
-                aiCacheService: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
-                logger: app.logger
-            )
-        }
-    }
-    
     /// Content generation commands for AI-powered operations.
     private static func registerContentGenerationCommands(in registry: ServiceContainer, app: Application) async throws {
         
@@ -106,50 +78,10 @@ public struct CQRSServiceProvider: ServiceProvider {
     /// Queries are read-only operations that retrieve data from the system
     /// without causing side effects or modifying state.
     private static func registerQueries(in registry: ServiceContainer, app: Application) async throws {
-        // Cache Queries
-        try await registerCacheQueries(in: registry, app: app)
-
         // Content Queries
         try await registerContentQueries(in: registry, app: app)
     }
 
-    /// Cache-related queries for statistics and monitoring.
-    private static func registerCacheQueries(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Cache statistics query
-        registry.register(GetCacheStatsUseCase.self) { app in
-            GetCacheStatsUseCase(
-                aiCacheService: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
-                logger: app.logger
-            )
-        }
-        
-        // Cache entries query
-        registry.register(GetCacheEntriesUseCase.self) { app in
-            GetCacheEntriesUseCase(
-                aiCacheService: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
-                logger: app.logger
-            )
-        }
-        
-        // Cache health query
-        registry.register(GetCacheHealthUseCase.self) { app in
-            GetCacheHealthUseCase(
-                aiCacheService: try await app.serviceRegistry.resolveRequired(AICacheServiceInterface.self),
-                configurationService: app.configuration,
-                logger: app.logger
-            )
-        }
-        
-        // Redis health query
-        registry.register(GetRedisHealthUseCase.self) { app in
-            GetRedisHealthUseCase(
-                cacheService: try await app.serviceRegistry.resolveRequired(CacheService.self),
-                logger: app.logger
-            )
-        }
-    }
-    
     /// Content-related queries for AI analysis operations.
     private static func registerContentQueries(in registry: ServiceContainer, app: Application) async throws {
         

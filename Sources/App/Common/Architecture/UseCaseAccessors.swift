@@ -21,11 +21,6 @@ struct UseCases {
     var rules: RulesUseCases {
         RulesUseCases(request: request)
     }
-
-    /// Cache administration-related use cases.
-    var cacheAdmin: CacheAdminUseCases {
-        CacheAdminUseCases(request: request)
-    }
 }
 
 /// Namespace for rules generation-related use cases.
@@ -47,49 +42,3 @@ struct RulesUseCases {
     }
 }
 
-/// Namespace for cache administration-related use cases.
-struct CacheAdminUseCases {
-    let request: Request
-    
-    /// Get cache statistics use case for retrieving cache performance metrics.
-    var getStats: GetCacheStatsUseCase {
-        get async throws {
-            try await request.resolveService(GetCacheStatsUseCase.self)
-        }
-    }
-    
-    /// Clear cache use case for removing all cache entries.
-    var clearCache: ClearCacheUseCase {
-        get async throws {
-            try await request.resolveService(ClearCacheUseCase.self)
-        }
-    }
-    
-    /// Get cache entries use case for listing cached entries with metadata.
-    var getEntries: GetCacheEntriesUseCase {
-        get async throws {
-            try await request.resolveService(GetCacheEntriesUseCase.self)
-        }
-    }
-    
-    /// Manual cleanup use case for triggering expired entries cleanup.
-    var manualCleanup: ManualCleanupUseCase {
-        get async throws {
-            try await request.resolveService(ManualCleanupUseCase.self)
-        }
-    }
-    
-    /// Get cache health use case for assessing cache performance and health status.
-    var getHealth: GetCacheHealthUseCase {
-        get async throws {
-            try await request.resolveService(GetCacheHealthUseCase.self)
-        }
-    }
-    
-    /// Get Redis health use case for testing Redis connectivity and performance.
-    var getRedisHealth: GetRedisHealthUseCase {
-        get async throws {
-            try await request.resolveService(GetRedisHealthUseCase.self)
-        }
-    }
-}
