@@ -55,77 +55,16 @@ public struct CQRSServiceProvider: ServiceProvider {
     /// Commands are operations that change the state of the system,
     /// such as creating, updating, or deleting entities.
     private static func registerCommands(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Authentication Commands
-        try await registerAuthenticationCommands(in: registry, app: app)
-        
         // User Management Commands
         try await registerUserManagementCommands(in: registry, app: app)
-        
+
         // Cache Administration Commands
         try await registerCacheManagementCommands(in: registry, app: app)
-        
+
         // Content Generation Commands
         try await registerContentGenerationCommands(in: registry, app: app)
     }
-    
-    /// Authentication commands for login, logout, registration operations.
-    private static func registerAuthenticationCommands(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Logout command - invalidates refresh tokens
-        registry.register(LogoutUseCase.self) { app in
-            LogoutUseCase(
-                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self)
-            )
-        }
-        
-        // Sign up command - creates new user account
-        registry.register(SignUpUseCase.self) { app in
-            SignUpUseCase(
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self),
-                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
-                emailTokenRepository: try await app.serviceRegistry.resolveRequired((any EmailTokenRepository).self),
-                passwordHasher: { password in try await app.password.async.hash(password) },
-                randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self),
-                emailService: try await app.serviceRegistry.resolveRequired(EmailService.self),
-                configurationService: app.configuration
-            )
-        }
-        
-        // Sign in command - authenticates user and creates tokens
-        registry.register(SignInUseCase.self) { app in
-            SignInUseCase(
-                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
-                randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
-            )
-        }
-        
-        // Token refresh command - rotates authentication tokens
-        registry.register(RefreshTokenUseCase.self) { app in
-            RefreshTokenUseCase(
-                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self),
-                jwtSigner: app.jwt.signers.get()!,
-                randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self)
-            )
-        }
-        
-        // Apple Sign-In command - handles Apple authentication
-        registry.register(AppleSignInUseCase.self) { app in
-            AppleSignInUseCase(
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self),
-                refreshTokenRepository: try await app.serviceRegistry.resolveRequired((any RefreshTokenRepository).self),
-                appleJWTVerifier: { token, appId in
-                    // TODO: Implement proper Apple JWT verification
-                    // For now, temporarily disable Apple Sign-In until JWT integration is fixed
-                    throw AuthenticationError.invalidEmailOrPassword
-                },
-                randomGenerator: try await app.serviceRegistry.resolveRequired(RandomGeneratorService.self),
-                appIdentifier: Environment.appIdentifier
-            )
-        }
-    }
-    
+
     /// User management commands for profile operations.
     private static func registerUserManagementCommands(in registry: ServiceContainer, app: Application) async throws {
         

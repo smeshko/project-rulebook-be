@@ -129,13 +129,11 @@ extension Application {
         _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
         // Note: GameIdentificationService was removed - logic moved to AnalyzeGameBoxUseCase
         // Note: RulesOrchestrationService was removed - logic moved to GenerateRulesUseCase
-        
+
         // Validate CQRS use cases are registered
         // Commands
-        _ = try await serviceRegistry.resolveRequired(LogoutUseCase.self)
-        _ = try await serviceRegistry.resolveRequired(SignUpUseCase.self)
         _ = try await serviceRegistry.resolveRequired(UpdateUserProfileUseCase.self)
-        
+
         // Queries
         _ = try await serviceRegistry.resolveRequired(GetCurrentUserUseCase.self)
         _ = try await serviceRegistry.resolveRequired(GetCacheStatsUseCase.self)

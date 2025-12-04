@@ -16,65 +16,20 @@ extension Request {
 /// Root namespace for all use case accessors.
 struct UseCases {
     let request: Request
-    
-    /// Authentication-related use cases.
-    var auth: AuthUseCases {
-        AuthUseCases(request: request)
-    }
-    
+
     /// Rules generation-related use cases.
     var rules: RulesUseCases {
         RulesUseCases(request: request)
     }
-    
+
     /// User management-related use cases.
     var user: UserUseCases {
         UserUseCases(request: request)
     }
-    
+
     /// Cache administration-related use cases.
     var cacheAdmin: CacheAdminUseCases {
         CacheAdminUseCases(request: request)
-    }
-}
-
-/// Namespace for authentication-related use cases.
-struct AuthUseCases {
-    let request: Request
-    
-    /// Logout use case for handling user logout.
-    var logout: LogoutUseCase {
-        get async throws {
-            try await request.resolveService(LogoutUseCase.self)
-        }
-    }
-    
-    /// Sign-up use case for handling user registration.
-    var signUp: SignUpUseCase {
-        get async throws {
-            try await request.resolveService(SignUpUseCase.self)
-        }
-    }
-    
-    /// Sign-in use case for handling user authentication.
-    var signIn: SignInUseCase {
-        get async throws {
-            try await request.resolveService(SignInUseCase.self)
-        }
-    }
-    
-    /// Apple Sign-In use case for handling Apple authentication.
-    var appleSignIn: AppleSignInUseCase {
-        get async throws {
-            try await request.resolveService(AppleSignInUseCase.self)
-        }
-    }
-    
-    /// Refresh token use case for handling JWT token refresh.
-    var refreshToken: RefreshTokenUseCase {
-        get async throws {
-            try await request.resolveService(RefreshTokenUseCase.self)
-        }
     }
 }
 
