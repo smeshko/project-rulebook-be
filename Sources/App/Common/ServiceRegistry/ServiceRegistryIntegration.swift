@@ -127,13 +127,7 @@ extension Application {
         
         // Validate domain services are registered
         _ = try await serviceRegistry.resolveRequired(AIResponseValidationService.self)
-        // Note: GameIdentificationService was removed - logic moved to AnalyzeGameBoxUseCase
-        // Note: RulesOrchestrationService was removed - logic moved to GenerateRulesUseCase
-
-        // Validate CQRS use cases are registered
-        // Note: Cache use cases were removed - logic moved to CacheAdminController
-        _ = try await serviceRegistry.resolveRequired(AnalyzeGameBoxUseCase.self)
-        _ = try await serviceRegistry.resolveRequired(GenerateRulesUseCase.self)
+        // Note: All use cases have been migrated to inline controller logic
     }
     
     /// Pre-resolves all services and creates a service cache for synchronous access.
