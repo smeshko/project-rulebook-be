@@ -55,9 +55,6 @@ public struct CQRSServiceProvider: ServiceProvider {
     /// Commands are operations that change the state of the system,
     /// such as creating, updating, or deleting entities.
     private static func registerCommands(in registry: ServiceContainer, app: Application) async throws {
-        // User Management Commands
-        try await registerUserManagementCommands(in: registry, app: app)
-
         // Cache Administration Commands
         try await registerCacheManagementCommands(in: registry, app: app)
 
@@ -65,24 +62,6 @@ public struct CQRSServiceProvider: ServiceProvider {
         try await registerContentGenerationCommands(in: registry, app: app)
     }
 
-    /// User management commands for profile operations.
-    private static func registerUserManagementCommands(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Update user profile command
-        registry.register(UpdateUserProfileUseCase.self) { app in
-            UpdateUserProfileUseCase(
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
-            )
-        }
-        
-        // Delete user account command
-        registry.register(DeleteUserAccountUseCase.self) { app in
-            DeleteUserAccountUseCase(
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
-            )
-        }
-    }
-    
     /// Cache management commands for cache operations.
     private static func registerCacheManagementCommands(in registry: ServiceContainer, app: Application) async throws {
         
@@ -127,33 +106,13 @@ public struct CQRSServiceProvider: ServiceProvider {
     /// Queries are read-only operations that retrieve data from the system
     /// without causing side effects or modifying state.
     private static func registerQueries(in registry: ServiceContainer, app: Application) async throws {
-        
-        // User Queries
-        try await registerUserQueries(in: registry, app: app)
-        
         // Cache Queries
         try await registerCacheQueries(in: registry, app: app)
-        
+
         // Content Queries
         try await registerContentQueries(in: registry, app: app)
     }
-    
-    /// User-related queries for profile and listing operations.
-    private static func registerUserQueries(in registry: ServiceContainer, app: Application) async throws {
-        
-        // Get current user query
-        registry.register(GetCurrentUserUseCase.self) { app in
-            GetCurrentUserUseCase()
-        }
-        
-        // List users query
-        registry.register(ListUsersUseCase.self) { app in
-            ListUsersUseCase(
-                userRepository: try await app.serviceRegistry.resolveRequired((any UserRepository).self)
-            )
-        }
-    }
-    
+
     /// Cache-related queries for statistics and monitoring.
     private static func registerCacheQueries(in registry: ServiceContainer, app: Application) async throws {
         
