@@ -166,7 +166,7 @@ Create a waitlist management system to collect emails from a landing page, send 
 - [x] Build succeeds: `swift build`
 - [x] No warnings
 - [x] Migration runs on app start
-- [ ] Create PR: `feature/waitlist-email` → `staging`
+- [x] Create PR: `feature/waitlist-email` → `staging` (#23)
 
 ---
 
@@ -221,7 +221,7 @@ Create a waitlist management system to collect emails from a landing page, send 
 - [ ] Manual test: subscribe works
 - [ ] Manual test: unsubscribe works
 - [ ] Manual test: admin stats works
-- [ ] Create/Update PR: `feature/waitlist-email` → `staging`
+- [x] Create/Update PR: `feature/waitlist-email` → `staging` (#23)
 
 ---
 

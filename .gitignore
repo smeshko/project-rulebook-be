@@ -23,3 +23,6 @@ railway-project-id.txt
 # Environment-specific files (keep examples)
 .env.staging
 .env.production
+
+# Linear
+.linear
