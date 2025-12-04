@@ -208,8 +208,28 @@ extension Application {
         
         // Store service cache in application storage for global access
         self.serviceCache = serviceCache
-        
+
+        // Also populate new service storage for simplified accessor pattern (migration)
+        // This enables req.services.* access alongside existing serviceCache pattern
+        self.userRepository = userRepository
+        self.emailTokenRepository = emailTokenRepository
+        self.refreshTokenRepository = refreshTokenRepository
+        self.passwordTokenRepository = passwordTokenRepository
+        self.generatedRuleRepository = generatedRuleRepository
+        self.llmService = llmService
+        self.emailService = emailService
+        self.aiCacheService = aiCacheService
+        self.cacheService = cacheService
+        self.randomGeneratorService = randomGeneratorService
+        self.uuidGeneratorService = uuidGeneratorService
+        self.ipExtractorService = ipExtractorService
+        self.promptSanitizerService = promptSanitizerService
+        self.aiInputValidatorService = aiInputValidatorService
+        self.cacheKeyGeneratorService = cacheKeyGeneratorService
+        self.aiResponseValidatorService = DefaultAIResponseValidationService()
+
         logger.info("ServiceCache created with all services pre-resolved for synchronous access")
+        logger.info("Service storage populated for new accessor pattern (req.services.*)")
     }
     
     /// Sets up ServiceRegistry synchronously for testing environments.

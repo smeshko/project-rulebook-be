@@ -200,14 +200,13 @@ struct AuthController {
     func logout(_ req: Request) async throws -> HTTPStatus {
         // 1. Extract authenticated user (HTTP concern)
         let user = try req.auth.require(UserAccountModel.self)
-        
-        // 2. Execute use case (business logic)
-        let logoutUseCase = try await req.useCases.auth.logout
-        _ = try await logoutUseCase.execute(LogoutUseCase.Request(user: user))
-        
+
+        // 2. Business logic: Clean up all refresh tokens for security
+        try await req.repositories.refreshTokens.delete(forUserID: user.requireID())
+
         // 3. Handle HTTP authentication state (HTTP concern)
         req.auth.logout(UserAccountModel.self)
-        
+
         // 4. Return HTTP response
         return .ok
     }

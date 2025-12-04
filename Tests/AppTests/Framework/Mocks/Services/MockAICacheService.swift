@@ -173,12 +173,8 @@ final class MockAICacheService: AICacheServiceInterface, @unchecked Sendable {
         var result: [AICacheType: [String]] = [:]
         
         for key in cache.keys {
-            // Simple type detection based on key patterns
-            if key.contains("rules") {
-                result[.rulesGeneration, default: []].append(key)
-            } else if key.contains("image") || key.contains("analysis") {
-                result[.imageAnalysis, default: []].append(key)
-            }
+            // All cache entries are rules generation type
+            result[.rulesGeneration, default: []].append(key)
         }
         
         return result
