@@ -139,57 +139,54 @@ final class IsolatedTestWorld: @unchecked Sendable {
     
     /// Configures the application for testing with fresh repositories and services.
     private func configureForTesting() async throws {
-        // Register fresh repositories in service registry
-        app.serviceRegistry.register((any UserRepository).self) { _ in self.userRepository }
-        app.serviceRegistry.register((any RefreshTokenRepository).self) { _ in self.tokenRepository }
-        app.serviceRegistry.register((any EmailTokenRepository).self) { _ in self.emailTokenRepository }
-        app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in self.passwordTokenRepository }
-        app.serviceRegistry.register((any GeneratedRuleRepository).self) { _ in self.generatedRuleRepository }
-        
         // Configure plaintext password hasher for consistent testing
         app.passwords.use(.plaintext)
-        
-        // Register fresh mock services
-        app.serviceRegistry.register(EmailService.self) { _ in FakeEmailProvider() }
-        app.serviceRegistry.register(LLMService.self) { _ in self.fakeLLMService }
-        app.serviceRegistry.register(AICacheServiceInterface.self) { _ in self.mockAICacheService }
-        app.serviceRegistry.register(CacheService.self) { _ in InMemoryTestCacheService() }
-        app.serviceRegistry.register(RandomGeneratorService.self) { _ in RiggedRandomGeneratorService(value: "test_random_value") }
-        app.serviceRegistry.register(UUIDGeneratorService.self) { _ in self.constantUUIDGenerator }
-        
+
+        // Assign repositories directly to Application storage
+        app.userRepository = self.userRepository
+        app.refreshTokenRepository = self.tokenRepository
+        app.emailTokenRepository = self.emailTokenRepository
+        app.passwordTokenRepository = self.passwordTokenRepository
+        app.generatedRuleRepository = self.generatedRuleRepository
+
+        // Assign mock services directly to Application storage
+        app.emailService = FakeEmailProvider()
+        app.llmService = self.fakeLLMService
+        app.aiCacheService = self.mockAICacheService
+        app.cacheService = InMemoryTestCacheService()
+        app.randomGeneratorService = RiggedRandomGeneratorService(value: "test_random_value")
+        app.uuidGeneratorService = self.constantUUIDGenerator
+
         // Use production implementations for utility services (safe for testing)
-        app.serviceRegistry.register(IPExtractorService.self) { app in DefaultIPExtractorService(app: app) }
-        app.serviceRegistry.register(CacheKeyGeneratorServiceInterface.self) { app in DefaultCacheKeyGeneratorService(app: app) }
-        app.serviceRegistry.register(PromptSanitizerServiceInterface.self) { app in DefaultPromptSanitizerService(app: app) }
-        app.serviceRegistry.register(AIInputValidatorServiceInterface.self) { app in DefaultAIInputValidatorService(app: app) }
-        
+        app.ipExtractorService = DefaultIPExtractorService(app: app)
+        app.cacheKeyGeneratorService = DefaultCacheKeyGeneratorService(app: app)
+        app.promptSanitizerService = DefaultPromptSanitizerService(app: app)
+        app.aiInputValidatorService = DefaultAIInputValidatorService(app: app)
+        app.aiResponseValidatorService = DefaultAIResponseValidationService()
+
         // Configure JWT
         try app.jwt.signers.use(.es256(key: .generate()))
-        
-        // Initialize configuration first (required by setupServiceRegistry)
+
+        // Initialize configuration first
         try app.initializeConfiguration()
-        
-        // Initialize ServiceCache after all services are registered
-        try await app.setupServiceRegistry()
-        
-        // Configure manually for testing to avoid service registry conflicts
+
+        // Configure manually for testing
         try await configureForTestingOnly(app)
     }
     
-    /// Test-specific configuration that avoids the service registry setup conflicts.
+    /// Test-specific configuration for essential Vapor setup.
     ///
-    /// This method performs only the essential configuration needed for testing
-    /// without triggering the full service registry setup that can cause deadlocks.
+    /// This method performs only the essential configuration needed for testing.
+    /// Services and repositories are already assigned via direct property access.
     private func configureForTestingOnly(_ app: Application) async throws {
         // Essential configuration only - avoid setupServices() call
-        // Configuration already initialized before setupServiceRegistry
+        // Services and repositories already assigned directly to Application storage
         // Database already configured as SQLite in-memory in createIsolatedApplication
         try app.setupJWT()
         // Skip Redis setup for testing
-        // Skip service registry setup - already done manually above
         try app.setupMiddleware()
         try app.setupModules()
-        
+
         // Run migrations asynchronously to avoid deadlock in Swift Testing
         _ = try await app.autoMigrate().get()
     }

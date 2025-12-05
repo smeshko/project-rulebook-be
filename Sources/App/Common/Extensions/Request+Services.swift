@@ -2,20 +2,13 @@ import Vapor
 
 // MARK: - Request Service Accessors
 
-/// New service accessor infrastructure for simplified architecture.
-/// This provides `req.services.*` access pattern alongside the existing
-/// `req.repositories.*` pattern (defined in Request+Repository.swift).
-///
-/// During migration, both patterns coexist:
-/// - Old: `req.application.serviceCache.llmService`
-/// - New: `req.services.llm`
-///
-/// After migration completes, the ServiceCache will be removed.
+/// Service accessor infrastructure for simplified architecture.
+/// This provides `req.services.*` access pattern for accessing services
+/// and complements `req.repositories.*` (defined in Request+Repository.swift).
 
 extension Request {
 
     /// Access services via `req.services.llm`, `req.services.email`, etc.
-    /// This is the new simplified accessor pattern replacing ServiceRegistry.
     var services: RequestServices {
         RequestServices(app: application)
     }

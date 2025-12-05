@@ -38,12 +38,12 @@ struct DatabaseGeneratedRuleRepository: GeneratedRuleRepository, DatabaseReposit
 
 extension Application.Repositories {
     var generatedRules: any GeneratedRuleRepository {
-        application.serviceCache.generatedRuleRepository
+        application.generatedRuleRepository
     }
 }
 
 extension Request.Services {
     var generatedRules: any GeneratedRuleRepository {
-        request.application.serviceCache.generatedRuleRepository
+        request.application.generatedRuleRepository
     }
 }

@@ -55,13 +55,12 @@ struct DatabaseRefreshTokenRepository: RefreshTokenRepository, DatabaseRepositor
 
 extension Application.Repositories {
     var refreshTokens: any RefreshTokenRepository {
-        application.serviceCache.refreshTokenRepository
+        application.refreshTokenRepository
     }
 }
 
 extension Request.Services {
     var refreshTokens: any RefreshTokenRepository {
-        // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.refreshTokenRepository
+        request.application.refreshTokenRepository
     }
 }

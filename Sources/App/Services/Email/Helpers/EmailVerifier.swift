@@ -30,7 +30,7 @@ struct EmailVerifier {
             htmlContent: Templates.verifyEmail(token: emailToken.value, baseURL: try application.configuration.security.baseURL)
         )
         
-        try await application.serviceCache.emailService.send(content)
+        try await application.emailService.send(content)
     }
 }
 
@@ -38,7 +38,7 @@ extension Application {
     var emailVerifier: EmailVerifier {
         .init(
             emailTokenRepository: repositories.emailTokens,
-            generator: serviceCache.randomGeneratorService,
+            generator: randomGeneratorService,
             application: self
         )
     }

@@ -179,38 +179,44 @@ extension Application {
   }
 
   func setupServices() throws {
-    // ServiceRegistry setup (replaces old Vapor DI system completely)
-    // Use RunLoop-based approach to avoid deadlock in test environments
-    let runLoop = RunLoop.current
-
-    // Use a class to hold mutable state for Swift 6 concurrency
-    final class SetupState: @unchecked Sendable {
-      var complete = false
-      var error: Error?
-    }
-    let state = SetupState()
-
-    Task {
-      do {
-        try await setupServiceRegistry()
-      } catch {
-        state.error = error
-      }
-      state.complete = true
-    }
-    
-    // Process run loop until setup completes, but avoid infinite blocking
-    let timeout = Date().addingTimeInterval(30) // 30 second timeout
-    while !state.complete && Date() < timeout {
-      runLoop.run(mode: .default, before: Date(timeIntervalSinceNow: 0.1))
+    // Skip service setup for testing - tests configure their own services
+    if environment == .testing {
+      return
     }
 
-    if !state.complete {
-      throw ServiceRegistryError.initializationTimeout("Service registry setup timed out after 30 seconds")
-    }
+    // Initialize repositories (database-backed)
+    userRepository = DatabaseUserRepository(database: db)
+    emailTokenRepository = DatabaseEmailTokenRepository(database: db)
+    refreshTokenRepository = DatabaseRefreshTokenRepository(database: db)
+    passwordTokenRepository = DatabasePasswordTokenRepository(database: db)
+    generatedRuleRepository = DatabaseGeneratedRuleRepository(database: db)
 
-    if let error = state.error {
-      throw error
-    }
+    // Initialize foundation services (no dependencies)
+    randomGeneratorService = RealRandomGeneratorService(app: self)
+    uuidGeneratorService = RealUUIDGeneratorService(app: self)
+    ipExtractorService = DefaultIPExtractorService(app: self)
+    cacheKeyGeneratorService = DefaultCacheKeyGeneratorService(app: self)
+    promptSanitizerService = DefaultPromptSanitizerService(app: self)
+    aiInputValidatorService = DefaultAIInputValidatorService(app: self)
+    aiResponseValidatorService = DefaultAIResponseValidationService()
+
+    // Initialize external services
+    emailService = BrevoClient(app: self)
+    llmService = GoogleGeminiService(app: self)
+
+    // Initialize Redis-based services
+    let redisConfig = try configuration.redis
+    cacheService = RedisCacheService(
+      redis: redis,
+      configuration: redisConfig,
+      logger: logger
+    )
+    aiCacheService = RedisAICacheService(
+      cacheService: cacheService,
+      keyGenerator: cacheKeyGeneratorService,
+      logger: logger
+    )
+
+    logger.info("Services initialized successfully")
   }
 }

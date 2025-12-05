@@ -26,8 +26,8 @@ struct AISecurityTests {
         ]
         
         for title in validTitles {
-            #expect(throws: Never.self) { try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle(title) }
-            let sanitized = try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle(title)
+            #expect(throws: Never.self) { try testWorld.app.promptSanitizerService.sanitizeGameTitle(title) }
+            let sanitized = try testWorld.app.promptSanitizerService.sanitizeGameTitle(title)
             #expect(!sanitized.isEmpty)
         }
     }
@@ -52,7 +52,7 @@ struct AISecurityTests {
         
         for maliciousInput in maliciousInputs {
             #expect(throws: AIProcessingError.self) {
-                try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle(maliciousInput)
+                try testWorld.app.promptSanitizerService.sanitizeGameTitle(maliciousInput)
             }
         }
     }
@@ -62,7 +62,7 @@ struct AISecurityTests {
         // Test length limits
         let tooLong = String(repeating: "a", count: 101)
         do {
-            _ = try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle(tooLong)
+            _ = try testWorld.app.promptSanitizerService.sanitizeGameTitle(tooLong)
             Issue.record("Expected inputTooLarge error")
         } catch AIProcessingError.inputTooLarge {
             // Expected error
@@ -72,7 +72,7 @@ struct AISecurityTests {
         
         // Empty input
         do {
-            _ = try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle("")
+            _ = try testWorld.app.promptSanitizerService.sanitizeGameTitle("")
             Issue.record("Expected emptyInput error")
         } catch AIProcessingError.emptyInput {
             // Expected error
@@ -85,7 +85,7 @@ struct AISecurityTests {
     func promptSanitizerSanitizesCharacters() async throws {
         // Dangerous characters should be removed/sanitized
         let inputWithDangerousChars = "Ticket\"to{Ride}"
-        let sanitized = try testWorld.app.serviceCache.promptSanitizerService.sanitizeGameTitle(inputWithDangerousChars)
+        let sanitized = try testWorld.app.promptSanitizerService.sanitizeGameTitle(inputWithDangerousChars)
         
         // Dangerous characters should be removed
         #expect(!sanitized.contains("\""))
@@ -110,7 +110,7 @@ struct AISecurityTests {
         ]
         
         for title in validTitles {
-            #expect(throws: Never.self) { try testWorld.app.serviceCache.aiInputValidatorService.validateGameTitle(title) }
+            #expect(throws: Never.self) { try testWorld.app.aiInputValidatorService.validateGameTitle(title) }
         }
     }
     
@@ -129,7 +129,7 @@ struct AISecurityTests {
         
         for attempt in advancedInjectionAttempts {
             #expect(throws: AIProcessingError.self) {
-                try testWorld.app.serviceCache.aiInputValidatorService.validateGameTitle(attempt)
+                try testWorld.app.aiInputValidatorService.validateGameTitle(attempt)
             }
         }
     }
@@ -138,16 +138,16 @@ struct AISecurityTests {
     func aiInputValidatorImageValidation() async throws {
         // Valid base64 image data should pass (needs proper data URL format)
         let validImageData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
-        #expect(throws: Never.self) { try testWorld.app.serviceCache.aiInputValidatorService.validateImageData(validImageData) }
+        #expect(throws: Never.self) { try testWorld.app.aiInputValidatorService.validateImageData(validImageData) }
         
         // Empty data should fail
-        #expect(throws: AIProcessingError.self) { try testWorld.app.serviceCache.aiInputValidatorService.validateImageData("") }
+        #expect(throws: AIProcessingError.self) { try testWorld.app.aiInputValidatorService.validateImageData("") }
         
         // Invalid base64 should fail
-        #expect(throws: AIProcessingError.self) { try testWorld.app.serviceCache.aiInputValidatorService.validateImageData("invalid!!!") }
+        #expect(throws: AIProcessingError.self) { try testWorld.app.aiInputValidatorService.validateImageData("invalid!!!") }
         
         // Suspicious content should fail
-        #expect(throws: AIProcessingError.self) { try testWorld.app.serviceCache.aiInputValidatorService.validateImageData("system:hack") }
+        #expect(throws: AIProcessingError.self) { try testWorld.app.aiInputValidatorService.validateImageData("system:hack") }
     }
     
     // MARK: - Unit Tests (Integration tests are skipped due to test framework issues)

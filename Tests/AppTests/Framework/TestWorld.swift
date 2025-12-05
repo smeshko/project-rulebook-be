@@ -74,35 +74,33 @@ private class TestWorldPreConfiguration {
     
     func setupTestRepositories() {
         let shared = SharedTestRepositories.shared
-        
-        // Register test repositories in service registry BEFORE it gets finalized
-        // This ensures all services use test repositories
-        app.serviceRegistry.register((any UserRepository).self) { _ in shared.userRepository }
-        app.serviceRegistry.register((any RefreshTokenRepository).self) { _ in shared.tokenRepository }
-        app.serviceRegistry.register((any EmailTokenRepository).self) { _ in shared.emailTokenRepository }
-        app.serviceRegistry.register((any PasswordTokenRepository).self) { _ in shared.passwordTokenRepository }
-        app.serviceRegistry.register((any GeneratedRuleRepository).self) { _ in shared.generatedRuleRepository }
+
+        // Assign test repositories directly to Application storage
+        app.userRepository = shared.userRepository
+        app.refreshTokenRepository = shared.tokenRepository
+        app.emailTokenRepository = shared.emailTokenRepository
+        app.passwordTokenRepository = shared.passwordTokenRepository
+        app.generatedRuleRepository = shared.generatedRuleRepository
     }
-    
+
     func setupTestServices() {
-        // Configure plaintext password hasher for consistent testing BEFORE ServiceRegistry setup
+        // Configure plaintext password hasher for consistent testing
         app.passwords.use(.plaintext)
-        
-        // Register test/mock external services in service registry BEFORE it gets finalized
-        // This ensures ExternalServiceProvider doesn't override them
-        
-        // Mock/Test implementations for key services
-        app.serviceRegistry.register(EmailService.self) { _ in FakeEmailProvider() }
-        app.serviceRegistry.register(LLMService.self) { app in FakeLLMService(app: app) }
-        app.serviceRegistry.register(AICacheServiceInterface.self) { app in MockAICacheService(app: app) }
-        app.serviceRegistry.register(RandomGeneratorService.self) { _ in RiggedRandomGeneratorService(value: "test_random_value") }
-        app.serviceRegistry.register(UUIDGeneratorService.self) { app in ConstantUUIDGeneratorService(app: app) }
-        
+
+        // Assign mock/test services directly to Application storage
+        app.emailService = FakeEmailProvider()
+        app.llmService = FakeLLMService(app: app)
+        app.aiCacheService = MockAICacheService(app: app)
+        app.cacheService = InMemoryTestCacheService()
+        app.randomGeneratorService = RiggedRandomGeneratorService(value: "test_random_value")
+        app.uuidGeneratorService = ConstantUUIDGeneratorService(app: app)
+
         // Use production implementations for utility services (safe for testing)
-        app.serviceRegistry.register(IPExtractorService.self) { app in DefaultIPExtractorService(app: app) }
-        app.serviceRegistry.register(CacheKeyGeneratorServiceInterface.self) { app in DefaultCacheKeyGeneratorService(app: app) }
-        app.serviceRegistry.register(PromptSanitizerServiceInterface.self) { app in DefaultPromptSanitizerService(app: app) }
-        app.serviceRegistry.register(AIInputValidatorServiceInterface.self) { app in DefaultAIInputValidatorService(app: app) }
+        app.ipExtractorService = DefaultIPExtractorService(app: app)
+        app.cacheKeyGeneratorService = DefaultCacheKeyGeneratorService(app: app)
+        app.promptSanitizerService = DefaultPromptSanitizerService(app: app)
+        app.aiInputValidatorService = DefaultAIInputValidatorService(app: app)
+        app.aiResponseValidatorService = DefaultAIResponseValidationService()
     }
 }
 
@@ -284,9 +282,9 @@ class TestWorld: @unchecked Sendable {
     }
     
     private func setupRepositories() {
-        // Repository setup is now handled through the serviceCache in TestWorldPreConfiguration
-        // The serviceCache is created with test repositories before configure() runs
-        // No additional repository setup needed here
+        // Repository setup is handled through TestWorldPreConfiguration
+        // Services and repositories are assigned directly to Application storage
+        // No additional setup needed here
     }
     
     

@@ -133,7 +133,7 @@ extension Application.Services {
 extension Request.Services {
     var cacheKeyGenerator: CacheKeyGeneratorServiceInterface {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.cacheKeyGeneratorService.for(request)
+        request.application.cacheKeyGeneratorService.for(request)
     }
 }
 

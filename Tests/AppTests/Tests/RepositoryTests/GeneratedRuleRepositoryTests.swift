@@ -21,7 +21,7 @@ struct GeneratedRuleRepositoryTests {
     @Test("Generated rules can be created and retrieved by sanitized title")
     func createAndFindBySanitizedTitle() async throws {
         try await cleanup()
-        let sanitizedTitle = try world.app.serviceCache.aiInputValidatorService
+        let sanitizedTitle = try world.app.aiInputValidatorService
             .validateAndSanitizeGameTitle("Catan")
         let model = makeModel(
             originalTitle: "Catan",
@@ -39,7 +39,7 @@ struct GeneratedRuleRepositoryTests {
     @Test("Touch updates last accessed timestamp")
     func touchUpdatesLastAccessedAt() async throws {
         try await cleanup()
-        let sanitizedTitle = try world.app.serviceCache.aiInputValidatorService
+        let sanitizedTitle = try world.app.aiInputValidatorService
             .validateAndSanitizeGameTitle("Root")
         let initialAccess = Date(timeIntervalSince1970: 0)
         let model = makeModel(
@@ -60,7 +60,7 @@ struct GeneratedRuleRepositoryTests {
     @Test("Unique constraints prevent duplicate sanitized titles")
     func uniqueConstraintEnforced() async throws {
         try await cleanup()
-        let sanitizedTitle = try world.app.serviceCache.aiInputValidatorService
+        let sanitizedTitle = try world.app.aiInputValidatorService
             .validateAndSanitizeGameTitle("Azul")
         let first = makeModel(
             originalTitle: "Azul",

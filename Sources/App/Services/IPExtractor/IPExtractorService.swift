@@ -16,6 +16,6 @@ extension Application.Services {
 extension Request.Services {
     var ipExtractor: IPExtractorService {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.ipExtractorService.for(request)
+        request.application.ipExtractorService.for(request)
     }
 }

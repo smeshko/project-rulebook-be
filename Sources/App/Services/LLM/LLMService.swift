@@ -92,6 +92,6 @@ extension Application.Services {
 extension Request.Services {
     var llm: LLMService {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.llmService.for(request)
+        request.application.llmService.for(request)
     }
 }
