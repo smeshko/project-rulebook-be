@@ -1,0 +1,96 @@
+{
+  "slug": "waitlist-email",
+  "type": "feature",
+  "explored_at": "2025-12-03T12:00:00Z",
+  "platform": "backend",
+  "language": "Swift",
+  "architecture": "Vapor Modular Architecture",
+  "affected_files": [
+    {
+      "path": "Sources/App/Modules/Waitlist/",
+      "component": "WaitlistModule",
+      "purpose": "New module to be created for waitlist functionality (signup, unsubscribe, bulk notify)",
+      "dependencies": ["EmailService", "Fluent", "RateLimitMiddleware"]
+    },
+    {
+      "path": "Sources/App/Services/Email/BrevoClient.swift",
+      "component": "EmailService",
+      "purpose": "Existing Brevo email client for sending confirmation emails",
+      "dependencies": ["Brevo API"]
+    },
+    {
+      "path": "Sources/App/Services/Email/Helpers/Templates.swift",
+      "component": "EmailTemplates",
+      "purpose": "Add new waitlist confirmation template",
+      "dependencies": []
+    },
+    {
+      "path": "Sources/App/configure.swift",
+      "component": "AppConfiguration",
+      "purpose": "Register new Waitlist module",
+      "dependencies": ["WaitlistModule"]
+    }
+  ],
+  "components": [
+    {
+      "name": "WaitlistModule",
+      "type": "Vapor Module",
+      "location": "Sources/App/Modules/Waitlist/",
+      "integration_points": ["EmailService", "Database"]
+    },
+    {
+      "name": "WaitlistModel",
+      "type": "Fluent Model",
+      "location": "Sources/App/Modules/Waitlist/Database/Models/",
+      "integration_points": ["Database"]
+    },
+    {
+      "name": "WaitlistRouter",
+      "type": "RouteCollection",
+      "location": "Sources/App/Modules/Waitlist/",
+      "integration_points": ["WaitlistController"]
+    },
+    {
+      "name": "WaitlistController",
+      "type": "Controller",
+      "location": "Sources/App/Modules/Waitlist/",
+      "integration_points": ["WaitlistRepository", "EmailService"]
+    },
+    {
+      "name": "EmailService",
+      "type": "Service",
+      "location": "Sources/App/Services/Email/",
+      "integration_points": ["Brevo API"]
+    }
+  ],
+  "patterns": {
+    "state_management": "Database via Fluent ORM",
+    "error_handling": "Vapor error middleware with structured responses",
+    "testing": "Swift Testing framework",
+    "architecture_style": "Module-based with Repository pattern"
+  },
+  "similar_implementations": [
+    {
+      "feature": "User Module",
+      "file": "Sources/App/Modules/User/",
+      "pattern": "Complete module structure with model, router, controller, repository",
+      "relevance": "Follow same structure for Waitlist module"
+    },
+    {
+      "feature": "Auth Email Verification",
+      "file": "Sources/App/Services/Email/Helpers/EmailVerifier.swift",
+      "pattern": "Email sending with templates",
+      "relevance": "Pattern for sending waitlist confirmation emails"
+    },
+    {
+      "feature": "Auth Migrations",
+      "file": "Sources/App/Modules/Auth/Database/Migrations/AuthMigrations.swift",
+      "pattern": "Database migration patterns",
+      "relevance": "Follow for Waitlist table migration"
+    }
+  ],
+  "dependencies": {
+    "internal": ["EmailService", "DatabaseModelInterface", "ModuleInterface"],
+    "external": ["Vapor", "Fluent", "Brevo API"]
+  }
+}
