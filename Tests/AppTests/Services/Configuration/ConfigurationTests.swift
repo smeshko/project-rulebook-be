@@ -145,16 +145,14 @@ struct ConfigurationTests {
         
         #expect(cache.maxEntries == 100)
         #expect(cache.rulesGenerationTTL == 300.0)
-        #expect(cache.imageAnalysisTTL == 300.0)
         #expect(cache.cleanupInterval == 60.0)
         #expect(cache.enableLogging == false)
-        
+
         let testConfig = TestingConfiguration()
         let testCache = try testConfig.cache
-        
+
         #expect(testCache.maxEntries == 100)
         #expect(testCache.rulesGenerationTTL == 300.0)  // 5 minutes
-        #expect(testCache.imageAnalysisTTL == 300.0)  // 5 minutes
         #expect(testCache.enableLogging == false)  // Disabled in tests
     }
     

@@ -125,13 +125,13 @@ struct DatabaseUserRepository: UserRepository, DatabaseRepository {
 
 extension Application.Repositories {
     var users: any UserRepository {
-        application.serviceCache.userRepository
+        application.userRepository
     }
 }
 
 extension Request.Services {
     var users: any UserRepository {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.userRepository
+        request.application.userRepository
     }
 }

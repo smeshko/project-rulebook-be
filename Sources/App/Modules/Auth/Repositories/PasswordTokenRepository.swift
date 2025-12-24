@@ -59,13 +59,13 @@ struct DatabasePasswordTokenRepository: PasswordTokenRepository, DatabaseReposit
 
 extension Application.Repositories {
     var passwordTokens: any PasswordTokenRepository {
-        application.serviceCache.passwordTokenRepository
+        application.passwordTokenRepository
     }
 }
 
 extension Request.Services {
     var passwordTokens: any PasswordTokenRepository {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.passwordTokenRepository
+        request.application.passwordTokenRepository
     }
 }

@@ -16,6 +16,6 @@ extension Application.Services {
 extension Request.Services {
     var uuidGenerator: UUIDGeneratorService {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.uuidGeneratorService.for(request)
+        request.application.uuidGeneratorService.for(request)
     }
 }

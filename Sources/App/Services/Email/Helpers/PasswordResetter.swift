@@ -25,7 +25,7 @@ struct PasswordResetter {
             htmlContent: Templates.passwordReset(token: resetPasswordToken.value, baseURL: try application.configuration.security.baseURL)
         )
         
-        try await application.serviceCache.emailService.send(content)
+        try await application.emailService.send(content)
     }
 }
 
@@ -33,7 +33,7 @@ extension Request {
     var passwordResetter: PasswordResetter {
         .init(
             repository: repositories.passwordTokens,
-            generator: application.serviceCache.randomGeneratorService,
+            generator: application.randomGeneratorService,
             application: application
         )
     }

@@ -66,6 +66,6 @@ extension Application.Services {
 extension Request.Services {
     var aiCache: AICacheServiceInterface {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.aiCacheService.for(request)
+        request.application.aiCacheService.for(request)
     }
 }

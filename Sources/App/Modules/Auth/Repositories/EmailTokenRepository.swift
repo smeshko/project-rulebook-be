@@ -61,13 +61,13 @@ struct DatabaseEmailTokenRepository: EmailTokenRepository, DatabaseRepository {
 
 extension Application.Repositories {
     var emailTokens: any EmailTokenRepository {
-        application.serviceCache.emailTokenRepository
+        application.emailTokenRepository
     }
 }
 
 extension Request.Services {
     var emailTokens: any EmailTokenRepository {
         // Use pre-resolved service from ServiceCache for immediate synchronous access
-        request.application.serviceCache.emailTokenRepository
+        request.application.emailTokenRepository
     }
 }
