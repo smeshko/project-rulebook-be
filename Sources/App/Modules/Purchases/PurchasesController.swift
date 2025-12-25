@@ -3,7 +3,8 @@ import Vapor
 /// Controller handling purchase validation endpoints.
 ///
 /// Provides REST endpoints for validating iOS and Android in-app purchases
-/// and storing validated receipts for user entitlement tracking.
+/// and storing validated receipts for device entitlement tracking.
+/// Uses device ID for identification instead of user authentication.
 struct PurchasesController {
 
     // MARK: - Validate Purchase
@@ -18,25 +19,21 @@ struct PurchasesController {
     /// 5. Returns the validated transaction data
     ///
     /// - POST /api/v1/purchases/validate
-    /// - Requires authentication
     /// - Body: `Purchases.Validate.Request`
     /// - Returns: `Purchases.Validate.Response`
     func validate(_ req: Request) async throws -> Purchases.Validate.Response {
-        // 1. Extract authenticated user
-        let user = try req.auth.require(UserAccountModel.self)
-        let userId = try user.requireID()
-
-        // 2. Parse and validate request body
+        // 1. Parse and validate request body
         let input = try req.content.decode(Purchases.Validate.Request.self)
+        let deviceId = input.deviceId
 
-        // 3. Validate the receipt with the appropriate platform validator
+        // 2. Validate the receipt with the appropriate platform validator
         let transaction = try await req.services.purchaseValidator.validate(
             platform: input.platform,
             receiptData: input.receiptData,
             productId: input.productId
         )
 
-        // 4. Check for duplicate transaction
+        // 3. Check for duplicate transaction
         if try await req.repositories.receipts.exists(
             transactionId: transaction.transactionId,
             platform: transaction.platform
@@ -55,18 +52,18 @@ struct PurchasesController {
             )
         }
 
-        // 5. Store the validated receipt
-        let receipt = ReceiptModel(from: transaction, userId: userId)
+        // 4. Store the validated receipt
+        let receipt = ReceiptModel(from: transaction, deviceId: deviceId)
         try await req.repositories.receipts.create(receipt)
 
         req.logger.info("Purchase validated and stored", metadata: [
             "transactionId": .string(transaction.transactionId),
             "productId": .string(transaction.productId),
             "platform": .string(transaction.platform.rawValue),
-            "userId": .string(userId.uuidString)
+            "deviceId": .string(deviceId)
         ])
 
-        // 6. Return response
+        // 5. Return response
         return Purchases.Validate.Response(
             success: true,
             transactionId: transaction.transactionId,
@@ -76,18 +73,18 @@ struct PurchasesController {
         )
     }
 
-    // MARK: - Get User Purchases
+    // MARK: - Get Device Purchases
 
-    /// Retrieves all purchases for the authenticated user.
+    /// Retrieves all purchases for a device.
     ///
-    /// - GET /api/v1/purchases
-    /// - Requires authentication
+    /// - GET /api/v1/purchases/:deviceId
     /// - Returns: `Purchases.List.Response`
     func list(_ req: Request) async throws -> Purchases.List.Response {
-        let user = try req.auth.require(UserAccountModel.self)
-        let userId = try user.requireID()
+        guard let deviceId = req.parameters.get("deviceId") else {
+            throw Abort(.badRequest, reason: "Device ID is required")
+        }
 
-        let receipts = try await req.repositories.receipts.findByUser(userId: userId)
+        let receipts = try await req.repositories.receipts.findByDevice(deviceId: deviceId)
 
         return Purchases.List.Response(
             purchases: receipts.map { receipt in
@@ -106,16 +103,16 @@ struct PurchasesController {
 
     // MARK: - Get Active Entitlements
 
-    /// Retrieves active purchases/entitlements for the authenticated user.
+    /// Retrieves active purchases/entitlements for a device.
     ///
-    /// - GET /api/v1/purchases/active
-    /// - Requires authentication
+    /// - GET /api/v1/purchases/:deviceId/active
     /// - Returns: `Purchases.Active.Response`
     func active(_ req: Request) async throws -> Purchases.Active.Response {
-        let user = try req.auth.require(UserAccountModel.self)
-        let userId = try user.requireID()
+        guard let deviceId = req.parameters.get("deviceId") else {
+            throw Abort(.badRequest, reason: "Device ID is required")
+        }
 
-        let activeReceipts = try await req.repositories.receipts.findActiveByUser(userId: userId)
+        let activeReceipts = try await req.repositories.receipts.findActiveByDevice(deviceId: deviceId)
 
         return Purchases.Active.Response(
             hasActiveSubscription: !activeReceipts.isEmpty,

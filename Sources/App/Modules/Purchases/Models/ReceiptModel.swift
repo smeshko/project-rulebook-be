@@ -16,7 +16,7 @@ import Vapor
 ///     transactionId: "123456",
 ///     originalTransactionId: "123456",
 ///     productId: "com.app.premium",
-///     userId: userId,
+///     deviceId: "device-uuid-string",
 ///     platform: .ios,
 ///     purchaseDate: Date(),
 ///     environment: .production
@@ -46,9 +46,9 @@ final class ReceiptModel: Model, @unchecked Sendable {
     @Field(key: "product_id")
     var productId: String
 
-    /// ID of the user who made the purchase.
-    @Field(key: "user_id")
-    var userId: UUID
+    /// Device identifier that made the purchase.
+    @Field(key: "device_id")
+    var deviceId: String
 
     /// Platform where the purchase was made.
     @Enum(key: "platform")
@@ -92,7 +92,7 @@ final class ReceiptModel: Model, @unchecked Sendable {
     ///   - transactionId: Platform-specific transaction ID.
     ///   - originalTransactionId: Original transaction ID for renewals.
     ///   - productId: Product identifier.
-    ///   - userId: User who made the purchase.
+    ///   - deviceId: Device identifier that made the purchase.
     ///   - platform: iOS or Android.
     ///   - purchaseDate: When the purchase was made.
     ///   - expirationDate: When subscription expires (nil for consumables).
@@ -104,7 +104,7 @@ final class ReceiptModel: Model, @unchecked Sendable {
         transactionId: String,
         originalTransactionId: String,
         productId: String,
-        userId: UUID,
+        deviceId: String,
         platform: PurchasePlatform,
         purchaseDate: Date,
         expirationDate: Date? = nil,
@@ -116,7 +116,7 @@ final class ReceiptModel: Model, @unchecked Sendable {
         self.transactionId = transactionId
         self.originalTransactionId = originalTransactionId
         self.productId = productId
-        self.userId = userId
+        self.deviceId = deviceId
         self.platform = platform
         self.purchaseDate = purchaseDate
         self.expirationDate = expirationDate
@@ -133,13 +133,13 @@ extension ReceiptModel {
     ///
     /// - Parameters:
     ///   - transaction: The validated transaction from the validator.
-    ///   - userId: The user ID to associate with this receipt.
-    convenience init(from transaction: ValidatedTransaction, userId: UUID) {
+    ///   - deviceId: The device ID to associate with this receipt.
+    convenience init(from transaction: ValidatedTransaction, deviceId: String) {
         self.init(
             transactionId: transaction.transactionId,
             originalTransactionId: transaction.originalTransactionId,
             productId: transaction.productId,
-            userId: userId,
+            deviceId: deviceId,
             platform: transaction.platform,
             purchaseDate: transaction.purchaseDate,
             expirationDate: transaction.expirationDate,

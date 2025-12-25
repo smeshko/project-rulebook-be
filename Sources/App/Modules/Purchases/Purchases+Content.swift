@@ -9,6 +9,9 @@ enum Purchases {
     enum Validate {
         /// Request body for validating a purchase receipt.
         struct Request: Content {
+            /// Unique device identifier (client-generated UUID).
+            let deviceId: String
+
             /// Platform the purchase came from.
             let platform: PurchasePlatform
 

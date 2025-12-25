@@ -8,7 +8,7 @@ struct CreateReceiptsTable: AsyncMigration {
             .field("transaction_id", .string, .required)
             .field("original_transaction_id", .string, .required)
             .field("product_id", .string, .required)
-            .field("user_id", .uuid, .required)
+            .field("device_id", .string, .required)
             .field("platform", .string, .required)
             .field("purchase_date", .datetime, .required)
             .field("expiration_date", .datetime)
@@ -19,13 +19,7 @@ struct CreateReceiptsTable: AsyncMigration {
             .field("updated_at", .datetime)
             // Unique constraint on transaction_id + platform to prevent duplicates
             .unique(on: "transaction_id", "platform")
-            // Index for querying by user
             .create()
-
-        // Create additional indexes
-        try await database.schema("receipts")
-            .foreignKey("user_id", references: "user_accounts", "id", onDelete: .cascade)
-            .update()
     }
 
     func revert(on database: Database) async throws {
@@ -33,8 +27,8 @@ struct CreateReceiptsTable: AsyncMigration {
     }
 }
 
-/// Migration to add index on user_id for efficient user purchase queries.
-struct AddReceiptUserIndex: AsyncMigration {
+/// Migration to add purchase-related enums.
+struct AddPurchaseEnums: AsyncMigration {
     func prepare(on database: Database) async throws {
         _ = try await database.enum("purchase_platform")
             .case("ios")
@@ -68,7 +62,7 @@ struct AddReceiptUserIndex: AsyncMigration {
 enum PurchasesMigrations {
     static var all: [any AsyncMigration] {
         [
-            AddReceiptUserIndex(),  // Enums first
+            AddPurchaseEnums(),  // Enums first
             CreateReceiptsTable(),
         ]
     }

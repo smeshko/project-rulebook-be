@@ -6,11 +6,9 @@ struct PurchasesRouter: RouteCollection {
     let controller = PurchasesController()
 
     func boot(routes: RoutesBuilder) throws {
-        // All purchases endpoints require authentication
+        // Purchases endpoints use device ID for identification (no user auth)
         let purchases = routes
             .grouped("api", "v1", "purchases")
-            .grouped(UserPayloadAuthenticator())
-            .grouped(UserAccountModel.guardMiddleware())
 
         // POST /api/v1/purchases/validate - Validate a purchase receipt
         purchases.post("validate", use: controller.validate)
@@ -26,29 +24,26 @@ struct PurchasesRouter: RouteCollection {
                     and returns the validated transaction information.
                     """,
                 body: .type(Purchases.Validate.Request.self),
-                response: .type(Purchases.Validate.Response.self),
-                auth: .bearer()
+                response: .type(Purchases.Validate.Response.self)
             )
 
-        // GET /api/v1/purchases - List user's purchases
-        purchases.get(use: controller.list)
+        // GET /api/v1/purchases/:deviceId - List device's purchases
+        purchases.get(":deviceId", use: controller.list)
             .openAPI(
-                summary: "List user purchases",
-                description: "Returns all validated purchases for the authenticated user.",
-                response: .type(Purchases.List.Response.self),
-                auth: .bearer()
+                summary: "List device purchases",
+                description: "Returns all validated purchases for the specified device.",
+                response: .type(Purchases.List.Response.self)
             )
 
-        // GET /api/v1/purchases/active - Get active entitlements
-        purchases.get("active", use: controller.active)
+        // GET /api/v1/purchases/:deviceId/active - Get active entitlements
+        purchases.get(":deviceId", "active", use: controller.active)
             .openAPI(
                 summary: "Get active entitlements",
                 description: """
-                    Returns the user's active purchases and entitlements.
-                    Use this to check if a user has premium access.
+                    Returns the device's active purchases and entitlements.
+                    Use this to check if a device has premium access.
                     """,
-                response: .type(Purchases.Active.Response.self),
-                auth: .bearer()
+                response: .type(Purchases.Active.Response.self)
             )
     }
 }

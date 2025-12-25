@@ -28,17 +28,17 @@ protocol ReceiptRepository: Sendable {
     /// - Returns: `true` if the transaction exists in the database.
     func exists(transactionId: String, platform: PurchasePlatform) async throws -> Bool
 
-    /// Finds all receipts for a specific user.
+    /// Finds all receipts for a specific device.
     ///
-    /// - Parameter userId: The user's ID.
-    /// - Returns: Array of receipt models for the user.
-    func findByUser(userId: UUID) async throws -> [ReceiptModel]
+    /// - Parameter deviceId: The device's ID.
+    /// - Returns: Array of receipt models for the device.
+    func findByDevice(deviceId: String) async throws -> [ReceiptModel]
 
-    /// Finds all active purchases for a specific user.
+    /// Finds all active purchases for a specific device.
     ///
-    /// - Parameter userId: The user's ID.
+    /// - Parameter deviceId: The device's ID.
     /// - Returns: Array of active receipt models.
-    func findActiveByUser(userId: UUID) async throws -> [ReceiptModel]
+    func findActiveByDevice(deviceId: String) async throws -> [ReceiptModel]
 
     /// Finds a receipt by its database ID.
     ///
@@ -89,16 +89,16 @@ struct DatabaseReceiptRepository: ReceiptRepository {
         return count > 0
     }
 
-    func findByUser(userId: UUID) async throws -> [ReceiptModel] {
+    func findByDevice(deviceId: String) async throws -> [ReceiptModel] {
         try await ReceiptModel.query(on: database)
-            .filter(\.$userId == userId)
+            .filter(\.$deviceId == deviceId)
             .sort(\.$purchaseDate, .descending)
             .all()
     }
 
-    func findActiveByUser(userId: UUID) async throws -> [ReceiptModel] {
+    func findActiveByDevice(deviceId: String) async throws -> [ReceiptModel] {
         try await ReceiptModel.query(on: database)
-            .filter(\.$userId == userId)
+            .filter(\.$deviceId == deviceId)
             .filter(\.$status == .active)
             .sort(\.$purchaseDate, .descending)
             .all()
