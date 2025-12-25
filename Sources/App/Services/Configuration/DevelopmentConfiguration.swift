@@ -90,6 +90,28 @@ struct DevelopmentConfiguration: ConfigurationService {
     }
   }
 
+  var appStore: AppStoreConfig {
+    get throws {
+      AppStoreConfig(
+        privateKey: Environment.get("APP_STORE_PRIVATE_KEY") ?? "dev_private_key",
+        keyId: Environment.get("APP_STORE_KEY_ID") ?? "DEV_KEY_ID",
+        issuerId: Environment.get("APP_STORE_ISSUER_ID") ?? "dev-issuer-id",
+        bundleId: Environment.get("APP_STORE_BUNDLE_ID") ?? "com.dev.app",
+        appAppleId: Int64(Environment.get("APP_STORE_APP_ID") ?? "123456789") ?? 123456789,
+        environment: .sandbox
+      )
+    }
+  }
+
+  var googlePlay: GooglePlayConfig {
+    get throws {
+      GooglePlayConfig(
+        packageName: Environment.get("GOOGLE_PLAY_PACKAGE_NAME") ?? "com.dev.app",
+        serviceAccountJson: Environment.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON") ?? "{}"
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
 

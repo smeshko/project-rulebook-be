@@ -80,13 +80,34 @@ protocol ConfigurationService: Sendable {
   ///
   /// Provides configuration for Redis-based caching which offers:
   /// - Persistent cache storage across server restarts
-  /// - Distributed caching for multi-instance deployments  
+  /// - Distributed caching for multi-instance deployments
   /// - Higher performance than in-memory caching for large datasets
   /// - Advanced features like atomic operations and pub/sub
   ///
   /// - Returns: Redis configuration with connection and pooling settings
   /// - Throws: ``ConfigurationError`` if Redis settings are invalid
   var redis: RedisConfig { get throws }
+
+  /// Apple App Store Server API configuration for iOS in-app purchase validation.
+  ///
+  /// Provides credentials and identifiers for:
+  /// - JWS transaction signature verification
+  /// - App Store Server API authentication
+  /// - Environment-specific validation (sandbox/production)
+  ///
+  /// - Returns: App Store configuration with API credentials
+  /// - Throws: ``ConfigurationError`` if App Store credentials are missing
+  var appStore: AppStoreConfig { get throws }
+
+  /// Google Play Developer API configuration for Android purchase validation.
+  ///
+  /// Provides credentials for:
+  /// - Android Publisher API authentication via OAuth
+  /// - Purchase token verification
+  ///
+  /// - Returns: Google Play configuration with service account credentials
+  /// - Throws: ``ConfigurationError`` if Google Play credentials are missing
+  var googlePlay: GooglePlayConfig { get throws }
 
   /// Validates all configuration settings for the current environment.
   ///

@@ -258,6 +258,81 @@ struct ProductionConfiguration: ConfigurationService {
     }
   }
 
+  var appStore: AppStoreConfig {
+    get throws {
+      guard let privateKey = Environment.get("APP_STORE_PRIVATE_KEY") else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_STORE_PRIVATE_KEY",
+          suggestion: "Set APP_STORE_PRIVATE_KEY with content of .p8 file from App Store Connect"
+        )
+      }
+
+      guard let keyId = Environment.get("APP_STORE_KEY_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_STORE_KEY_ID",
+          suggestion: "Set APP_STORE_KEY_ID from App Store Connect API key"
+        )
+      }
+
+      guard let issuerId = Environment.get("APP_STORE_ISSUER_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_STORE_ISSUER_ID",
+          suggestion: "Set APP_STORE_ISSUER_ID from App Store Connect"
+        )
+      }
+
+      guard let bundleId = Environment.get("APP_STORE_BUNDLE_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_STORE_BUNDLE_ID",
+          suggestion: "Set APP_STORE_BUNDLE_ID to your app's bundle identifier"
+        )
+      }
+
+      guard let appIdString = Environment.get("APP_STORE_APP_ID"),
+            let appAppleId = Int64(appIdString) else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_STORE_APP_ID",
+          suggestion: "Set APP_STORE_APP_ID to your app's numeric Apple ID from App Store Connect"
+        )
+      }
+
+      let envString = Environment.get("APP_STORE_ENVIRONMENT") ?? "production"
+      let environment = AppStoreConfig.Environment(rawValue: envString) ?? .production
+
+      return AppStoreConfig(
+        privateKey: privateKey,
+        keyId: keyId,
+        issuerId: issuerId,
+        bundleId: bundleId,
+        appAppleId: appAppleId,
+        environment: environment
+      )
+    }
+  }
+
+  var googlePlay: GooglePlayConfig {
+    get throws {
+      guard let packageName = Environment.get("GOOGLE_PLAY_PACKAGE_NAME") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_PLAY_PACKAGE_NAME",
+          suggestion: "Set GOOGLE_PLAY_PACKAGE_NAME to your Android app's package name"
+        )
+      }
+
+      guard let serviceAccountJson = Environment.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON",
+          suggestion: "Set GOOGLE_PLAY_SERVICE_ACCOUNT_JSON with full content of service account JSON from Google Cloud Console"
+        )
+      }
+
+      return GooglePlayConfig(
+        packageName: packageName,
+        serviceAccountJson: serviceAccountJson
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
     let services = try services

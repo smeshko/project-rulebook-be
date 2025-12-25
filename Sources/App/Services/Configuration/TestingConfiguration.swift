@@ -84,6 +84,28 @@ struct TestingConfiguration: ConfigurationService {
     }
   }
 
+  var appStore: AppStoreConfig {
+    get throws {
+      AppStoreConfig(
+        privateKey: "test_private_key",
+        keyId: "TEST_KEY_ID",
+        issuerId: "test-issuer-id",
+        bundleId: "com.test.app",
+        appAppleId: 123456789,
+        environment: .sandbox
+      )
+    }
+  }
+
+  var googlePlay: GooglePlayConfig {
+    get throws {
+      GooglePlayConfig(
+        packageName: "com.test.app",
+        serviceAccountJson: "{}"
+      )
+    }
+  }
+
   func validate() throws {
     // Minimal validation for tests - all values are hardcoded and valid
   }

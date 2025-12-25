@@ -181,6 +181,93 @@ struct APNSConfig: Sendable {
     let teamId: String
 }
 
+/// Apple App Store Server API configuration for in-app purchase receipt validation.
+///
+/// This configuration contains all credentials and identifiers needed to verify
+/// iOS in-app purchase transactions using Apple's App Store Server Library.
+///
+/// ## Required Credentials
+/// All values are obtained from App Store Connect:
+/// - API key (.p8 file) from Keys section
+/// - Key ID from the same API key
+/// - Issuer ID from Users and Access > Keys
+/// - App Apple ID from App Information
+///
+/// ## Security Note
+/// The private key content should be stored as an environment variable,
+/// not committed to source control.
+struct AppStoreConfig: Sendable {
+    /// Private key content for App Store Server API authentication.
+    ///
+    /// This is the content of the .p8 file downloaded from App Store Connect.
+    /// Store as a single-line string with `\n` preserved or as a base64 encoded value.
+    let privateKey: String
+
+    /// Key identifier from App Store Connect API key.
+    ///
+    /// Found in App Store Connect > Users and Access > Keys.
+    let keyId: String
+
+    /// Issuer ID from App Store Connect.
+    ///
+    /// Found in App Store Connect > Users and Access > Keys.
+    let issuerId: String
+
+    /// App bundle identifier (e.g., "com.company.appname").
+    ///
+    /// Must match the bundle ID of the iOS app.
+    let bundleId: String
+
+    /// Numeric App Apple ID from App Store Connect.
+    ///
+    /// Found in App Store Connect > App Information.
+    let appAppleId: Int64
+
+    /// Environment for App Store Server API.
+    let environment: Environment
+
+    /// App Store environment for receipt validation.
+    enum Environment: String, Sendable {
+        /// Sandbox environment for TestFlight and development.
+        case sandbox
+        /// Production environment for App Store releases.
+        case production
+    }
+}
+
+/// Google Play Developer API configuration for Android purchase validation.
+///
+/// This configuration contains credentials for validating Android in-app purchases
+/// using the Google Play Developer API.
+///
+/// ## Required Credentials
+/// Obtained from Google Cloud Console:
+/// - Service account with Android Publisher API access
+/// - JSON key file for the service account
+///
+/// ## Setup Steps
+/// 1. Create a service account in Google Cloud Console
+/// 2. Enable Android Publisher API
+/// 3. Link service account in Google Play Console
+/// 4. Download JSON key file
+/// 5. Store JSON content as environment variable
+///
+/// ## Security Note
+/// The service account JSON contains private keys and should never be committed
+/// to source control. Store as an environment variable.
+struct GooglePlayConfig: Sendable {
+    /// Android app package name (e.g., "com.company.appname").
+    ///
+    /// Must match the package name in the Android app's build configuration.
+    let packageName: String
+
+    /// Full JSON content of the service account key file.
+    ///
+    /// This is the entire JSON object downloaded from Google Cloud Console,
+    /// stored as a single string (can be minified).
+    let serviceAccountJson: String
+}
+
 /// AI response caching configuration and performance optimization settings.
 ///
 /// This configuration controls the caching behavior for AI-generated responses,
