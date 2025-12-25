@@ -2,9 +2,11 @@
 
 ---
 **Date:** 2025-12-24
+**Updated:** 2025-12-25
 **Requirements:** `docs/planning/work/app-store-receipt-validation/requirements.md`
 **Linear:** [RULE-128](https://linear.app/project-rulebook/issue/RULE-128), [RULE-129](https://linear.app/project-rulebook/issue/RULE-129)
 **Status:** complete
+**Purchase Type:** Consumables (credits) - device-based, no user auth
 ---
 
 ## Platform Detection
@@ -37,33 +39,29 @@
 - **Async:** async/await throughout - `RulesGenerationController.swift:110-156`
 - **Naming:** Files: PascalCase, Types: PascalCase, Functions: camelCase
 
-### Platform Detection Best Practices
+### Platform & Device Identification
 
-Based on industry standards ([Brains & Beards](https://brainsandbeards.com/blog/2025-useragent-for-api-calls/), [MDN User-Agent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent)):
+**Device-Based Architecture:**
+Purchases are tracked by device identifier (client-generated UUID) rather than user accounts. This is appropriate for consumable purchases (credits) that:
+- Don't need to be restored across devices
+- Don't require user authentication
+- Are tied to the device where purchased
 
-**User-Agent Parsing:**
-- iOS apps include "iOS" or "iPhone" or "iPad" in User-Agent
-- Android apps include "Android" in User-Agent
-- Format: `(AppName/Version) (DeviceInfo; PlatformVersion)`
-- Example iOS: `ProjectRulebook/1.0 (iPhone14,6; iOS 18.2)`
-- Example Android: `ProjectRulebook/1.0 (Samsung SM-A156B; Android 14)`
-
-**Implementation:**
+**Request Body Structure:**
 ```swift
-enum MobilePlatform: String, Sendable {
+struct ValidateRequest: Content {
+    let deviceId: String       // Client-generated UUID, persisted on device
+    let platform: PurchasePlatform  // .ios or .android
+    let receiptData: String    // JWS for iOS, token for Android
+    let productId: String?     // Required for Android, optional for iOS
+}
+```
+
+**Platform Enum:**
+```swift
+public enum PurchasePlatform: String, Codable, Sendable {
     case ios
     case android
-
-    static func detect(from userAgent: String?) -> MobilePlatform? {
-        guard let ua = userAgent?.lowercased() else { return nil }
-        if ua.contains("ios") || ua.contains("iphone") || ua.contains("ipad") {
-            return .ios
-        }
-        if ua.contains("android") {
-            return .android
-        }
-        return nil
-    }
 }
 ```
 
@@ -103,27 +101,39 @@ struct GooglePlayConfig: Sendable {
 }
 ```
 
-#### Controller Pattern with Platform Routing
+#### Controller Pattern (Device-Based, No Auth)
 ```swift
-// Pattern for unified endpoint with platform routing
-func verifyPurchase(_ req: Request) async throws -> VerifyResponse {
-    let userAgent = req.headers.first(name: .userAgent)
+// Pattern for unified endpoint with device-based identification
+func validate(_ req: Request) async throws -> Purchases.Validate.Response {
+    let input = try req.content.decode(Purchases.Validate.Request.self)
+    let deviceId = input.deviceId
 
-    guard let platform = MobilePlatform.detect(from: userAgent) else {
-        throw PurchaseValidationError.unsupportedPlatform
-    }
+    // Validate with platform-specific validator
+    let transaction = try await req.services.purchaseValidator.validate(
+        platform: input.platform,
+        receiptData: input.receiptData,
+        productId: input.productId
+    )
 
-    let input = try req.content.decode(VerifyRequest.self)
-
-    switch platform {
-    case .ios:
-        return try await req.services.purchaseValidator.validateiOS(token: input.purchaseToken)
-    case .android:
-        return try await req.services.purchaseValidator.validateAndroid(
-            productId: input.productId,
-            token: input.purchaseToken
+    // Check for duplicate (idempotent)
+    if try await req.repositories.receipts.exists(
+        transactionId: transaction.transactionId,
+        platform: transaction.platform
+    ) {
+        return Purchases.Validate.Response(
+            success: true,
+            transactionId: transaction.transactionId,
+            productId: transaction.productId,
+            status: transaction.status.rawValue,
+            isDuplicate: true
         )
     }
+
+    // Store with deviceId (not userId)
+    let receipt = ReceiptModel(from: transaction, deviceId: deviceId)
+    try await req.repositories.receipts.create(receipt)
+
+    return Purchases.Validate.Response(...)
 }
 ```
 
@@ -173,12 +183,12 @@ struct GooglePlayValidator {
 
 **Flow:**
 ```
-Mobile App → POST /api/purchases/verify
-    → AuthMiddleware
-    → PurchasesController.verifyPurchase
-    → Parse User-Agent for platform
+Mobile App → POST /api/v1/purchases/validate
+    → PurchasesController.validate (no auth required)
+    → Parse platform from request body
     → Route to iOS or Android validator
-    → Store in ReceiptModel
+    → Check duplicate by transactionId
+    → Store in ReceiptModel with deviceId
     → Return unified response
 ```
 
@@ -186,8 +196,8 @@ Mobile App → POST /api/purchases/verify
 
 ### Unified vs Separate Endpoints
 **Question:** Should iOS and Android have separate endpoints?
-**Finding:** Single endpoint simplifies client integration; platform detected from User-Agent
-**Decision:** Use single `POST /api/purchases/verify` with platform routing
+**Finding:** Single endpoint simplifies client integration
+**Decision:** Use single `POST /api/v1/purchases/validate` with platform in request body
 **Rationale:** Industry best practice; cleaner API surface; easier client maintenance
 
 ### Request Body Structure
@@ -195,20 +205,25 @@ Mobile App → POST /api/purchases/verify
 **Finding:**
 - iOS sends JWS string (self-contained signed transaction)
 - Android sends productId + purchaseToken
-**Decision:** Use unified request body with optional productId:
+**Decision:** Use unified request body with deviceId, platform, and optional productId:
 ```swift
-struct VerifyRequest: Content {
-    let purchaseToken: String  // Required for both
+struct ValidateRequest: Content {
+    let deviceId: String       // Required - client-generated UUID
+    let platform: PurchasePlatform  // Required - ios or android
+    let receiptData: String    // Required - JWS for iOS, token for Android
     let productId: String?     // Required for Android, optional for iOS
 }
 ```
-**Rationale:** iOS JWS contains productId embedded; Android needs it explicitly
+**Rationale:** Explicit platform field avoids User-Agent parsing; deviceId enables tracking without user auth
 
-### Platform Detection Method
-**Question:** How to reliably detect platform?
-**Finding:** User-Agent header is standard HTTP practice for identifying clients
-**Decision:** Parse User-Agent for "iOS"/"iPhone"/"iPad" or "Android"
-**Rationale:** Standard practice per [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent) and [Brains & Beards](https://brainsandbeards.com/blog/2025-useragent-for-api-calls/)
+### Device-Based vs User-Based
+**Question:** Should purchases be linked to user accounts?
+**Finding:** For consumables (credits), device-based tracking is simpler and doesn't require user auth
+**Decision:** Use deviceId (client-generated UUID) instead of userId
+**Rationale:**
+- Consumables don't need cross-device restore (Apple/Google don't restore them)
+- No user account required to make purchases
+- Simpler implementation; follows RevenueCat anonymous user pattern
 
 ## Risks & Unknowns
 

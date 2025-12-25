@@ -1,8 +1,9 @@
 ---
 type: feature
-status: draft
+status: complete
 priority: P1
 created: 2025-12-24
+updated: 2025-12-25
 slug: purchase-verification
 feature_branch: feature/app-store-receipt-validation
 linear_issues: RULE-128, RULE-129
@@ -15,30 +16,32 @@ linear_urls:
 
 ## Overview
 
-**Context**: iOS and Android clients need server-side verification of in-app purchases to ensure transaction authenticity and prevent receipt manipulation. Currently, there is no backend validation for purchases on either platform.
+**Context**: iOS and Android clients need server-side verification of in-app purchases (consumable credits) to ensure transaction authenticity and prevent receipt manipulation. Currently, there is no backend validation for purchases on either platform.
 
-**Objective**: Implement a single unified purchase verification endpoint that accepts purchase tokens from both iOS (JWS) and Android (purchase tokens), routes to platform-specific validation services, and stores validated purchase records.
+**Objective**: Implement a single unified purchase verification endpoint that accepts purchase tokens from both iOS (JWS) and Android (purchase tokens), routes to platform-specific validation services, and stores validated purchase records linked to device identifiers.
 
-**Impact**: All mobile users making in-app purchases; backend services requiring purchase verification; subscription management flows.
+**Impact**: All mobile users making in-app purchases; backend services requiring purchase verification.
+
+**Purchase Type**: Consumables only (credits). No subscription management required.
 
 ## User Stories
 
 **US-1**: As a mobile user, I want my in-app purchases validated on the server so that my purchases are securely verified and cannot be spoofed.
-- **Given** I complete an in-app purchase on iOS or Android, **When** the app sends the token to the server, **Then** the server validates using the appropriate platform service and returns the verification result.
+- **Given** I complete an in-app purchase on iOS or Android, **When** the app sends the token and device ID to the server, **Then** the server validates using the appropriate platform service and returns the verification result.
 
-**US-2**: As a backend service, I want to query a user's validated purchases across platforms so that I can enforce entitlements and subscription access.
-- **Given** a user has validated purchases from any platform, **When** I query the receipts repository, **Then** I receive accurate purchase state information including expiration dates.
+**US-2**: As a backend service, I want to query a device's validated purchases so that I can enforce entitlements.
+- **Given** a device has validated purchases, **When** I query the receipts repository by device ID, **Then** I receive accurate purchase state information.
 
 **US-3**: As an API consumer, I want a single endpoint for all platforms so that client implementations are simpler and consistent.
-- **Given** either iOS or Android app, **When** calling POST /api/purchases/verify with appropriate headers, **Then** the backend correctly routes to the platform-specific validation.
+- **Given** either iOS or Android app, **When** calling POST /api/v1/purchases/validate with device ID and platform in request body, **Then** the backend correctly routes to the platform-specific validation.
 
 ## Requirements
 
-1. **REQ-001**: System SHALL accept purchase tokens via a single unified endpoint `POST /api/purchases/verify`
+1. **REQ-001**: System SHALL accept purchase tokens via a single unified endpoint `POST /api/v1/purchases/validate`
    - Rationale: Simplifies client integration and maintains consistent API surface
 
-2. **REQ-002**: System SHALL identify platform from User-Agent header (iOS or Android)
-   - Rationale: Standard HTTP pattern for platform identification; follows mobile API best practices
+2. **REQ-002**: System SHALL identify platform from request body `platform` field (ios or android)
+   - Rationale: Explicit platform identification in request body; no reliance on User-Agent parsing
 
 3. **REQ-003**: System SHALL validate iOS transactions using Apple App Store Server Library (JWS verification)
    - Rationale: Ensures transaction authenticity using Apple's official signing verification
@@ -49,30 +52,30 @@ linear_urls:
 5. **REQ-005**: System SHALL support sandbox/test environments for both platforms
    - Rationale: Required for development testing and production deployments
 
-6. **REQ-006**: System SHALL store validated transaction records linked to user accounts with platform identifier
-   - Rationale: Enables cross-platform entitlement queries and subscription status checks
+6. **REQ-006**: System SHALL store validated transaction records linked to device identifiers with platform field
+   - Rationale: Enables device-based entitlement queries; no user authentication required
 
 7. **REQ-007**: System SHALL return unified response format regardless of platform
    - Rationale: Clients receive consistent response structure
 
-8. **REQ-008**: System SHALL require authentication for verification requests
-   - Rationale: Transactions must be linked to authenticated user accounts
+8. **REQ-008**: System SHALL NOT require user authentication for verification requests
+   - Rationale: Consumable purchases are device-based; users may not have accounts
 
 ## Acceptance Criteria
 
 ### Functional
-- [ ] **Given** iOS User-Agent and valid JWS, **When** POST /api/purchases/verify is called, **Then** returns verified=true with transaction details
-- [ ] **Given** Android User-Agent and valid purchase token, **When** POST /api/purchases/verify is called, **Then** returns verified=true with transaction details
-- [ ] **Given** invalid/tampered token for either platform, **When** verified, **Then** returns 400 with platform-appropriate error code
-- [ ] **Given** unknown/missing platform in User-Agent, **When** verified, **Then** returns 400 with "unsupported_platform" error
-- [ ] **Given** validated transaction from any platform, **When** stored, **Then** includes platform field (ios/android)
+- [x] **Given** platform=ios and valid JWS, **When** POST /api/v1/purchases/validate is called, **Then** returns success=true with transaction details
+- [x] **Given** platform=android and valid purchase token, **When** POST /api/v1/purchases/validate is called, **Then** returns success=true with transaction details
+- [x] **Given** invalid/tampered token for either platform, **When** verified, **Then** returns 400 with platform-appropriate error code
+- [x] **Given** missing platform in request body, **When** verified, **Then** returns 400 with validation error
+- [x] **Given** validated transaction from any platform, **When** stored, **Then** includes platform field and device_id
 
 ### Edge Cases
-- [ ] Handles malformed tokens (returns 400, not 500)
-- [ ] Handles network timeouts to Apple/Google services gracefully
-- [ ] Handles duplicate validation requests idempotently
-- [ ] Handles missing/invalid authentication (returns 401)
-- [ ] Handles platform service outages with appropriate error response
+- [x] Handles malformed tokens (returns 400, not 500)
+- [x] Handles network timeouts to Apple/Google services gracefully
+- [x] Handles duplicate validation requests idempotently (returns isDuplicate: true)
+- [x] Works without user authentication (device-based)
+- [x] Handles platform service outages with appropriate error response
 
 ## Affected Areas
 
@@ -91,13 +94,15 @@ linear_urls:
 ## Assumptions
 - Apple App Store Server Library v4.0.0 is stable and production-ready
 - Google Play Developer API credentials are available with appropriate permissions
-- User-Agent header reliably contains platform identifier (iOS/Android)
-- Existing JWT authentication middleware is compatible with this endpoint
+- Client apps generate and persist a unique device UUID for identification
+- Consumable purchases do not need to be restored across devices
 
 ## Open Questions
 - [x] Single endpoint vs separate endpoints? → Single unified endpoint with platform routing
-- [x] How to identify platform? → Parse User-Agent header for "iOS" or "Android"
-- [x] Same request body for both platforms? → Yes, both send `purchaseToken` string field
+- [x] How to identify platform? → Platform field in request body (not User-Agent)
+- [x] Same request body for both platforms? → Yes, with deviceId, platform, receiptData, and optional productId
+- [x] User authentication required? → No, device-based identification only
+- [x] What purchase types? → Consumables only (credits)
 
 ---
-**Next Steps**: Review requirements, proceed to research.md for technical patterns.
+**Status**: Complete - Implementation merged to feature branch
