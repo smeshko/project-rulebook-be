@@ -20,6 +20,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var randomGeneratorService: RandomGeneratorService?
     var uuidGeneratorService: UUIDGeneratorService?
     var aiResponseValidatorService: AIResponseValidationService?
+    var purchaseValidatorService: PurchaseValidatorService?
 
     // MARK: - Repositories
 
@@ -112,6 +113,11 @@ extension Application {
     var aiResponseValidatorService: AIResponseValidationService {
         get { serviceStorage.aiResponseValidatorService! }
         set { serviceStorage.aiResponseValidatorService = newValue }
+    }
+
+    var purchaseValidatorService: PurchaseValidatorService {
+        get { serviceStorage.purchaseValidatorService! }
+        set { serviceStorage.purchaseValidatorService = newValue }
     }
 
     // MARK: - Repositories

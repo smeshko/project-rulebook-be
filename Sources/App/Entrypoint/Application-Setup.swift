@@ -218,6 +218,41 @@ extension Application {
       logger: logger
     )
 
+    // Initialize purchase validation service
+    purchaseValidatorService = try createPurchaseValidator()
+
     logger.info("Services initialized successfully")
+  }
+
+  private func createPurchaseValidator() throws -> PurchaseValidatorService {
+    // Try to create iOS validator (optional - only if configured)
+    var iosValidator: AppStoreValidator?
+    do {
+      let appStoreConfig = try configuration.appStore
+      iosValidator = AppStoreValidator(config: appStoreConfig, logger: logger)
+      logger.info("iOS App Store validator initialized")
+    } catch ConfigurationError.missingRequired {
+      logger.info("iOS App Store validation not configured - skipping")
+    }
+
+    // Try to create Android validator (optional - only if configured)
+    var androidValidator: GooglePlayValidator?
+    do {
+      let googlePlayConfig = try configuration.googlePlay
+      androidValidator = GooglePlayValidator(
+        config: googlePlayConfig,
+        client: client,
+        logger: logger
+      )
+      logger.info("Android Google Play validator initialized")
+    } catch ConfigurationError.missingRequired {
+      logger.info("Android Google Play validation not configured - skipping")
+    }
+
+    return UnifiedPurchaseValidator(
+      iosValidator: iosValidator,
+      androidValidator: androidValidator,
+      logger: logger
+    )
   }
 }
