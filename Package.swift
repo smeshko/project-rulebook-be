@@ -17,10 +17,11 @@ let package = Package(
         .package(url: "https://github.com/vapor/fluent.git", from: "4.8.0"),
         .package(url: "https://github.com/vapor/fluent-sqlite-driver.git", from: "4.0.0"),
         .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
-        .package(url: "https://github.com/vapor/jwt.git", from: "4.0.0"),
+        .package(url: "https://github.com/vapor/jwt.git", from: "5.0.0"),
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/binarybirds/swift-html", from: "1.7.0"),
         .package(url: "https://github.com/dankinsoid/VaporToOpenAPI.git", from: "4.8.1"),
+        .package(url: "https://github.com/apple/app-store-server-library-swift.git", exact: "4.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -34,6 +35,7 @@ let package = Package(
                 .product(name: "JWT", package: "jwt"),
                 .product(name: "Redis", package: "redis"),
                 .product(name: "VaporToOpenAPI", package: "VaporToOpenAPI"),
+                .product(name: "AppStoreServerLibrary", package: "app-store-server-library-swift"),
             ]
         ),
         .testTarget(

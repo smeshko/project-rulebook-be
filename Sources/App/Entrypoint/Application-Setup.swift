@@ -139,10 +139,10 @@ extension Application {
     ), as: .psql)
   }
 
-  func setupJWT() throws {
+  func setupJWT() async throws {
     if environment != .testing {
       let security = try configuration.security
-      jwt.signers.use(.hs256(key: security.jwtKey))
+      await jwt.keys.add(hmac: HMACKey(from: security.jwtKey), digestAlgorithm: .sha256)
     }
   }
   

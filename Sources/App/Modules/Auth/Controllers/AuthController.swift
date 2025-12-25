@@ -201,7 +201,7 @@ struct AuthController {
 
         // 6. Return HTTP response
         return Auth.Apple.Response(
-            token: try .init(token: tokenValue, user: user, on: req),
+            token: try await .init(token: tokenValue, user: user, on: req),
             user: try .init(from: user)
         )
     }
@@ -223,7 +223,7 @@ struct AuthController {
 
         // 4. Return HTTP response
         return Auth.Login.Response(
-            token: try .init(token: tokenValue, user: user, on: req),
+            token: try await .init(token: tokenValue, user: user, on: req),
             user: try .init(from: user)
         )
     }
@@ -280,7 +280,7 @@ struct AuthController {
 
         // 6. Return HTTP response
         return Auth.SignUp.Response(
-            token: try .init(token: tokenValue, user: user, on: req),
+            token: try await .init(token: tokenValue, user: user, on: req),
             user: try .init(from: user)
         )
     }
@@ -320,7 +320,7 @@ struct AuthController {
 
         // 8. Generate new JWT access token
         let tokenPayload = try TokenPayload(with: user)
-        let accessToken = try req.jwt.sign(tokenPayload)
+        let accessToken = try await req.jwt.sign(tokenPayload)
 
         // 9. Return HTTP response
         return Auth.TokenRefresh.Response(

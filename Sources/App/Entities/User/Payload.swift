@@ -24,7 +24,7 @@ public struct TokenPayload: JWTPayload, Codable, Equatable, Sendable {
         self.expiresAt = expiresAt
     }
     
-    public func verify(using signer: JWTSigner) throws {
+    public func verify(using algorithm: some JWTAlgorithm) async throws {
         let claim = ExpirationClaim(value: expiresAt)
         try claim.verifyNotExpired()
     }

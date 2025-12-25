@@ -8,12 +8,12 @@ extension Environment {
     }
 }
 
-public func configure(_ app: Application) throws {
+public func configure(_ app: Application) async throws {
     // Initialize configuration first
     try app.setupConfiguration()
-    
+
     try app.setupDB()
-    try app.setupJWT()
+    try await app.setupJWT()
     try app.setupRedis()     // Setup Redis before services that depend on it
     try app.setupServices()  // Services must be set up before aspects
     try app.setupMiddleware() // Now middleware can access services
@@ -28,5 +28,5 @@ public func configure(_ app: Application) throws {
     .openAPI(description: "Health check endpoint for monitoring and deployment systems. Returns simple status indicator.")
     .response(statusCode: .ok, body: .type([String: String].self))
 
-    try app.autoMigrate().wait()
+    try await app.autoMigrate()
 }

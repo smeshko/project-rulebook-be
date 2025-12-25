@@ -1,0 +1,260 @@
+# Execution Tasks: Unified Purchase Verification
+
+**Branch:** `feature/app-store-receipt-validation` → `staging` → `main`
+**Complexity:** Complex (score: 9)
+**Linear:** [RULE-128](https://linear.app/project-rulebook/issue/RULE-128), [RULE-129](https://linear.app/project-rulebook/issue/RULE-129)
+**Created:** 2025-12-24
+
+---
+
+## Overview
+
+Implement a unified purchase verification endpoint that validates in-app purchases from both iOS (App Store) and Android (Google Play) platforms using a single `POST /api/purchases/verify` endpoint with platform detection via User-Agent header.
+
+**Deliverables:**
+- Single unified endpoint for iOS and Android purchase verification
+- Platform-specific validators (App Store Server Library for iOS, Google Play API for Android)
+- Database storage for validated receipts with platform identifier
+- Proper error handling and authentication
+
+---
+
+## Quick Reference
+
+- **Phases:** 3 | **Tasks:** 10 | **Commits:** ~12
+- **Parallel:** T001-T003 can run in parallel after dependencies | T005-T006 can run in parallel
+- **Critical Path:** T001 → T002 → T003 → T004 → T005/T006 → T007 → T008 → T009 → T010
+
+---
+
+## Phase 1: Foundation & Configuration
+
+**Goal:** Add dependencies and configure credentials for both platforms
+**PR:** `feat: add purchase validation dependencies and configuration`
+**Deliverable:** Build succeeds with new dependency; config types ready
+
+---
+
+### Task T001: Add Dependency
+
+**Source:** `TASK-001-add-dependency.md`
+**Files:** `Package.swift`
+
+**Commits:**
+- [ ] T001.1 Add App Store Server Library v4.0.0 - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T002: Configuration Types
+
+**Source:** `TASK-002-configuration-types.md`
+**Files:** `ConfigurationTypes.swift`, `ConfigurationService.swift`, `ProductionConfiguration.swift`
+
+**Commits:**
+- [ ] T002.1 Add AppStoreConfig and GooglePlayConfig structs - Build: ✅
+- [ ] T002.2 Add protocol properties and implementations - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T003: Platform Detection & Errors
+
+**Source:** `TASK-003-platform-detection.md`
+**Files:** `MobilePlatform.swift`, `PurchaseValidationError.swift`
+
+**Commits:**
+- [ ] T003.1 Add MobilePlatform enum and PurchaseValidationError - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+**Phase 1 Completion:**
+- [ ] All tasks complete
+- [ ] Build succeeds
+- [ ] No warnings
+- [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
+
+---
+
+## Phase 2: Platform Validators
+
+**Goal:** Create platform-specific validation services
+**PR:** `feat: implement iOS and Android purchase validators`
+**Deliverable:** Services compile and initialize at startup
+
+---
+
+### Task T004: Service Interface
+
+**Source:** `TASK-004-service-interface.md`
+**Files:** `PurchaseValidationService.swift`
+
+**Commits:**
+- [ ] T004.1 Add PurchaseValidationService protocol and types - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T005: iOS Validator [P]
+
+**Source:** `TASK-005-ios-validator.md`
+**Files:** `AppStoreValidator.swift`
+
+**Commits:**
+- [ ] T005.1 Implement AppStoreValidator with SignedDataVerifier - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T006: Android Validator [P]
+
+**Source:** `TASK-006-android-validator.md`
+**Files:** `GooglePlayValidator.swift`
+
+**Commits:**
+- [ ] T006.1 Implement GooglePlayValidator with OAuth flow - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T007: Unified Service & Registration
+
+**Source:** `TASK-007-unified-service.md`
+**Files:** `UnifiedPurchaseValidator.swift`, `Application+Services.swift`, `Application-Setup.swift`
+
+**Commits:**
+- [ ] T007.1 Implement UnifiedPurchaseValidator - Build: ✅
+- [ ] T007.2 Register service in application container - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ Service initializes | ✓ No warnings
+
+---
+
+**Phase 2 Completion:**
+- [ ] All tasks complete
+- [ ] Build succeeds
+- [ ] Service initializes at startup
+- [ ] No warnings
+- [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
+
+---
+
+## Phase 3: Database & Module
+
+**Goal:** Create Purchases module with storage and unified API endpoint
+**PR:** `feat: add purchases module with unified verify endpoint`
+**Deliverable:** Endpoint responds; receipts stored with platform
+
+---
+
+### Task T008: Database Model
+
+**Source:** `TASK-008-database-model.md`
+**Files:** `ReceiptModel.swift`, `ReceiptMigrations.swift`
+
+**Commits:**
+- [ ] T008.1 Add ReceiptModel and migrations - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T009: Repository
+
+**Source:** `TASK-009-repository.md`
+**Files:** `ReceiptRepository.swift`, `Request+Repositories.swift`
+
+**Commits:**
+- [ ] T009.1 Add ReceiptRepository - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ No warnings
+
+---
+
+### Task T010: Module & Controller
+
+**Source:** `TASK-010-module-controller.md`
+**Files:** `PurchasesController.swift`, `PurchasesRouter.swift`, `PurchasesModule.swift`, `Application-Setup.swift`
+
+**Commits:**
+- [ ] T010.1 Add PurchasesController with unified verify endpoint - Build: ✅
+- [ ] T010.2 Add PurchasesRouter and PurchasesModule - Build: ✅
+
+**Checkpoint:** ✓ Build | ✓ Endpoint responds | ✓ Auth required | ✓ No warnings
+
+---
+
+**Phase 3 Completion:**
+- [ ] All tasks complete
+- [ ] Build succeeds
+- [ ] POST /api/purchases/verify responds
+- [ ] Platform detected from User-Agent
+- [ ] Receipts stored with platform field
+- [ ] Authentication required
+- [ ] No warnings
+- [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
+
+---
+
+## Execution
+
+**Commit Format:**
+```
+{TYPE}({SCOPE}): {DESC}
+
+- Change 1
+- Change 2
+
+Task: T{ID}.{NUM} | Phase: {N}
+```
+
+**Build:** `swift build`
+**Test:** `swift test`
+
+---
+
+## Task Reference
+
+| ID | Phase | Files | Status |
+|----|-------|-------|--------|
+| T001 | 1 | Package.swift | OPEN |
+| T002 | 1 | ConfigurationTypes, ConfigurationService, ProductionConfiguration | OPEN |
+| T003 | 1 | MobilePlatform, PurchaseValidationError | OPEN |
+| T004 | 2 | PurchaseValidationService | OPEN |
+| T005 | 2 | AppStoreValidator | OPEN |
+| T006 | 2 | GooglePlayValidator | OPEN |
+| T007 | 2 | UnifiedPurchaseValidator, Application+Services, Application-Setup | OPEN |
+| T008 | 3 | ReceiptModel, ReceiptMigrations | OPEN |
+| T009 | 3 | ReceiptRepository, Request+Repositories | OPEN |
+| T010 | 3 | PurchasesController, PurchasesRouter, PurchasesModule, Application-Setup | OPEN |
+
+---
+
+## Notes
+
+**Platform Detection:**
+- User-Agent header parsed for "iOS"/"iPhone"/"iPad" or "Android"
+- Missing/unknown platform returns 400 with "unsupported_platform" error
+
+**Request Body:**
+```json
+{
+  "purchaseToken": "string",  // Required - JWS for iOS, token for Android
+  "productId": "string"       // Required for Android, optional for iOS
+}
+```
+
+**Environment Variables:**
+iOS:
+- `APP_STORE_PRIVATE_KEY`, `APP_STORE_KEY_ID`, `APP_STORE_ISSUER_ID`
+- `APP_STORE_BUNDLE_ID`, `APP_STORE_APP_ID`, `APP_STORE_ENVIRONMENT`
+
+Android:
+- `GOOGLE_PLAY_PACKAGE_NAME`, `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`

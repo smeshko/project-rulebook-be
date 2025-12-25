@@ -5,10 +5,10 @@ extension Auth.TokenRefresh.Response: Content {
         token: String,
         user: UserAccountModel,
         on req: Request
-    ) throws {
+    ) async throws {
         self.init(
             refreshToken: token,
-            accessToken: try req.jwt.sign(TokenPayload(with: user))
+            accessToken: try await req.jwt.sign(TokenPayload(with: user))
         )
     }
 }
