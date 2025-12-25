@@ -41,7 +41,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `Package.swift`
 
 **Commits:**
-- [ ] T001.1 Add App Store Server Library v4.0.0 - Build: ✅
+- [x] T001.1 Add App Store Server Library v4.0.0 - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -53,8 +53,8 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `ConfigurationTypes.swift`, `ConfigurationService.swift`, `ProductionConfiguration.swift`
 
 **Commits:**
-- [ ] T002.1 Add AppStoreConfig and GooglePlayConfig structs - Build: ✅
-- [ ] T002.2 Add protocol properties and implementations - Build: ✅
+- [x] T002.1 Add AppStoreConfig and GooglePlayConfig structs - Build: ✅
+- [x] T002.2 Add protocol properties and implementations - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -66,16 +66,16 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `MobilePlatform.swift`, `PurchaseValidationError.swift`
 
 **Commits:**
-- [ ] T003.1 Add MobilePlatform enum and PurchaseValidationError - Build: ✅
+- [x] T003.1 Add MobilePlatform enum and PurchaseValidationError - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
 ---
 
 **Phase 1 Completion:**
-- [ ] All tasks complete
-- [ ] Build succeeds
-- [ ] No warnings
+- [x] All tasks complete
+- [x] Build succeeds
+- [x] No warnings
 - [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
 
 ---
@@ -94,7 +94,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `PurchaseValidationService.swift`
 
 **Commits:**
-- [ ] T004.1 Add PurchaseValidationService protocol and types - Build: ✅
+- [x] T004.1 Add PurchaseValidationService protocol and types - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -106,7 +106,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `AppStoreValidator.swift`
 
 **Commits:**
-- [ ] T005.1 Implement AppStoreValidator with SignedDataVerifier - Build: ✅
+- [x] T005.1 Implement AppStoreValidator with SignedDataVerifier - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -118,7 +118,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `GooglePlayValidator.swift`
 
 **Commits:**
-- [ ] T006.1 Implement GooglePlayValidator with OAuth flow - Build: ✅
+- [x] T006.1 Implement GooglePlayValidator with OAuth flow - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -130,18 +130,18 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `UnifiedPurchaseValidator.swift`, `Application+Services.swift`, `Application-Setup.swift`
 
 **Commits:**
-- [ ] T007.1 Implement UnifiedPurchaseValidator - Build: ✅
-- [ ] T007.2 Register service in application container - Build: ✅
+- [x] T007.1 Implement UnifiedPurchaseValidator - Build: ✅
+- [x] T007.2 Register service in application container - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ Service initializes | ✓ No warnings
 
 ---
 
 **Phase 2 Completion:**
-- [ ] All tasks complete
-- [ ] Build succeeds
-- [ ] Service initializes at startup
-- [ ] No warnings
+- [x] All tasks complete
+- [x] Build succeeds
+- [x] Service initializes at startup
+- [x] No warnings
 - [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
 
 ---
@@ -160,7 +160,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `ReceiptModel.swift`, `ReceiptMigrations.swift`
 
 **Commits:**
-- [ ] T008.1 Add ReceiptModel and migrations - Build: ✅
+- [x] T008.1 Add ReceiptModel and migrations - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -172,7 +172,7 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `ReceiptRepository.swift`, `Request+Repositories.swift`
 
 **Commits:**
-- [ ] T009.1 Add ReceiptRepository - Build: ✅
+- [x] T009.1 Add ReceiptRepository - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ No warnings
 
@@ -184,21 +184,21 @@ Implement a unified purchase verification endpoint that validates in-app purchas
 **Files:** `PurchasesController.swift`, `PurchasesRouter.swift`, `PurchasesModule.swift`, `Application-Setup.swift`
 
 **Commits:**
-- [ ] T010.1 Add PurchasesController with unified verify endpoint - Build: ✅
-- [ ] T010.2 Add PurchasesRouter and PurchasesModule - Build: ✅
+- [x] T010.1 Add PurchasesController with unified verify endpoint - Build: ✅
+- [x] T010.2 Add PurchasesRouter and PurchasesModule - Build: ✅
 
 **Checkpoint:** ✓ Build | ✓ Endpoint responds | ✓ Auth required | ✓ No warnings
 
 ---
 
 **Phase 3 Completion:**
-- [ ] All tasks complete
-- [ ] Build succeeds
-- [ ] POST /api/purchases/verify responds
-- [ ] Platform detected from User-Agent
-- [ ] Receipts stored with platform field
-- [ ] Authentication required
-- [ ] No warnings
+- [x] All tasks complete
+- [x] Build succeeds
+- [x] POST /api/v1/purchases/validate responds
+- [x] Platform specified in request body
+- [x] Receipts stored with platform field
+- [x] Authentication required
+- [x] No warnings
 - [ ] Create PR: `feature/app-store-receipt-validation` → `staging`
 
 ---
@@ -224,16 +224,16 @@ Task: T{ID}.{NUM} | Phase: {N}
 
 | ID | Phase | Files | Status |
 |----|-------|-------|--------|
-| T001 | 1 | Package.swift | OPEN |
-| T002 | 1 | ConfigurationTypes, ConfigurationService, ProductionConfiguration | OPEN |
-| T003 | 1 | MobilePlatform, PurchaseValidationError | OPEN |
-| T004 | 2 | PurchaseValidationService | OPEN |
-| T005 | 2 | AppStoreValidator | OPEN |
-| T006 | 2 | GooglePlayValidator | OPEN |
-| T007 | 2 | UnifiedPurchaseValidator, Application+Services, Application-Setup | OPEN |
-| T008 | 3 | ReceiptModel, ReceiptMigrations | OPEN |
-| T009 | 3 | ReceiptRepository, Request+Repositories | OPEN |
-| T010 | 3 | PurchasesController, PurchasesRouter, PurchasesModule, Application-Setup | OPEN |
+| T001 | 1 | Package.swift | COMPLETE |
+| T002 | 1 | ConfigurationTypes, ConfigurationService, ProductionConfiguration | COMPLETE |
+| T003 | 1 | MobilePlatform, PurchaseValidationError | COMPLETE |
+| T004 | 2 | PurchaseValidationService | COMPLETE |
+| T005 | 2 | AppStoreValidator | COMPLETE |
+| T006 | 2 | GooglePlayValidator | COMPLETE |
+| T007 | 2 | UnifiedPurchaseValidator, Application+Services, Application-Setup | COMPLETE |
+| T008 | 3 | ReceiptModel, ReceiptMigrations | COMPLETE |
+| T009 | 3 | ReceiptRepository, Request+Repositories | COMPLETE |
+| T010 | 3 | PurchasesController, PurchasesRouter, PurchasesModule, Application-Setup | COMPLETE |
 
 ---
 
