@@ -1,0 +1,32 @@
+name: dev-begin
+description: "Initialize development environment for a story - handles git state, dependency validation, and worktree/branch setup before invoking dev-story"
+author: "BMad"
+template: false
+
+# Critical variables from config
+config_source: "{project-root}/.bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+user_skill_level: "{config_source}:user_skill_level"
+document_output_language: "{config_source}:document_output_language"
+bmad_folder: "{config_source}:bmad_folder"
+story_dir: "{config_source}:sprint_artifacts"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/.bmad/bmm/workflows/4-implementation/dev-begin"
+instructions: "{installed_path}/instructions.xml"
+
+# Input - story ID is optional, will auto-detect if empty
+story_id: ""
+
+# File references
+sprint_artifacts: "{config_source}:sprint_artifacts"
+sprint_status: "{sprint_artifacts}/sprint-status.yaml"
+worktree_base: "{project-root}/.worktrees"
+
+# Workflow to invoke after setup
+dev_story_workflow: "{project-root}/.bmad/bmm/workflows/4-implementation/dev-story"
+
+standalone: true
