@@ -81,9 +81,6 @@ extension Application {
 
   func setupModules() throws {
     let modules: [ModuleInterface] = [
-      UserModule(),
-      AuthModule(),
-      FrontendModule(),
       RulesGenerationModule(),
       CacheAdminModule(),
       WaitlistModule(),
