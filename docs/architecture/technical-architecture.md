@@ -49,10 +49,10 @@ Sources/App/Modules/[Module]/
 - `UserAccountModel`: Database entity
 
 **Endpoints**:
-- `GET /api/users/profile` - Get current user
-- `PATCH /api/users/profile` - Update profile
-- `DELETE /api/users/profile` - Delete account
-- `GET /api/users/list` - List all users (admin)
+- `GET /api/v1/user/profile` - Get current user
+- `PATCH /api/v1/user/profile` - Update profile
+- `DELETE /api/v1/user/profile` - Delete account
+- `GET /api/v1/user/list` - List all users (admin)
 
 #### 2. AuthModule
 **Purpose**: Authentication, JWT management, email verification
@@ -70,11 +70,11 @@ Sources/App/Modules/[Module]/
 - Rate limiting per operation
 
 **Endpoints**:
-- `POST /api/auth/sign-up` - Registration
-- `POST /api/auth/sign-in` - Login
-- `POST /api/auth/refresh-token` - Token refresh
-- `POST /api/auth/verify-email` - Email verification
-- `POST /api/auth/reset-password` - Password reset
+- `POST /api/v1/auth/sign-up` - Registration
+- `POST /api/v1/auth/sign-in` - Login
+- `POST /api/v1/auth/refresh` - Token refresh
+- `POST /api/v1/auth/verify-email` - Email verification
+- `POST /api/v1/auth/reset-password` - Password reset
 
 #### 3. FrontendModule
 **Purpose**: Server-side rendering with SwiftHtml

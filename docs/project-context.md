@@ -107,7 +107,7 @@ throw Abort(.badRequest) // Don't do this directly
 |------|------------|---------|
 | Database tables | snake_case, plural | `waitlist_entries` |
 | Database columns | snake_case | `created_at`, `user_id` |
-| API endpoints | kebab-case | `/rules-generation/game-box-analysis` |
+| API endpoints | kebab-case with `/v1/` prefix | `/api/v1/rules-generation/game-box-analysis` |
 | Swift types | PascalCase | `RulesGenerationController` |
 | Swift properties | camelCase | `guessedTitle`, `createdAt` |
 | Swift files | PascalCase matching type | `OpenAIService.swift` |
