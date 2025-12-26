@@ -8,7 +8,7 @@ import Testing
 struct UserGetCurrentUserTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let path = "api/user/me"
+    let path = "api/v1/user/me"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

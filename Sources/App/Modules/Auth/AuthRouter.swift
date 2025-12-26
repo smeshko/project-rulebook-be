@@ -7,6 +7,7 @@ struct AuthRouter: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let api = routes
             .grouped("api")
+            .grouped("v1")
             .grouped("auth")
             .groupedOpenAPI(tags: .init(name: "Auth", description: "User authentication and account management"))
 

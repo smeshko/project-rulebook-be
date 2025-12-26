@@ -11,7 +11,7 @@ extension PasswordResetInput: Content {}
 struct AuthResetPasswordTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let path = "api/auth/reset-password"
+    let path = "api/v1/auth/reset-password"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

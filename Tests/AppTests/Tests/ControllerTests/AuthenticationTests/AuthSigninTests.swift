@@ -8,7 +8,7 @@ import Testing
 struct AuthSigninTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let loginPath = "api/auth/sign-in"
+    let loginPath = "api/v1/auth/sign-in"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

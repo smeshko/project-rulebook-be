@@ -10,7 +10,7 @@ extension Auth.TokenRefresh.Request: Content {}
 struct AuthRefreshAccessTokenTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let accessTokenPath = "api/auth/refresh"
+    let accessTokenPath = "api/v1/auth/refresh"
     let user: UserAccountModel
     
     init() async throws {

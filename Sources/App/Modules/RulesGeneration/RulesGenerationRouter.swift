@@ -7,6 +7,7 @@ struct RulesGenerationRouter: RouteCollection {
     func boot(routes: any RoutesBuilder) throws {
         let api = routes
             .grouped("api")
+            .grouped("v1")
             .grouped("rules-generation")
             .groupedOpenAPI(tags: .init(name: "Rules Generation", description: "AI-powered game box recognition and rules summarization"))
 

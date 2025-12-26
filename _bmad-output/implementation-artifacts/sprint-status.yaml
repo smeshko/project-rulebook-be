@@ -40,8 +40,8 @@ story_location: _bmad-output/implementation-artifacts
 
 development_status:
   # Epic 1: API Versioning & Stability
-  epic-1: backlog
-  1-1-add-api-version-prefix-to-all-public-routes: backlog
+  epic-1: in-progress
+  1-1-add-api-version-prefix-to-all-public-routes: review
   1-2-implement-remote-config-endpoint: backlog
   epic-1-retrospective: optional
 

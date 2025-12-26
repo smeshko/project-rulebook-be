@@ -171,9 +171,11 @@ final class MockRateLimitService: @unchecked Sendable {
             return configuration.apiLimit
         case .general:
             return configuration.generalLimit
+        case .waitlist:
+            return configuration.waitlistLimit
         }
     }
-    
+
     private func getWindowSeconds(for type: RateLimitType, configuration: RateLimitConfiguration) -> Int {
         switch type {
         case .imageAnalysis:
@@ -186,6 +188,8 @@ final class MockRateLimitService: @unchecked Sendable {
             return configuration.apiWindow
         case .general:
             return configuration.generalWindow
+        case .waitlist:
+            return configuration.waitlistWindow
         }
     }
 }

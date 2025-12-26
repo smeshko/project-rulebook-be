@@ -12,7 +12,7 @@ struct UserPatchTests {
     let user: UserAccountModel
     let testWorld: IsolatedTestWorld
     let request: User.Update.Request
-    let patchPath = "api/user/update"
+    let patchPath = "api/v1/user/update"
 
     init() async throws {
         testWorld = try await IsolatedTestWorld()
