@@ -1,0 +1,71 @@
+# generated: 2025-12-26
+# project: project-rulebook-be
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2025-12-26
+project: project-rulebook-be
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Epic 1: API Versioning & Stability
+  epic-1: backlog
+  1-1-add-api-version-prefix-to-all-public-routes: backlog
+  1-2-implement-remote-config-endpoint: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: In-App Purchase Verification
+  epic-2: backlog
+  2-1-create-receipts-module-foundation: backlog
+  2-2-implement-app-store-receipt-validation: backlog
+  2-3-implement-play-store-receipt-validation: backlog
+  2-4-create-receipt-validation-endpoint: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Rules Feedback System
+  epic-3: backlog
+  3-1-create-feedback-module-foundation: backlog
+  3-2-create-feedback-submission-endpoint: backlog
+  3-3-create-admin-feedback-endpoints: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Platform Reliability & Performance
+  epic-4: backlog
+  4-1-add-health-check-endpoint: backlog
+  4-2-implement-structured-logging-with-correlation-ids: backlog
+  4-3-optimize-ai-prompt-engineering: backlog
+  4-4-implement-cache-warming-for-popular-games: backlog
+  4-5-implement-low-confidence-fallback-to-secondary-model: backlog
+  4-6-implement-app-attest-verification-for-ios: backlog
+  epic-4-retrospective: optional
