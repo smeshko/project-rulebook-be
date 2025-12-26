@@ -56,9 +56,10 @@ To complete the code review loop by updating the story status to "done", creatin
 
 Available in memory:
 - `cycle_count` - total cycles executed
-- `exit_reason` - why we exited ("clean", "all_false_positives", "max_cycles_reached")
-- `issues_fixed` - array of all fixed issues
-- `issues_skipped` - array of all skipped issues
+- `review_mode` - "fast" (GLM), "thorough" (GLM+Codex), or "codex" (legacy)
+- `exit_reason` - why we exited ("clean", "all_false_positives", "max_cycles_reached", "review_failed")
+- `issues_fixed` - array of all fixed issues (with `found_by` in thorough mode)
+- `issues_skipped` - array of all skipped issues (with `found_by` in thorough mode)
 - Story key and file path
 
 ---
@@ -96,22 +97,30 @@ Display comprehensive summary:
 
   Review Summary:
   ───────────────────────────────────────────────────────────
+  Review Mode: {review_mode} {⚡ fast | 🔍 thorough | 🐌 codex}
   Total Cycles: {cycle_count} of 2
   Exit Reason: {exit_reason_description}
 
   Issues Fixed: {issues_fixed.length}
   ───────────────────────────────────────────────────────────
   {For each fixed issue:}
-  • [{cycle}] {file}:{line}
+  • [{cycle}] {file}:{line} {if thorough: "[{found_by}]"}
     Issue: {issue}
     Fix: {fix}
 
   Issues Skipped: {issues_skipped.length}
   ───────────────────────────────────────────────────────────
   {For each skipped issue:}
-  • [{cycle}] {file}:{line}
+  • [{cycle}] {file}:{line} {if thorough: "[{found_by}]"}
     Issue: {issue}
     Reason: {reason}
+
+  {If thorough mode:}
+  Coverage Breakdown:
+  ───────────────────────────────────────────────────────────
+    Found by GLM only: {glm_only_count}
+    Found by Codex only: {codex_only_count}
+    Found by BOTH (high confidence): {both_count}
 
   Manual Validation Checklist:
   ───────────────────────────────────────────────────────────
@@ -128,9 +137,10 @@ Display comprehensive summary:
 ### 4. Exit Reason Descriptions
 
 Map exit_reason to human-readable description:
-- `clean` → "Codex found no issues - code is clean"
-- `all_false_positives` → "All Codex findings were false positives"
+- `clean` → "No issues found - code is clean"
+- `all_false_positives` → "All findings were false positives"
 - `max_cycles_reached` → "Maximum 2 cycles reached - some issues may remain"
+- `review_failed` → "Review process failed (both GLM and Codex unavailable)"
 
 ### 5. Workflow Complete
 

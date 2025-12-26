@@ -28,6 +28,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var emailTokenRepository: (any EmailTokenRepository)?
     var passwordTokenRepository: (any PasswordTokenRepository)?
     var generatedRuleRepository: (any GeneratedRuleRepository)?
+    var waitlistRepository: (any WaitlistRepository)?
 
     init() {}
 }
@@ -139,5 +140,10 @@ extension Application {
     var generatedRuleRepository: any GeneratedRuleRepository {
         get { serviceStorage.generatedRuleRepository! }
         set { serviceStorage.generatedRuleRepository = newValue }
+    }
+
+    var waitlistRepository: any WaitlistRepository {
+        get { serviceStorage.waitlistRepository! }
+        set { serviceStorage.waitlistRepository = newValue }
     }
 }

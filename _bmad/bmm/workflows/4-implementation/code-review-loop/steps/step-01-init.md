@@ -25,6 +25,8 @@ worktree_base: '{project-root}/.worktrees'
 # Input Parameters
 # story_id - optional story ID (e.g., "3-1" or "T005"). If provided and not on
 #            correct branch, workflow will check for matching worktree.
+# --thorough - Run both GLM and Codex in parallel for maximum coverage
+# --codex-only - Force Codex-only mode (legacy behavior)
 ---
 
 # Step 1: Initialize Code Review Loop
@@ -61,6 +63,22 @@ To load all necessary context for the code review loop: story file, acceptance c
 - 🚫 FORBIDDEN to skip any initialization tasks
 
 ## INITIALIZATION SEQUENCE:
+
+### 0. Parse Review Mode Flags
+
+Check workflow invocation arguments for review mode flags:
+
+**If `--thorough` flag present:**
+- Set `review_mode = "thorough"`
+- Display: "🔍 Thorough mode: Running GLM + Codex in parallel for maximum coverage"
+
+**If `--codex-only` flag present:**
+- Set `review_mode = "codex"`
+- Display: "🐌 Codex-only mode: Using legacy Codex reviewer"
+
+**Otherwise (default):**
+- Set `review_mode = "fast"`
+- Display: "⚡ Fast mode: Using GLM for quick reviews"
 
 ### 1. Resolve Story and Environment
 
@@ -230,6 +248,7 @@ Initialize in-memory state:
 ```
 cycle_count = 0
 max_cycles = 2
+review_mode = {from step 0: "fast", "thorough", or "codex"}
 issues_fixed = []
 issues_skipped = []
 exit_reason = null
@@ -248,6 +267,7 @@ Print to terminal:
   Commits on Branch: {commit_count}
   Changed Files: {file_count} files
   Max Cycles: 2
+  Review Mode: {review_mode} {⚡ fast | 🔍 thorough | 🐌 codex}
 
   Starting review loop...
 ═══════════════════════════════════════════════════════════════

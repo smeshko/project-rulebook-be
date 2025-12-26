@@ -60,7 +60,8 @@ To execute the review-validate-fix-commit cycle. Spawn Codex for adversarial rev
 
 Available in memory from initialization:
 - `cycle_count` - current cycle number
-- `max_cycles` - maximum cycles (3)
+- `max_cycles` - maximum cycles (2)
+- `review_mode` - "fast" (GLM), "thorough" (GLM+Codex), or "codex" (legacy)
 - `issues_fixed` - array of fixed issues
 - `issues_skipped` - array of skipped issues
 - Story file content with acceptance criteria
@@ -84,11 +85,11 @@ Display:
 ───────────────────────────────────────────────────────────────
 ```
 
-### 2. Run Codex Adversarial Review
+### 2. Run Adversarial Review (Tiered by review_mode)
 
-Execute Codex in report-only mode.
+Execute review based on `review_mode` setting from step 1.
 
-#### 2a. Build the Codex Prompt
+#### 2a. Build the Review Prompt
 
 **Base prompt (always included):**
 ```
@@ -109,10 +110,32 @@ IMPORTANT: The following issues were found in previous cycles but dismissed as f
 Focus only on NEW issues not listed above.
 ```
 
-#### 2b. Execute Codex
+#### 2b. Execute Review Based on Mode
 
-**IMPORTANT:** This command may take several minutes to complete. When invoking via the Bash tool, set the timeout to 10 minutes (600000ms).
+---
 
+##### MODE: "fast" (GLM-only, default)
+
+Display: "⚡ Running GLM review..."
+
+Execute via z.ai GLM:
+```bash
+~/.claude/skills/zai/scripts/zai.sh --model sonnet "headless=true auto_fix_mode=report-only {constructed_prompt}"
+```
+
+**Timeout:** 5 minutes (300000ms) - GLM is typically 3-5x faster than Codex.
+
+**If GLM fails (error, timeout, or API unavailable):**
+- Display: "⚠️ GLM review failed, falling back to Codex..."
+- Fall through to Codex execution below
+
+---
+
+##### MODE: "codex" (Codex-only, legacy)
+
+Display: "🐌 Running Codex review..."
+
+Execute via Codex:
 ```bash
 codex exec --full-auto \
   -c 'headless=true' \
@@ -120,13 +143,50 @@ codex exec --full-auto \
   "{constructed_prompt}"
 ```
 
-**IMPORTANT:** Do NOT use the `-m` flag to specify a model. Always use Codex's configured default model.
+**Timeout:** 10 minutes (600000ms).
 
-Capture the output from Codex.
+**IMPORTANT:** Do NOT use the `-m` flag. Always use Codex's configured default model.
 
-### 3. Parse Codex Findings
+---
 
-Parse the Codex output to extract findings. Expected format:
+##### MODE: "thorough" (GLM + Codex in parallel)
+
+Display: "🔍 Running thorough review (GLM + Codex in parallel)..."
+
+**Execute BOTH reviewers simultaneously:**
+
+1. Start GLM review (background):
+   ```bash
+   ~/.claude/skills/zai/scripts/zai.sh --model sonnet "headless=true auto_fix_mode=report-only {constructed_prompt}"
+   ```
+
+2. Start Codex review (background):
+   ```bash
+   codex exec --full-auto \
+     -c 'headless=true' \
+     -c 'auto_fix_mode="report-only"' \
+     "{constructed_prompt}"
+   ```
+
+3. Wait for both to complete (timeout: 10 minutes for the slower one)
+
+4. **Merge findings:**
+   - Collect all findings from both reviewers
+   - Deduplicate by file+line+issue similarity
+   - If both find same issue → higher confidence
+   - If only one finds issue → still include, will be validated in step 4
+   - Track source: `found_by: "glm" | "codex" | "both"`
+
+**If one reviewer fails:** Continue with the other's findings.
+**If both fail:** Set `exit_reason = "review_failed"` and proceed to step 3.
+
+---
+
+Capture the output (merged if thorough mode).
+
+### 3. Parse Review Findings
+
+Parse the reviewer output to extract findings. Expected format:
 
 ```
 FINDING 1:
@@ -135,18 +195,27 @@ FINDING 1:
   Line: 42
   Issue: Description of the problem
   Suggested Fix: How to fix it
+  Found By: glm|codex|both  (only in thorough mode)
 
 FINDING 2:
   ...
 ```
 
-If Codex returns "No issues found" or empty findings:
+If reviewer returns "No issues found" or empty findings:
 - Set `exit_reason = "clean"`
 - Proceed to step 3 (finalize)
 
+**In thorough mode:** Display count from each source:
+```
+  GLM found: {glm_count} issues
+  Codex found: {codex_count} issues
+  Both found: {both_count} issues (high confidence)
+  Total unique: {total_count} issues
+```
+
 ### 4. Validate Each Finding
 
-For EACH finding from Codex:
+For EACH finding from the reviewer(s):
 
 #### 4a. Read the Relevant Code
 
@@ -172,12 +241,18 @@ Ask yourself:
 - The issue genuinely exists in the code
 - Fixing it improves code quality, security, or correctness
 - It's relevant to the current story
+- **In thorough mode:** Issues found by BOTH reviewers have higher confidence
 
 **FALSE_POSITIVE** if:
 - The code is actually correct
-- Codex misunderstood the pattern or intent
+- The reviewer misunderstood the pattern or intent
 - The issue is out of scope for this story
 - The "fix" would break other functionality
+
+**Note:** In thorough mode, if GLM and Codex disagree, lean toward trusting:
+- Issues found by BOTH (highest confidence)
+- Issues that match project patterns/architecture (medium)
+- Single-source findings that contradict project context (validate carefully)
 
 ### 5. Process Validated Findings
 
@@ -255,8 +330,8 @@ If NO issues were fixed (all were false positives):
 After each cycle, display:
 
 ```
-  Cycle {N} Complete:
-    - Codex findings: {total}
+  Cycle {N} Complete ({review_mode} mode):
+    - Review findings: {total} {if thorough: "(GLM: X, Codex: Y, Both: Z)"}
     - Valid issues fixed: {fixed_count}
     - False positives skipped: {skipped_count}
 
@@ -279,7 +354,10 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 ### ✅ SUCCESS:
 
-- Codex invoked correctly in report-only mode
+- Reviewer(s) invoked correctly based on review_mode
+- GLM fallback to Codex works when needed (fast mode)
+- Parallel execution works correctly (thorough mode)
+- Findings properly merged and deduplicated (thorough mode)
 - Each finding validated before action
 - Valid issues fixed, false positives dismissed
 - Commits made after each fix cycle
@@ -290,8 +368,10 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 - Fixing issues without validation
 - Not committing after fixes
-- Exceeding 3 cycles
+- Exceeding 2 cycles
 - Stopping to ask user questions
 - Not tracking fixed/skipped issues
+- Not falling back to Codex when GLM fails (fast mode)
+- Not merging findings from both sources (thorough mode)
 
 **Master Rule:** This is an AUTONOMOUS workflow. Do not stop for user input. Validate findings yourself using codebase and story context.

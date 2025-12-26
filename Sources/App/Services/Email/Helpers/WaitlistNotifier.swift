@@ -22,7 +22,7 @@ struct WaitlistNotifier {
             )
         )
 
-        try await application.serviceCache.emailService.send(content)
+        try await application.emailService.send(content)
     }
 
     func sendLaunchNotification(to entry: WaitlistEntryModel) async throws {
@@ -44,7 +44,7 @@ struct WaitlistNotifier {
             )
         )
 
-        try await application.serviceCache.emailService.send(content)
+        try await application.emailService.send(content)
     }
 }
 

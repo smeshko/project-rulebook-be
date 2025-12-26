@@ -69,8 +69,8 @@ struct DatabaseWaitlistRepository: WaitlistRepository, DatabaseRepository {
     }
 }
 
-extension Request.Services {
+extension Application.Repositories {
     var waitlist: any WaitlistRepository {
-        DatabaseWaitlistRepository(database: request.db)
+        application.waitlistRepository
     }
 }

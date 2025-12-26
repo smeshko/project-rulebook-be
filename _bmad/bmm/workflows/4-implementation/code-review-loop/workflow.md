@@ -1,11 +1,18 @@
 ---
 name: code-review-loop
-description: Automated code review loop using Codex for adversarial review, with main agent validation and fixing. Runs up to 2 cycles, commits after each, then creates PR.
+description: Automated code review loop with tiered reviewer options. Default uses GLM (fast, ~2-3 min/cycle). Use --thorough for GLM+Codex parallel (better coverage). Use --codex-only for legacy Codex mode. Validates findings, fixes issues, commits per cycle.
 web_bundle: true
 
 # Input Parameters (all optional)
 # story_id - Story ID to review (e.g., "3-1"). If provided and not on correct
 #            branch, workflow will find and switch to matching worktree.
+# --thorough - Run both GLM and Codex in parallel for maximum coverage
+# --codex-only - Force Codex-only mode (legacy behavior)
+#
+# Review Mode (auto-selected based on flags):
+# - "fast" (default): GLM-only, ~2-3 min per cycle
+# - "thorough": GLM + Codex in parallel, ~10 min but better coverage
+# - "codex": Codex-only (legacy), ~10 min per cycle
 ---
 
 <!-- AUTONOMOUS WORKFLOW PATTERN
@@ -22,9 +29,9 @@ Standard BMAD workflows are interactive; this is an AUTONOMOUS variant.
 
 # Code Review Loop
 
-**Goal:** Automate the code review and fix cycle by using Codex for adversarial review, validating findings, fixing valid issues, and repeating until clean or max cycles reached.
+**Goal:** Automate the code review and fix cycle using a tiered review system. Default "fast" mode uses GLM (~2-3 min/cycle). "Thorough" mode runs GLM+Codex in parallel for maximum coverage. Validates findings, fixes valid issues, and repeats until clean or max cycles reached.
 
-**Your Role:** You are a senior developer and code quality guardian. You orchestrate the review process by delegating adversarial review to Codex, then validating and fixing issues yourself. You ensure only real issues are addressed, avoiding hallucinated problems. Work autonomously to deliver clean, reviewed code with a PR ready for merge.
+**Your Role:** You are a senior developer and code quality guardian. You orchestrate the review process by delegating adversarial review to GLM (fast) or GLM+Codex (thorough), then validating and fixing issues yourself. You ensure only real issues are addressed, avoiding hallucinated problems. Work autonomously to deliver clean, reviewed code.
 
 ---
 

@@ -6,7 +6,7 @@ struct WaitlistController {
         try Waitlist.Subscribe.Request.validate(content: req)
         let subscribeRequest = try req.content.decode(Waitlist.Subscribe.Request.self)
 
-        let repository = req.services.waitlist
+        let repository = req.repositories.waitlist
 
         // Check for existing entry (idempotent)
         if let existing = try await repository.find(email: subscribeRequest.email) {
@@ -40,7 +40,7 @@ struct WaitlistController {
             throw Abort(.badRequest, reason: "Missing unsubscribe token")
         }
 
-        let repository = req.services.waitlist
+        let repository = req.repositories.waitlist
 
         guard let entry = try await repository.find(token: token) else {
             throw Abort(.notFound, reason: "Invalid or expired unsubscribe link")
@@ -56,7 +56,7 @@ struct WaitlistController {
     // MARK: - Admin Endpoints
 
     func stats(_ req: Request) async throws -> Waitlist.Stats.Response {
-        let repository = req.services.waitlist
+        let repository = req.repositories.waitlist
 
         let total = try await repository.count()
         let notified = try await repository.countNotified()
@@ -69,7 +69,7 @@ struct WaitlistController {
     }
 
     func notify(_ req: Request) async throws -> Waitlist.Notify.Response {
-        let repository = req.services.waitlist
+        let repository = req.repositories.waitlist
         let entries = try await repository.findUnnotified()
 
         var sent = 0
