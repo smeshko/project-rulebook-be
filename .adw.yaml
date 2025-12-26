@@ -1,0 +1,58 @@
+paths:
+  backend: app/server
+  frontend: app/client
+  scripts: scripts
+  specs: specs
+  docs: app_docs
+  
+ports:
+  backend_start: 9100
+  frontend_start: 9200
+
+infrastructure:
+  input: linear
+  trigger: webhook
+  environment: local
+  review: github_pr
+
+workflow:
+  # Global workflow settings
+  default_model_set: base
+  webhook_port: 8001
+  max_concurrent_worktrees: 15
+
+  # # SDLC Phase Configuration
+  phases:
+    # Planning phase: Classify issue and create implementation plan
+    - name: plan
+      enabled: true
+      command: /bmad:bmm:workflows:create-story
+      # model: sonnet  # Optional: override model for this phase
+
+    # Build phase: Implement the solution
+    - name: build
+      enabled: true
+      command: /bmad:bmm:workflows:dev-story
+      # model: opus  # Optional: use Opus for complex implementations
+
+    # Test phase: Run tests
+    - name: test
+      enabled: true
+      command: /bmad:bmm:workflows:run-tests
+      on_failure: block
+
+    # Review phase: Self-review the implementation
+    - name: review
+      enabled: true
+      command: /bmad:bmm:workflows:code-review-loop
+
+    # Document phase: Update documentation
+    - name: document
+      enabled: true
+      command: /bmad:bmm:workflows:document-feature
+      # skip_if: "issue.labels contains 'bug'"
+
+    # Ship phase: Create PR and prepare for merge
+    - name: ship
+      enabled: false
+      command: /bmad:bmm:workflows:ship

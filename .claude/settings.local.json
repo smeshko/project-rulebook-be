@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(mkdir:*)",
+      "Read(//Users/A1E6E98/.claude/templates/linear-templates/**)",
+      "mcp__linear-server__create_issue"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
