@@ -1,11 +1,27 @@
 # Architecture Decision Record: ServiceRegistry Implementation
 
-## Status
-**ACCEPTED** - Phase 4.1 Implementation Completed ✅
+> ⚠️ **SUPERSEDED** - December 2025
+>
+> This ADR documents a pattern that was implemented and later removed during the
+> Architecture Simplification initiative (see `docs/planning/work/architecture-simplification/`).
+>
+> **Replacement**: The ServiceRegistry was replaced with simple property-based DI using
+> `req.services.*` and `req.repositories.*` accessor patterns. See `technical-architecture.md`
+> for the current architecture.
+>
+> **Reason for Removal**: The ServiceRegistry added ~9,900 lines of infrastructure complexity
+> that was reduced to ~200 lines of simple property accessors, achieving the same goals with
+> significantly less overhead.
 
-**Date**: August 2025  
-**Deciders**: Project Team  
-**Technical Review**: Systems Architect Approved
+---
+
+## Status
+**SUPERSEDED** - Removed in Architecture Simplification (December 2025)
+
+**Original Date**: August 2025
+**Superseded Date**: December 2025
+**Deciders**: Project Team
+**Technical Review**: Systems Architect Approved removal
 
 ## Context and Problem Statement
 

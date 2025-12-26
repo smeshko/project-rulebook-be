@@ -2,19 +2,19 @@
 
 ## System Overview
 
-Project Rulebook is a Vapor 4 Swift web application that leverages AI to analyze board game box images and generate comprehensive rule summaries. The application employs a modular architecture with strict separation of concerns, comprehensive dependency injection, and enterprise-grade security.
+Project Rulebook is a Vapor 4 Swift web application that leverages AI to analyze board game box images and generate comprehensive rule summaries. The application employs a modular architecture with strict separation of concerns, simple property-based dependency injection, and enterprise-grade security.
 
 ### Core Architectural Principles
 
 1. **Modular Monolith Architecture**: Complete vertical slices with colocated business logic
-2. **Clean Architecture Layers**: Clear separation between HTTP, business logic, and infrastructure
+2. **Controller-Centric Design**: Business logic lives directly in controllers
 3. **Service-Oriented Design**: All external integrations abstracted through service interfaces
 4. **Repository Pattern**: Database operations abstracted for testability
-5. **Dependency Injection**: ServiceRegistry system for comprehensive DI and lifecycle management
+5. **Property-Based DI**: Simple `req.services.*` and `req.repositories.*` accessor pattern
 
 ### Technology Stack
 
-- **Framework**: Vapor 4 with Swift 5.9+
+- **Framework**: Vapor 4 with Swift 6.0+
 - **Database**: PostgreSQL (production), SQLite in-memory (testing)
 - **ORM**: Fluent with auto-migration
 - **Caching**: Redis for AI response caching
@@ -31,11 +31,11 @@ Each module follows a complete vertical slice architecture:
 ```
 Sources/App/Modules/[Module]/
 ├── [Module]Module.swift      # Registration & configuration
-├── Controllers/              # HTTP endpoints
-├── UseCases/                # Business logic (COLOCATED!)
-├── Repositories/            # Data access
-├── Models/                  # Domain entities
-└── Services/                # External integrations
+├── [Module]Router.swift      # Route definitions
+├── Controllers/              # HTTP endpoints + business logic
+├── Repositories/             # Data access abstraction
+├── Models/                   # Domain entities & DTOs
+└── Database/                 # Migrations & database models
 ```
 
 ### Module Implementations
@@ -44,7 +44,7 @@ Sources/App/Modules/[Module]/
 **Purpose**: User account management and profile operations
 
 **Key Components**:
-- `UserController`: Profile CRUD operations
+- `UserController`: Profile CRUD operations with business logic
 - `UserRepository`: Data access abstraction
 - `UserAccountModel`: Database entity
 
@@ -95,7 +95,7 @@ Sources/App/Modules/[Module]/
 **Purpose**: AI-powered game analysis with security
 
 **Key Components**:
-- `RulesGenerationController`: AI processing
+- `RulesGenerationController`: AI processing with security
 - Security validation pipeline
 - Intelligent caching system
 
@@ -128,104 +128,92 @@ Input → Sanitization → Injection Detection → AI Processing → Response Va
 - Manual cache operations
 - Performance recommendations
 
+#### 6. WaitlistModule
+**Purpose**: Email waitlist management for app launches
+
+**Key Components**:
+- `WaitlistController`: Subscription management
+- `WaitlistRepository`: Data access
+- Email notification integration
+
+**Endpoints**:
+- `POST /api/waitlist/subscribe` - Join waitlist
+- `GET /api/waitlist/unsubscribe` - Remove from waitlist
+- `POST /api/waitlist/notify` - Admin: send notifications
+
 ## Service Layer & Dependency Injection
 
-### ServiceRegistry Architecture
+### Property-Based Architecture
 
-The ServiceRegistry provides centralized service management with the following features:
-
-```swift
-ServiceRegistry System
-├── ServiceContainer         # Thread-safe resolution with NIOLock
-├── ServiceLifecycle        # Startup/shutdown management
-├── ServiceHealthCheck      # Health monitoring
-└── ServiceProvider         # Registration pattern
-```
-
-### Service Registration Pattern
+The application uses a simple property-based DI pattern that stores services on `Application` and provides access through `Request` extensions:
 
 ```swift
-// Define a service provider
-struct DatabaseServiceProvider: ServiceProvider {
-    static func register(in registry: ServiceContainer, app: Application) async throws {
-        // Register with factory function
-        registry.register(UserRepository.self) { app in
-            return UserDatabaseRepository(database: app.db)
-        }
-        
-        // Register existing instance
-        let configService = ConfigurationService(app: app)
-        registry.register(ConfigurationService.self, instance: configService)
-    }
-}
+// Access services from any route handler
+func handleRequest(_ req: Request) async throws -> Response {
+    // Service access via req.services.*
+    let llm = req.services.llm
+    let cache = req.services.aiCache
 
-// Register in application setup
-try await DatabaseServiceProvider.register(in: app.serviceRegistry, app: app)
-```
+    // Repository access via req.repositories.*
+    let user = try await req.repositories.users.find(id: userId)
 
-### Service Resolution Pattern
-
-```swift
-// In controllers
-func handleRequest(_ request: Request) async throws -> Response {
-    // Resolve required service (throws if not found)
-    let userRepo = try await request.resolveService(any UserRepository.self)
-    
-    // Resolve optional service
-    let cache = try await request.resolveServiceOptional(CacheService.self)
-    
-    // Use services
-    let user = try await userRepo.find(id: userId)
+    return response
 }
 ```
 
-### Service Implementation Patterns
+### Service Storage Pattern
 
-#### Basic Service
 ```swift
-final class EmailService {
-    private let apiKey: String
-    
-    init(apiKey: String) {
-        self.apiKey = apiKey
+// Application stores services
+extension Application {
+    var llmService: LLMService {
+        get { serviceStorage.llmService! }
+        set { serviceStorage.llmService = newValue }
     }
-    
-    func sendEmail(to: String, subject: String) async throws {
-        // Implementation
+}
+
+// Request provides convenient accessors
+extension Request {
+    var services: RequestServices {
+        RequestServices(app: application)
     }
+}
+
+struct RequestServices {
+    let app: Application
+    var llm: LLMService { app.llmService }
+    var email: EmailService { app.emailService }
+    var aiCache: AICacheServiceInterface { app.aiCacheService }
+    // ... other services
 }
 ```
 
-#### Service with Lifecycle
+### Service Initialization
+
+Services are initialized once during application startup in `Application-Setup.swift`:
+
 ```swift
-final class CacheService: ServiceLifecycle, ServiceHealthCheck {
-    private var cache: Cache?
-    
-    func startup(_ app: Application) async throws {
-        cache = try Cache(config: app.configuration.cacheConfig)
-        app.logger.info("Cache service started")
-    }
-    
-    func shutdown(_ app: Application) async throws {
-        try await cache?.shutdown()
-        app.logger.info("Cache service stopped")
-    }
-    
-    func healthCheckName() -> String { "Cache Service" }
-    
-    func isHealthy() async -> Bool {
-        cache?.isConnected == true
-    }
+func setupServices(_ app: Application) throws {
+    // Initialize services
+    app.llmService = LLMService(apiKey: Environment.openAIKey)
+    app.emailService = EmailService(apiKey: Environment.brevoKey)
+    app.aiCacheService = AICacheService(cache: app.cacheService)
+
+    // Initialize repositories
+    app.userRepository = UserDatabaseRepository(database: app.db)
+    app.refreshTokenRepository = RefreshTokenDatabaseRepository(database: app.db)
+    // ... other repositories
 }
 ```
 
 ### Key Services
 
-1. **ConfigurationService**: Environment-specific configuration
-2. **LLMService**: OpenAI integration using Responses API
-3. **AICacheService**: Intelligent response caching
-4. **EmailService**: Brevo transactional emails
-5. **SecurityServices**: AI input validation and sanitization
+1. **LLMService**: OpenAI integration using Responses API
+2. **AICacheService**: Intelligent response caching with Redis
+3. **EmailService**: Brevo transactional emails
+4. **AIInputValidatorService**: AI input validation and sanitization
+5. **PromptSanitizerService**: Prompt injection prevention
+6. **CacheKeyGeneratorService**: Content-based cache key generation
 
 ## Repository Pattern
 
@@ -246,11 +234,11 @@ protocol UserRepository: Repository {
 ```swift
 final class UserDatabaseRepository: UserRepository {
     let database: Database
-    
+
     init(database: Database) {
         self.database = database
     }
-    
+
     func find(email: String) async throws -> UserAccountModel? {
         try await UserAccountModel.query(on: database)
             .filter(\.$email == email)
@@ -259,12 +247,25 @@ final class UserDatabaseRepository: UserRepository {
 }
 ```
 
+### Repository Access Pattern
+
+```swift
+// In controllers - use req.repositories.*
+func getUser(_ req: Request) async throws -> UserDTO {
+    let userId = try req.auth.require(UserPayload.self).userId
+    guard let user = try await req.repositories.users.find(id: userId) else {
+        throw Abort(.notFound)
+    }
+    return UserDTO(from: user)
+}
+```
+
 ### Database Models
 
 ```swift
 final class UserAccountModel: Model, Content {
     static let schema = "user_accounts"
-    
+
     @ID(key: .id) var id: UUID?
     @Field(key: "email") var email: String
     @Field(key: "password_hash") var passwordHash: String
@@ -285,13 +286,12 @@ The testing infrastructure uses IsolatedTestWorld for complete suite isolation:
 @Suite(.serialized)  // Within-suite serialization
 struct MyControllerTests {
     let testWorld: IsolatedTestWorld
-    
+
     init() async throws {
         testWorld = try await IsolatedTestWorld()  // Fresh app & repos
     }
-    
+
     @Test func testEndpoint() async throws {
-        // Each suite gets its own Application instance
         let response = try await testWorld.app.sendRequest(
             to: "/api/endpoint",
             method: .POST,
@@ -304,8 +304,8 @@ struct MyControllerTests {
 
 ### Test Categories
 
-1. **Unit Tests**: Direct testing of use cases and services
-2. **Integration Tests**: Controller and repository testing with IsolatedTestWorld
+1. **Integration Tests**: Controller and endpoint testing with IsolatedTestWorld
+2. **Unit Tests**: Service and repository testing with mocks
 3. **Performance Tests**: Benchmarking with clear baselines
 4. **Mock Services**: Complete mocking of external dependencies
 
@@ -314,22 +314,19 @@ struct MyControllerTests {
 ```swift
 final class MockUserRepository: UserRepository {
     var users: [UUID: UserAccountModel] = [:]
-    
+
     func create(_ user: UserAccountModel) async throws -> UserAccountModel {
         users[user.id!] = user
         return user
     }
-    
+
     func find(id: UUID) async throws -> UserAccountModel? {
         return users[id]
     }
 }
 
-// Register in tests
-testWorld.app.serviceRegistry.register(
-    UserRepository.self,
-    instance: MockUserRepository()
-)
+// Register mock in tests via property injection
+testWorld.app.userRepository = MockUserRepository()
 ```
 
 ### Testing Best Practices
@@ -337,7 +334,7 @@ testWorld.app.serviceRegistry.register(
 - **Suite Isolation**: Each test suite gets fresh Application and database
 - **Concurrent Execution**: Test suites run in parallel safely
 - **SQLite In-Memory**: Fast, isolated test database
-- **Comprehensive Mocking**: All external services mockable
+- **Property Injection**: Set mock services/repositories directly on Application
 - **Swift Testing**: Modern testing framework with `@Test` and `#expect`
 
 ## External Integrations
@@ -354,16 +351,9 @@ struct OpenAIRequest {
     let maxOutputTokens: Int
 }
 
-// Usage
-let request = OpenAIRequest(
-    input: .text(gameTitle),
-    instructions: "Generate comprehensive game rules...",
-    temperature: 0.7,
-    maxOutputTokens: 2000
-)
-
-let response = try await openAIService.generateResponse(request)
-let text = response.extractText()  // No backward compatibility
+// Usage in controller
+let response = try await req.services.llm.generateResponse(request)
+let text = response.extractText()
 ```
 
 ### Redis Caching
@@ -377,21 +367,17 @@ func generateCacheKey(for content: String, context: String) -> String {
     return "\(context)_\(hash.hex)"
 }
 
-// Cache operations
-try await cache.set(key, value: response, ttl: 3600)
-if let cached = try await cache.get(key, as: Response.self) {
-    return cached
-}
+// Cache operations via service
+let cached = try await req.services.aiCache.get(key)
+try await req.services.aiCache.set(key, value: response, ttl: 3600)
 ```
 
 ### Email Service (Brevo)
 
 ```swift
-protocol EmailServiceInterface {
-    func sendVerificationEmail(to: String, token: String) async throws
-    func sendPasswordResetEmail(to: String, resetLink: String) async throws
-    func sendWelcomeEmail(to: String, name: String) async throws
-}
+// Access via req.services.email
+try await req.services.email.sendVerificationEmail(to: email, token: token)
+try await req.services.email.sendPasswordResetEmail(to: email, resetLink: link)
 ```
 
 ## Security Architecture
@@ -406,11 +392,11 @@ Multi-layer security for AI interactions:
 4. **Response Validation**: AI output scanning
 
 ```swift
-// Security validation example
-let sanitized = try sanitizer.sanitize(input)
-try validator.detectInjection(sanitized)
-let response = try await llm.generate(sanitized)
-try validator.validateResponse(response)
+// Security validation in controller
+let sanitized = try req.services.promptSanitizer.sanitize(input)
+try req.services.aiInputValidator.validate(sanitized)
+let response = try await req.services.llm.generate(sanitized)
+try req.services.aiResponseValidator.validate(response)
 ```
 
 ### Rate Limiting
@@ -469,12 +455,12 @@ Development:
   Database: SQLite in-memory
   Logging: Debug level
   Security: Relaxed for testing
-  
+
 Testing:
   Database: SQLite in-memory
-  Services: All mocked
+  Services: All mocked via property injection
   Isolation: Complete per suite
-  
+
 Production:
   Database: PostgreSQL with TLS
   Caching: Redis cluster
@@ -500,8 +486,8 @@ docker-compose -f docker-compose.dev.yml down -v  # Reset
 ### Code Organization Standards
 
 - **Module Completeness**: Each module contains full vertical slice
-- **Use Case Colocation**: Business logic within modules
-- **Service Simplicity**: Direct registration over factories
+- **Controller-Centric**: Business logic in controllers, not separate layer
+- **Service Simplicity**: Direct property access over factory patterns
 - **Framework Alignment**: Work with Vapor conventions
 - **Three-Strike Rule**: Create abstractions on third occurrence
 
@@ -510,71 +496,36 @@ docker-compose -f docker-compose.dev.yml down -v  # Reset
 ### Design Principles
 
 1. **Single Responsibility**: Each component has one clear purpose
-2. **Dependency Inversion**: Depend on abstractions, not concretions
+2. **Dependency Inversion**: Depend on abstractions (protocols), not concretions
 3. **Interface Segregation**: Small, focused interfaces
-4. **Open/Closed**: Open for extension, closed for modification
-5. **Liskov Substitution**: Subtypes replaceable without breaking
+4. **Simplicity**: Prefer simple patterns over complex abstractions
+5. **Framework Harmony**: Work with Vapor, not against it
 
 ### Best Practices
 
-1. **Never use static methods** - Always create services with DI
+1. **Use property accessors** - `req.services.*` and `req.repositories.*`
 2. **Maintain module boundaries** - Complete vertical slices
-3. **Colocate use cases** - Business logic within modules
-4. **Mock everything** - All services must be testable
-5. **Use framework conventions** - Work with Vapor, not against it
+3. **Keep business logic in controllers** - No separate use case layer
+4. **Mock via property injection** - Set mock implementations on Application
+5. **Use framework conventions** - Work with Vapor patterns
 
 ### Anti-Patterns to Avoid
 
-- Separating use cases from modules
+- Creating unnecessary abstraction layers
+- Using complex DI frameworks
+- Separating simple business logic into separate files
 - Creating abstractions before third use
-- Using complex patterns when simple suffice
 - Static service methods
-- Business logic in controllers
-
-## Migration Notes
-
-### From Legacy Patterns
-
-```swift
-// OLD: Vapor service pattern
-app.services.userService.use(UserService.init)
-let service = request.application.services.userService.service
-
-// NEW: ServiceRegistry pattern
-registry.register(UserService.self) { app in
-    return UserService(database: app.db)
-}
-let service = try await request.resolveService(UserService.self)
-```
-
-### Testing Migration
-
-```swift
-// OLD: XCTest with manual setup
-class UserTests: XCTestCase {
-    var app: Application!
-    override func setUp() { /* complex setup */ }
-}
-
-// NEW: Swift Testing with IsolatedTestWorld
-@Suite(.serialized)
-struct UserTests {
-    let testWorld: IsolatedTestWorld
-    init() async throws {
-        testWorld = try await IsolatedTestWorld()
-    }
-}
-```
 
 ## Future Considerations
 
 ### Potential Enhancements
 
-1. **GraphQL API**: Alternative to REST endpoints
-2. **WebSocket Support**: Real-time features
-3. **Background Jobs**: Queue system for async processing
-4. **Multi-tenancy**: Organization-based isolation
-5. **API Versioning**: Backward compatibility strategy
+1. **API Versioning**: URL prefix strategy (`/api/v1/...`)
+2. **Receipt Validation**: App Store and Play Store purchases
+3. **GraphQL API**: Alternative to REST endpoints
+4. **WebSocket Support**: Real-time features
+5. **Background Jobs**: Queue system for async processing
 
 ### Scalability Path
 
@@ -586,4 +537,4 @@ struct UserTests {
 
 ---
 
-This technical architecture provides a comprehensive foundation for development, testing, and maintenance of the Project Rulebook application. All components follow established patterns, maintain clear boundaries, and prioritize testability and security.
+This technical architecture provides a comprehensive foundation for development, testing, and maintenance of the Project Rulebook application. All components follow established patterns, maintain clear boundaries, and prioritize simplicity and testability.

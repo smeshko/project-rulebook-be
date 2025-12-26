@@ -174,7 +174,6 @@ The backend transforms raw AI capabilities into a **reliable, production-ready s
 | Feature | Priority | Description |
 |---------|----------|-------------|
 | **Receipt Validation** | High | Validate App Store/Play Store purchases server-side |
-| **Usage Analytics** | Medium | Anonymous usage patterns for product insights |
 | **Feedback API** | Medium | Allow users to report incorrect rules |
 | **Game Database** | Low | Curated database of verified game rules |
 | **Subscription Support** | Low | Alternative to credit-based monetization |
@@ -191,6 +190,7 @@ The backend transforms raw AI capabilities into a **reliable, production-ready s
 | **Offline AI** | Cost/complexity; cloud AI is core value |
 | **User Accounts** | Not needed for core functionality; app works without accounts |
 | **Cloud Library Sync** | Removed; local-only game library is sufficient |
+| **Usage Analytics (Backend)** | Handled by frontend apps |
 
 ---
 
@@ -353,7 +353,6 @@ The backend transforms raw AI capabilities into a **reliable, production-ready s
 |----|-------------|----------|
 | FR23 | Receipt validation for IAP verification | High |
 | FR24 | User feedback submission for incorrect rules | Medium |
-| FR25 | Usage analytics collection (anonymous) | Medium |
 
 ---
 
@@ -526,7 +525,6 @@ Sources/App/
 
 ### Later (Phase 3 - v2.0)
 - Receipt validation for purchases
-- Usage analytics
 - Feedback mechanism
 
 ---

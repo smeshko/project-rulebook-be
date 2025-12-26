@@ -3,7 +3,7 @@
 ## Overview
 This document outlines the comprehensive testing infrastructure and standards established for the Project Rulebook application. The testing system provides enterprise-grade testing capabilities with full mock service integration and standardized patterns.
 
-## 🏗️ Testing Architecture
+## Testing Architecture
 
 ### Infrastructure Layout
 ```
@@ -19,51 +19,58 @@ Tests/AppTests/
 │   │   └── UserBuilder          # User entity creation
 │   ├── Helpers/                 # Testing utilities
 │   ├── Mocks/                   # Mock implementations
-│   └── TestWorld.swift          # Complete test environment
+│   └── IsolatedTestWorld.swift  # Complete test environment
 ├── Security/                    # AI security testing
 ├── Services/                    # Service layer tests
 └── Tests/                       # Controller and endpoint tests
 ```
 
 ### Design Principles
-1. **Isolation**: Each test runs in a clean, predictable environment
+1. **Isolation**: Each test suite runs in a clean, predictable environment
 2. **Mocking**: All external services are mocked for reliability
 3. **Performance**: Fast test execution with in-memory databases
 4. **Standardization**: Consistent patterns across all test types
 5. **Comprehensiveness**: Unit, integration, and performance testing
 
-## 📋 Test Case Types
+## Test Case Types
 
 ### 1. Integration Testing (`IntegrationTestCase`)
-**Purpose**: Test HTTP endpoints and full application stack  
+**Purpose**: Test HTTP endpoints and full application stack
 **Use Case**: Controller testing, API validation, end-to-end flows
 
 ```swift
+import Testing
 import XCTVapor
-import XCTest
 
-final class AuthenticationEndpointTests: XCTestCase {
+@Suite(.serialized)
+struct AuthenticationEndpointTests {
+    let testWorld: IsolatedTestWorld
+
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
+    }
+
+    @Test("User login with valid credentials succeeds")
     func testUserLogin() async throws {
-        let testCase = try IntegrationTestCase()
-        
-        // Configure test environment
-        let user = try testCase.world.createUserWithTokens(
-            email: "test@example.com", 
+        // Given: Valid user exists
+        let user = try await testWorld.createUserWithTokens(
+            email: "test@example.com",
             isVerified: true
         )
-        
-        // Test the endpoint
-        try await testCase.test(.POST, "/api/auth/sign-in") { request in
+
+        // When: POST to sign-in endpoint
+        try await testWorld.app.test(.POST, "/api/auth/sign-in") { request in
             try request.content.encode([
                 "email": "test@example.com",
                 "password": "ValidPass123!"
             ])
         } afterResponse: { response in
-            XCTAssertEqual(response.status, .ok)
-            
+            // Then: Success with tokens
+            #expect(response.status == .ok)
+
             let authResponse = try response.content.decode(AuthResponse.self)
-            XCTAssertNotNil(authResponse.accessToken)
-            XCTAssertNotNil(authResponse.refreshToken)
+            #expect(authResponse.accessToken != nil)
+            #expect(authResponse.refreshToken != nil)
         }
     }
 }
@@ -72,79 +79,75 @@ final class AuthenticationEndpointTests: XCTestCase {
 **Key Features**:
 - Full application stack testing
 - HTTP request/response validation
-- Access to `TestWorld` for setup
-- Automatic cleanup and teardown
+- Access to `IsolatedTestWorld` for setup
+- Automatic cleanup via suite isolation
 
 ### 2. Unit Testing (`UnitTestCase`)
-**Purpose**: Test individual services and business logic  
+**Purpose**: Test individual services and business logic
 **Use Case**: Service testing, repository testing, business logic validation
 
 ```swift
 import Testing
 import Vapor
 
-final class ConfigurationServiceTests {
-    private let testCase: UnitTestCase
-    
+@Suite(.serialized)
+struct ConfigurationServiceTests {
+    let testWorld: IsolatedTestWorld
+
     init() async throws {
-        self.testCase = try UnitTestCase()
+        testWorld = try await IsolatedTestWorld()
     }
-    
-    deinit {
-        // testCase handles cleanup automatically
-    }
-    
+
     @Test("Configuration service loads development settings")
     func testDevelopmentConfiguration() async throws {
-        let request = testCase.makeMockRequest()
-        let configService = try await request.resolveService(ConfigurationService.self)
-        
+        // Access service via property accessor
+        let configService = testWorld.app.configurationService
+
         let config = try await configService.getDevelopmentConfiguration()
-        
-        XCTAssertEqual(config.environment, .development)
-        XCTAssertEqual(config.database.host, "localhost")
-        XCTAssertTrue(config.features.enableDetailedLogging)
+
+        #expect(config.environment == .development)
+        #expect(config.database.host == "localhost")
+        #expect(config.features.enableDetailedLogging == true)
     }
 }
 ```
 
 **Key Features**:
 - Lightweight application setup
-- Mock request creation
+- Service access via property injection
 - Service-level testing
 - Minimal overhead for fast execution
 
 ### 3. Performance Testing (`PerformanceTestCase`)
-**Purpose**: Benchmark performance and identify bottlenecks  
+**Purpose**: Benchmark performance and identify bottlenecks
 **Use Case**: Performance regression testing, optimization validation
 
 ```swift
 import Testing
 import Vapor
 
-final class CachePerformanceTests {
-    private let testCase: PerformanceTestCase
-    
+@Suite(.serialized)
+struct CachePerformanceTests {
+    let testWorld: IsolatedTestWorld
+
     init() async throws {
-        self.testCase = try PerformanceTestCase()
+        testWorld = try await IsolatedTestWorld()
     }
-    
+
     @Test("AI cache performance meets SLA requirements")
     func testCachePerformance() async throws {
-        let metrics = await testCase.measure(
-            "AI Cache Retrieval",
-            iterations: 1000
-        ) {
-            // Simulate cache operation
-            let request = try await testCase.application.serviceRegistry.resolveRequired(AICacheService.self)
-            _ = await request.get("test-key", as: String.self)
+        let cacheService = testWorld.app.aiCacheService
+
+        // Measure cache retrieval
+        let start = Date()
+        for _ in 0..<1000 {
+            _ = await cacheService.get("test-key", as: String.self)
         }
-        
-        // Verify performance requirements
-        XCTAssertLessThan(metrics.averageTime, 0.001) // < 1ms average
-        XCTAssertLessThan(metrics.maximumTime, 0.005) // < 5ms max
-        
-        print(metrics.summary)
+        let elapsed = Date().timeIntervalSince(start)
+
+        // Average should be < 1ms
+        let avgTime = elapsed / 1000.0
+        #expect(avgTime < 0.001)
     }
 }
 ```
@@ -152,29 +155,24 @@ final class CachePerformanceTests {
 **Key Features**:
 - Built-in performance measurement
 - Statistical analysis (average, min, max, std deviation)
-- Async and sync operation support
+- Async operation support
 - Comprehensive metrics reporting
 
-## 🌍 TestWorld - Central Test Environment
+## IsolatedTestWorld - Central Test Environment
 
 ### Overview
-`TestWorld` provides a complete, isolated testing environment with all necessary mocks and utilities configured.
+`IsolatedTestWorld` provides a complete, isolated testing environment with all necessary mocks and utilities configured. Each test suite gets a fresh Application instance.
 
 ```swift
-class TestWorld {
+class IsolatedTestWorld {
     let app: Application
     let dataFactory: TestDataFactory
-    
-    // Mock Services
-    var llm: FakeLLMService
-    var aiCache: MockAICacheService
-    var rateLimit: MockRateLimitService
-    
-    // Test Repositories
-    var users: TestUserRepository
-    var refreshTokens: TestRefreshTokenRepository
-    var emailTokens: TestEmailTokenRepository
-    var passwordTokens: TestPasswordTokenRepository
+
+    // Mock Services (injected via property accessors)
+    // Access via app.llmService, app.aiCacheService, etc.
+
+    // Test Repositories (injected via property accessors)
+    // Access via app.userRepository, app.refreshTokenRepository, etc.
 }
 ```
 
@@ -182,28 +180,23 @@ class TestWorld {
 
 #### 1. Service Configuration
 ```swift
-// Configure AI responses
-testWorld.llm.configureResponse(
-    for: "Monopoly", 
+// Access mock services through Application properties
+let llmService = testWorld.app.llmService as! FakeLLMService
+llmService.configureResponse(
+    for: "Monopoly",
     response: FakeLLMService.rulesGenerationResponse
 )
 
-// Set cache behavior
-testWorld.aiCache.configureHitRatio(0.8) // 80% cache hits
-testWorld.aiCache.configureLatency(0.001) // 1ms response time
-
-// Configure rate limiting
-await testWorld.rateLimit.setLimit(
-    for: "rules_generation", 
-    limit: 5, 
-    window: .hour
-)
+// Configure cache behavior
+let cacheService = testWorld.app.aiCacheService as! MockAICacheService
+cacheService.configureHitRatio(0.8) // 80% cache hits
+cacheService.configureLatency(0.001) // 1ms response time
 ```
 
 #### 2. Test Data Creation
 ```swift
 // Create complete user with tokens
-let userWithTokens = try testWorld.createUserWithTokens(
+let userWithTokens = try await testWorld.createUserWithTokens(
     email: "test@example.com",
     isVerified: true
 )
@@ -213,509 +206,97 @@ let user = testWorld.dataFactory.createUser()
 let tokens = testWorld.dataFactory.createTokens(for: user)
 ```
 
-#### 3. Environment Reset
+#### 3. Mock Service Injection
 ```swift
-// Clean slate between tests
-await testWorld.resetAll()
-
-// Specialized configurations
-testWorld.configureForAITesting()
-testWorld.configureForAuthTesting()
+// Replace services for testing
+testWorld.app.llmService = FakeLLMService()
+testWorld.app.userRepository = MockUserRepository()
 ```
 
-## 🏗️ Clean Architecture Testing Patterns
+## Controller Testing Patterns
 
-### Use Case Testing
-
-The Clean Architecture implementation emphasizes pure business logic testing through use cases. Each use case can be tested in isolation with mocked dependencies.
-
-#### Use Case Test Structure
+Controllers contain business logic and are the primary focus of testing. Tests validate HTTP concerns and business logic together.
 
 ```swift
-import XCTest
-@testable import App
+@Suite(.serialized)
+struct AuthControllerTests {
+    let testWorld: IsolatedTestWorld
 
-final class SignInUseCaseTests: UnitTestCase {
-    var useCase: SignInUseCase!
-    var mockTokenRepository: TestRefreshTokenRepository!
-    var mockRandomGenerator: RiggedRandomGeneratorService!
-    
-    override func setUp() async throws {
-        try await super.setUp()
-        
-        mockTokenRepository = TestRefreshTokenRepository()
-        mockRandomGenerator = RiggedRandomGeneratorService()
-        
-        useCase = SignInUseCase(
-            refreshTokenRepository: mockTokenRepository,
-            randomGenerator: mockRandomGenerator
-        )
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
     }
-    
-    func testSuccessfulSignIn() async throws {
-        // Given: Valid user and clean state
-        let user = try testWorld.users.testUser()
-        
-        // When: Executing sign-in use case
-        let result = try await useCase.execute(.init(user: user))
-        
-        // Then: Valid response with expected data
-        XCTAssertEqual(result.user.id, user.id)
-        XCTAssertFalse(result.refreshToken.isEmpty)
-        XCTAssertTrue(result.signedInAt <= Date.now)
-        
-        // And: Token was properly stored
-        let storedToken = try await mockTokenRepository.find(forUserID: user.requireID())
-        XCTAssertNotNil(storedToken)
-    }
-    
-    func testSignInCleansUpExistingTokens() async throws {
-        // Given: User with existing refresh token
-        let user = try testWorld.users.testUser()
-        let existingToken = RefreshTokenModel(value: SHA256.hash("old-token"), userID: user.requireID())
-        try await mockTokenRepository.create(existingToken)
-        
-        // When: User signs in again
-        let result = try await useCase.execute(.init(user: user))
-        
-        // Then: Old token is removed, new token is created
-        let tokens = try await mockTokenRepository.findAll(forUserID: user.requireID())
-        XCTAssertEqual(tokens.count, 1)
-        XCTAssertNotEqual(tokens.first?.value, existingToken.value)
-    }
-}
-```
 
-#### Use Case Testing Benefits
-
-1. **Pure Business Logic Testing**: Test business rules without HTTP concerns
-2. **Fast Execution**: No HTTP stack overhead
-3. **Easy Mocking**: Dependencies injected via constructor
-4. **Focused Tests**: Each test validates one business scenario
-
-### Domain Service Testing
-
-Domain services handle complex business logic and coordinate multiple operations. They require testing with the Request context for service resolution.
-
-```swift
-final class RulesOrchestrationServiceTests: UnitTestCase {
-    var service: DefaultRulesOrchestrationService!
-    var mockRequest: Request!
-    
-    override func setUp() async throws {
-        try await super.setUp()
-        
-        service = DefaultRulesOrchestrationService()
-        mockRequest = testWorld.makeMockRequest()
-        
-        // Configure mock services through request.services
-        testWorld.llm.configureResponse(
-            for: "generateOptimized",
-            response: sampleRulesResponse
-        )
-        testWorld.aiCache.configureCacheMiss() // Force AI generation
-        testWorld.aiInputValidator.configureValidInput()
-    }
-    
-    func testSuccessfulRulesGeneration() async throws {
-        // Given: Valid game title and configured services
-        let gameTitle = "Monopoly"
-        
-        // When: Generating rules through domain service
-        let result = try await service.generateRules(
-            gameTitle: gameTitle,
-            request: mockRequest
-        )
-        
-        // Then: Valid response with expected structure
-        XCTAssertEqual(result.title, "Monopoly")
-        XCTAssertFalse(result.summary.isEmpty)
-        XCTAssertFalse(result.initialSetup.isEmpty)
-        XCTAssertGreaterThan(result.confidence, 50)
-        
-        // And: Result was cached
-        XCTAssertTrue(testWorld.aiCache.wasCacheSetCalled)
-    }
-    
-    func testRulesGenerationWithCacheHit() async throws {
-        // Given: Cached rules for the game
-        let cachedResponse = sampleRulesResponse
-        testWorld.aiCache.configureCacheHit(value: cachedResponse)
-        
-        // When: Requesting rules for cached game
-        let result = try await service.generateRules(
-            gameTitle: "Monopoly",
-            request: mockRequest
-        )
-        
-        // Then: Response returned from cache
-        XCTAssertEqual(result.title, "Monopoly")
-        
-        // And: AI service was not called
-        XCTAssertFalse(testWorld.llm.wasGenerateOptimizedCalled)
-    }
-}
-```
-
-### Controller Testing with Use Cases
-
-Controllers are now thin HTTP layers that delegate to use cases. Testing focuses on HTTP concerns and use case coordination.
-
-```swift
-final class AuthControllerTests: IntegrationTestCase {
-    
+    @Test("Sign-in with valid credentials returns tokens")
     func testSignInEndpoint() async throws {
-        // Given: Valid user credentials and configured use case
-        let user = try await testWorld.users.createTestUser(password: "ValidPass123!")
-        
+        // Given: Valid user credentials
+        let user = try await testWorld.createTestUser(password: "ValidPass123!")
+
         // When: POST to sign-in endpoint
-        try await app.test(.POST, "api/auth/sign-in", beforeRequest: { request in
+        try await testWorld.app.test(.POST, "api/auth/sign-in") { request in
             try request.content.encode([
                 "email": user.email,
                 "password": "ValidPass123!"
             ])
-        }, afterResponse: { response in
-            // Then: Successful response with expected format
-            XCTAssertEqual(response.status, .ok)
-            
+        } afterResponse: { response in
+            // Then: Successful response with tokens
+            #expect(response.status == .ok)
+
             let authResponse = try response.content.decode(AuthResponse.self)
-            XCTAssertNotNil(authResponse.accessToken)
-            XCTAssertNotNil(authResponse.refreshToken)
-            XCTAssertEqual(authResponse.user.id, user.id)
-        })
+            #expect(authResponse.accessToken != nil)
+            #expect(authResponse.refreshToken != nil)
+            #expect(authResponse.user.id == user.id)
+        }
     }
-    
+
+    @Test("Sign-in with invalid credentials returns unauthorized")
     func testSignInWithInvalidCredentials() async throws {
-        // Given: Invalid credentials
-        try await app.test(.POST, "api/auth/sign-in", beforeRequest: { request in
+        try await testWorld.app.test(.POST, "api/auth/sign-in") { request in
             try request.content.encode([
                 "email": "nonexistent@example.com",
                 "password": "WrongPassword"
             ])
-        }, afterResponse: { response in
-            // Then: Unauthorized response
-            XCTAssertEqual(response.status, .unauthorized)
-            
-            let errorResponse = try response.content.decode(ErrorResponse.self)
-            XCTAssertEqual(errorResponse.error, "invalid_credentials")
-        })
-    }
-}
-```
-
-### CQRS Testing Patterns
-
-Separate testing strategies for Commands (write operations) and Queries (read operations).
-
-#### Command Testing
-
-```swift
-final class CreateUserCommandTests: UnitTestCase {
-    
-    func testCreateUserCommand() async throws {
-        // Given: Valid user creation request
-        let useCase = try await app.resolveRequired(SignUpUseCase.self)
-        let request = SignUpUseCase.Request(
-            email: "newuser@example.com",
-            password: "SecurePass123!",
-            firstName: "John",
-            lastName: "Doe"
-        )
-        
-        // When: Executing command
-        let result = try await useCase.execute(request)
-        
-        // Then: User created successfully
-        XCTAssertNotNil(result.user.id)
-        XCTAssertEqual(result.user.email, "newuser@example.com")
-        XCTAssertFalse(result.user.isEmailVerified)
-        
-        // And: Side effects occurred (email sent, tokens generated)
-        XCTAssertNotNil(result.accessToken)
-        XCTAssertNotNil(result.refreshToken)
-    }
-}
-```
-
-#### Query Testing
-
-```swift
-final class GetCurrentUserQueryTests: UnitTestCase {
-    
-    func testGetCurrentUserQuery() async throws {
-        // Given: Existing user
-        let user = try await testWorld.users.createTestUser()
-        let useCase = try await app.resolveRequired(GetCurrentUserUseCase.self)
-        
-        // When: Executing query
-        let result = try await useCase.execute(.init(userId: user.requireID()))
-        
-        // Then: User data returned without modification
-        XCTAssertEqual(result.user.id, user.id)
-        XCTAssertEqual(result.user.email, user.email)
-        
-        // And: No side effects occurred
-        // (Verify no database writes, no external service calls)
-    }
-}
-```
-
-### Performance Testing with Clean Architecture
-
-Test that the Clean Architecture implementation maintains performance characteristics.
-
-```swift
-final class CleanArchitecturePerformanceTests: PerformanceTestCase {
-    
-    func testUseCaseExecutionPerformance() async throws {
-        // Given: Use case with realistic dependencies
-        let useCase = try await app.resolveRequired(SignInUseCase.self)
-        let user = try testWorld.users.testUser()
-        
-        // When: Measuring use case execution time
-        let metrics = await measure(
-            "SignIn UseCase Execution",
-            iterations: 1000
-        ) {
-            _ = try? await useCase.execute(.init(user: user))
-        }
-        
-        // Then: Performance meets requirements
-        XCTAssertLessThan(metrics.averageTime, 0.01) // < 10ms average
-        XCTAssertLessThan(metrics.maximumTime, 0.05) // < 50ms max
-    }
-    
-    func testDomainServicePerformance() async throws {
-        // Given: Domain service with cached dependencies
-        let service = DefaultRulesOrchestrationService()
-        let request = testWorld.makeMockRequest()
-        testWorld.aiCache.configureCacheHit(value: sampleRulesResponse)
-        
-        // When: Measuring domain service performance
-        let metrics = await measure(
-            "Rules Generation with Cache Hit",
-            iterations: 500
-        ) {
-            _ = try? await service.generateRules(
-                gameTitle: "Monopoly",
-                request: request
-            )
-        }
-        
-        // Then: Cache hit performance is optimal
-        XCTAssertLessThan(metrics.averageTime, 0.001) // < 1ms with cache
-    }
-}
-```
-
-### Clean Architecture Testing Best Practices
-
-1. **Test Use Cases in Isolation**: Test business logic without HTTP concerns
-2. **Mock All Dependencies**: Use constructor injection for clean mocking
-3. **Test Domain Services with Request Context**: Use TestWorld.makeMockRequest()
-4. **Separate Command and Query Testing**: Different patterns for writes vs reads
-5. **Focus Controller Tests on HTTP Concerns**: Validate request/response handling
-6. **Performance Test the Architecture**: Ensure Clean Architecture doesn't add overhead
-
-## 🔧 ServiceRegistry Testing Patterns (Phase 4.1)
-
-### ServiceRegistry Integration Testing
-
-The ServiceRegistry system provides comprehensive testing support with dedicated test patterns and mock integration.
-
-#### Unit Testing with ServiceRegistry
-
-```swift
-final class ServiceContainerTests: XCTestCase {
-    var testCase: UnitTestCase!
-    var app: Application { testCase.application }
-    
-    override func setUp() async throws {
-        testCase = try await UnitTestCase()
-    }
-    
-    override func tearDown() async throws {
-        try await testCase.shutdown()
-        testCase = nil
-    }
-    
-    func testServiceRegistryBasics() async throws {
-        // Test basic service registration and resolution
-        let registry = ServiceContainer(application: app)
-        
-        // Register real services for testing
-        try await RepositoryServiceProvider.register(in: registry, app: app)
-        try await ExternalServiceProvider.register(in: registry, app: app)
-        
-        // Test service resolution with production services
-        let userRepository = try await registry.resolveRequired((any UserRepository).self)
-        let llmService = try await registry.resolveRequired(LLMService.self)
-        
-        XCTAssertNotNil(userRepository)
-        XCTAssertNotNil(llmService)
-    }
-    
-    func testServiceLifecycle() async throws {
-        let registry = ServiceContainer(application: app)
-        
-        // Register service with lifecycle
-        try await LifecycleServiceProvider.register(in: registry, app: app)
-        
-        // Test startup
-        try await registry.startupAll(app)
-        
-        // Verify service is accessible after startup
-        let service = try await registry.resolveRequired(LifecycleService.self)
-        XCTAssertTrue(service.isStarted)
-        
-        // Test shutdown
-        try await registry.shutdownAll(app)
-        XCTAssertTrue(service.isShutdown)
-    }
-    
-    func testHealthChecks() async throws {
-        let registry = ServiceContainer(application: app)
-        
-        // Register service with health check
-        try await HealthCheckServiceProvider.register(in: registry, app: app)
-        
-        // Ensure service is instantiated
-        _ = try await registry.resolveRequired(HealthCheckService.self)
-        
-        // Test health checks
-        let healthChecks = await registry.healthCheckAll()
-        XCTAssertEqual(healthChecks.count, 1)
-        XCTAssertTrue(healthChecks.first?.healthy ?? false)
-    }
-}
-```
-
-#### Mock Service Registration for Testing
-
-```swift
-// Create mock services for testing
-final class MockUserService: UserService {
-    var users: [UUID: User] = [:]
-    
-    func createUser(_ user: User) async throws -> User {
-        users[user.id] = user
-        return user
-    }
-    
-    func findUser(id: UUID) async throws -> User? {
-        return users[id]
-    }
-}
-
-// Register mock in test setup
-struct TestServiceProvider: ServiceProvider {
-    static func register(in registry: ServiceContainer, app: Application) async throws {
-        // Register mock services
-        registry.register(UserService.self, instance: MockUserService())
-        registry.register(EmailService.self, instance: MockEmailService())
-        
-        // Register real services that work in test environment
-        registry.register(ConfigurationService.self) { app in
-            return ConfigurationService(app: app)
-        }
-    }
-}
-
-// Usage in tests
-func testControllerWithMockServices() async throws {
-    let testCase = try await IntegrationTestCase()
-    
-    // Register test services
-    try await TestServiceProvider.register(in: testCase.application.serviceRegistry, app: testCase.application)
-    
-    // Test endpoint using mock services
-    try await testCase.test(.POST, "/api/users") { request in
-        try request.content.encode(["email": "test@example.com"])
-    } afterResponse: { response in
-        XCTAssertEqual(response.status, .created)
-    }
-}
-```
-
-#### Request-based Service Testing
-
-```swift
-func testRequestServiceResolution() async throws {
-    // Test Application.setupServiceRegistry integration
-    try await app.setupServiceRegistry()
-    
-    // Register services in the app's registry
-    try await TestServiceProvider.register(in: app.serviceRegistry, app: app)
-    
-    // Create a mock request
-    let request = Request(application: app, on: app.eventLoopGroup.next())
-    
-    // Test service resolution through Request extension
-    let userService = try await request.resolveService(UserService.self)
-    let emailService = try await request.resolveServiceOptional(EmailService.self)
-    
-    XCTAssertNotNil(userService)
-    XCTAssertNotNil(emailService)
-}
-```
-
-#### Error Handling Testing
-
-```swift
-func testServiceRegistryErrorHandling() async throws {
-    let registry = ServiceContainer(application: app)
-    
-    // Test resolving non-existent service
-    let nonExistentService = try await registry.resolve(NonExistentService.self)
-    XCTAssertNil(nonExistentService)
-    
-    // Test requiring non-existent service throws appropriate error
-    do {
-        _ = try await registry.resolveRequired(NonExistentService.self)
-        XCTFail("Should have thrown ServiceRegistryError.serviceNotFound")
-    } catch let error as ServiceRegistryError {
-        if case .serviceNotFound(let type) = error {
-            XCTAssertTrue(type.contains("NonExistentService"))
-        } else {
-            XCTFail("Wrong error type: \(error)")
+        } afterResponse: { response in
+            #expect(response.status == .unauthorized)
         }
     }
 }
 ```
 
-#### Performance Testing with ServiceRegistry
+## Service Testing Patterns
+
+Test services in isolation using mock dependencies injected via Application properties.
 
 ```swift
-func testServiceResolutionPerformance() async throws {
-    let testCase = try await PerformanceTestCase()
-    let registry = testCase.application.serviceRegistry
-    
-    // Register services
-    try await TestServiceProvider.register(in: registry, app: testCase.application)
-    
-    // Measure service resolution performance
-    let metrics = await testCase.measure(
-        "Service Resolution",
-        iterations: 1000
-    ) {
-        _ = try? await registry.resolveRequired(UserService.self)
+@Suite(.serialized)
+struct RulesGenerationServiceTests {
+    let testWorld: IsolatedTestWorld
+
+    init() async throws {
+        testWorld = try await IsolatedTestWorld()
     }
-    
-    // Verify performance requirements
-    XCTAssertLessThan(metrics.averageTime, 0.001) // < 1ms average resolution
+
+    @Test("Rules generation with cache hit returns cached response")
+    func testRulesGenerationWithCacheHit() async throws {
+        // Given: Cached rules for the game
+        let mockCache = testWorld.app.aiCacheService as! MockAICacheService
+        mockCache.configureCacheHit(value: sampleRulesResponse)
+
+        // When: Requesting rules via controller/service
+        try await testWorld.app.test(.POST, "api/rules-generation/rules-summary") { request in
+            try request.content.encode(["gameTitle": "Monopoly"])
+        } afterResponse: { response in
+            // Then: Response returned from cache
+            #expect(response.status == .ok)
+
+            // And: AI service was not called
+            let mockLLM = testWorld.app.llmService as! FakeLLMService
+            #expect(mockLLM.wasGenerateOptimizedCalled == false)
+        }
+    }
 }
 ```
 
-### ServiceRegistry Testing Best Practices
-
-1. **Service Isolation**: Always register mock services for testing to avoid external dependencies
-2. **Lifecycle Testing**: Test service startup and shutdown hooks to ensure proper resource management
-3. **Health Check Validation**: Verify health check implementations for service monitoring
-4. **Error Scenarios**: Test service resolution failures and error handling
-5. **Performance Validation**: Ensure service resolution meets performance requirements
-6. **Thread Safety**: Test concurrent service resolution to validate thread safety
-
-## 🎭 Mock Service System
+## Mock Service System
 
 ### Available Mock Services
 
@@ -723,8 +304,10 @@ func testServiceResolutionPerformance() async throws {
 Simulates OpenAI API responses with configurable behavior.
 
 ```swift
+let mockLLM = testWorld.app.llmService as! FakeLLMService
+
 // Configure specific responses
-testWorld.llm.configureResponse(
+mockLLM.configureResponse(
     for: "game box analysis",
     response: """
     {
@@ -738,27 +321,29 @@ testWorld.llm.configureResponse(
 )
 
 // Configure error responses
-testWorld.llm.configureError(
+mockLLM.configureError(
     for: "invalid input",
     error: .rateLimitExceeded
 )
 
 // Simulate API latency
-testWorld.llm.configureLatency(0.5) // 500ms delay
+mockLLM.configureLatency(0.5) // 500ms delay
 ```
 
 #### 2. MockAICacheService
 In-memory cache implementation with controllable behavior.
 
 ```swift
+let mockCache = testWorld.app.aiCacheService as! MockAICacheService
+
 // Set cache hit ratio for testing
-testWorld.aiCache.configureHitRatio(0.75) // 75% hits
+mockCache.configureHitRatio(0.75) // 75% hits
 
 // Preload cache entries
-testWorld.aiCache.preload(key: "rules:Monopoly", value: cachedRules)
+mockCache.preload(key: "rules:Monopoly", value: cachedRules)
 
 // Configure cache statistics
-testWorld.aiCache.configurateStatistics(
+mockCache.configureStatistics(
     hitCount: 100,
     missCount: 25,
     totalRequests: 125
@@ -770,33 +355,35 @@ Rate limiting simulation with configurable limits.
 
 ```swift
 // Configure rate limits
-await testWorld.rateLimit.setLimit(
+mockRateLimit.setLimit(
     for: "image_analysis",
     limit: 5,
     window: .hour
 )
 
 // Simulate limit exceeded
-await testWorld.rateLimit.simulateLimitExceeded(for: "rules_generation")
+mockRateLimit.simulateLimitExceeded(for: "rules_generation")
 
 // Reset all limits
-await testWorld.rateLimit.resetAllRateLimits()
+mockRateLimit.resetAllRateLimits()
 ```
 
 ### Mock Repositories
 All repository operations use in-memory implementations for predictable testing.
 
 ```swift
+// Inject mock repository
+testWorld.app.userRepository = MockUserRepository()
+
 // User repository operations
-await testWorld.users.create(user)
-let foundUser = await testWorld.users.find(byEmail: "test@example.com")
+let mockUsers = testWorld.app.userRepository as! MockUserRepository
+mockUsers.users["test-id"] = testUser
 
 // Token repository operations
-await testWorld.refreshTokens.create(token)
-await testWorld.emailTokens.verify(token: "verification-token")
+testWorld.app.refreshTokenRepository = MockRefreshTokenRepository()
 ```
 
-## 🏭 Test Data Factory
+## Test Data Factory
 
 ### Purpose
 Centralized creation of test entities with consistent, valid data.
@@ -806,18 +393,18 @@ class TestDataFactory {
     func createUser(
         email: String = "test@example.com",
         isVerified: Bool = true,
-        role: User.Role = .user
-    ) -> User
-    
+        isAdmin: Bool = false
+    ) -> UserAccountModel
+
     func createUserWithTokens(
         email: String = "test@example.com",
         isVerified: Bool = true
     ) throws -> UserWithTokens
-    
+
     func createRefreshToken(
-        for user: User,
+        for user: UserAccountModel,
         expiresAt: Date = Date().addingTimeInterval(86400)
-    ) -> RefreshToken
+    ) -> RefreshTokenModel
 }
 ```
 
@@ -830,7 +417,7 @@ let user = testWorld.dataFactory.createUser()
 // Customized user
 let admin = testWorld.dataFactory.createUser(
     email: "admin@example.com",
-    role: .admin
+    isAdmin: true
 )
 
 // Complete user with authentication tokens
@@ -845,20 +432,23 @@ let accessToken = userWithTokens.accessToken
 let refreshToken = userWithTokens.refreshToken
 ```
 
-## 📏 Testing Standards
+## Testing Standards
 
 ### 1. Test Organization
 ```swift
-// Group related tests in descriptive test classes
-final class UserAuthenticationTests: XCTestCase {
+// Group related tests in descriptive test suites
+@Suite(.serialized)
+struct UserAuthenticationTests {
     // Test user authentication scenarios
 }
 
-final class AISecurityValidationTests: XCTestCase {
+@Suite(.serialized)
+struct AISecurityValidationTests {
     // Test AI security features
 }
 
-final class CachePerformanceTests: XCTestCase {
+@Suite(.serialized)
+struct CachePerformanceTests {
     // Test caching performance
 }
 ```
@@ -866,65 +456,68 @@ final class CachePerformanceTests: XCTestCase {
 ### 2. Test Naming Convention
 ```swift
 // Pattern: test[Feature][Scenario][ExpectedResult]
+@Test("User login with valid credentials succeeds")
 func testUserLoginWithValidCredentialsSucceeds() { }
+
+@Test("AI input validation blocks injection attempts")
 func testAIInputValidationWithInjectionAttemptsBlocks() { }
+
+@Test("Cache retrieval returns value when populated")
 func testCacheRetrievalWithPopulatedCacheReturnsValue() { }
 ```
 
 ### 3. Test Structure (AAA Pattern)
 ```swift
+@Test("Service behavior with valid input")
 func testServiceBehavior() async throws {
     // ARRANGE: Set up test environment
-    let testCase = try IntegrationTestCase()
-    testCase.world.configureForAITesting()
-    
+    let mockService = testWorld.app.llmService as! FakeLLMService
+    mockService.configureResponse(for: "test", response: expectedResponse)
+
     // ACT: Perform the action being tested
-    try await testCase.test(.POST, "/api/endpoint") { request in
+    try await testWorld.app.test(.POST, "/api/endpoint") { request in
         try request.content.encode(testData)
     } afterResponse: { response in
         // ASSERT: Verify the results
-        XCTAssertEqual(response.status, .ok)
+        #expect(response.status == .ok)
         let result = try response.content.decode(ExpectedType.self)
-        XCTAssertEqual(result.property, expectedValue)
+        #expect(result.property == expectedValue)
     }
 }
 ```
 
 ### 4. Error Testing
 ```swift
+@Test("Service throws error for invalid input")
 func testServiceWithInvalidInputThrowsError() async throws {
-    let testCase = try UnitTestCase()
-    let service = try await testCase.application.serviceRegistry.resolveRequired(TargetService.self)
-    
-    await XCTAssertThrowsError(
-        try await service.processInvalidInput(),
-        "Service should throw error for invalid input"
-    ) { error in
-        XCTAssertTrue(error is ValidationError)
+    try await testWorld.app.test(.POST, "/api/endpoint") { request in
+        try request.content.encode(invalidData)
+    } afterResponse: { response in
+        #expect(response.status == .badRequest)
+
+        let error = try response.content.decode(ErrorResponse.self)
+        #expect(error.error == "validation_failed")
     }
 }
 ```
 
 ### 5. Async Testing
 ```swift
+@Test("Async service operation completes successfully")
 func testAsyncServiceOperation() async throws {
-    let testCase = try UnitTestCase()
-    let request = testCase.makeMockRequest()
-    
-    let result = try await request.application
-        .serviceRegistry
-        .resolveRequired(AsyncService.self)
-        .performAsyncOperation()
-    
-    XCTAssertNotNil(result)
+    let service = testWorld.app.aiCacheService
+
+    let result = try await service.get("test-key", as: String.self)
+
+    #expect(result != nil)
 }
 ```
 
-## 🎯 Testing Best Practices
+## Testing Best Practices
 
 ### 1. Test Isolation
-- Always use `TestWorld` for comprehensive setup
-- Reset test environment between tests
+- Each test suite creates fresh `IsolatedTestWorld`
+- Mock services injected via Application properties
 - Avoid shared state between test methods
 
 ### 2. Mock Configuration
@@ -948,14 +541,14 @@ func testAsyncServiceOperation() async throws {
 - Document complex test scenarios
 - Regularly review and update tests
 
-## 🚀 Running Tests
+## Running Tests
 
 ### Command Line Testing
 ```bash
 # Run all tests
 swift test
 
-# Run specific test categories
+# Run specific test suites
 swift test --filter AuthenticationTests
 swift test --filter SecurityTests
 swift test --filter PerformanceTests
@@ -967,7 +560,7 @@ swift test --verbose
 ### Test Environment Configuration
 Tests automatically configure:
 - In-memory SQLite database
-- Mock external services
+- Mock external services via property injection
 - Isolated JWT signers
 - Test-specific logging levels
 
@@ -978,20 +571,19 @@ The testing infrastructure is designed for continuous integration:
 - Comprehensive coverage reporting
 - Performance regression detection
 
-## 📊 Testing Metrics
+## Testing Metrics
 
 ### Current Status
-- **Test Classes**: 15+ comprehensive test suites
-- **Use Case Tests**: 25+ use case implementations with 150+ test methods
-- **Mock Services**: 8 fully-featured mock implementations  
-- **Coverage Areas**: Authentication, AI Security, Caching, Configuration, Clean Architecture
-- **Performance Tests**: Use cases, domain services, cache operations, API endpoints
-- **Architecture Coverage**: 100% test coverage for use cases and domain services
+- **Test Suites**: 15+ comprehensive test suites
+- **Test Methods**: 150+ test methods
+- **Mock Services**: 8 fully-featured mock implementations
+- **Coverage Areas**: Authentication, AI Security, Caching, Controllers
+- **Performance Tests**: Cache operations, API endpoints
 - **Build Time**: Project compiles successfully
 - **Test Infrastructure**: Fully functional and ready for development
 
 ### Quality Metrics
-- **Isolation**: ✅ All tests run in isolated environments
+- **Isolation**: ✅ All test suites run in isolated environments
 - **Reliability**: ✅ Predictable mock service behavior
 - **Performance**: ✅ Fast execution with in-memory databases
 - **Maintainability**: ✅ Standardized patterns and utilities

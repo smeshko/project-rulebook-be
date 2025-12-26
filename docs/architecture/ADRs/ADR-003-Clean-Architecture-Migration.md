@@ -1,8 +1,28 @@
 # Clean Architecture Migration and Evolution Guide
 
+> ⚠️ **SUPERSEDED** - December 2025
+>
+> This ADR documents a Clean Architecture implementation that was later simplified during
+> the Architecture Simplification initiative (see `docs/planning/archive/architecture-simplification/`).
+>
+> **What Changed**:
+> - Use Cases layer was removed - business logic now lives in controllers
+> - ServiceRegistry was replaced with simple property-based DI (`req.services.*`, `req.repositories.*`)
+> - ~6,000+ lines of infrastructure code were deleted
+>
+> **Current Architecture**: See `technical-architecture.md` for the current simplified architecture.
+>
+> **Reason**: The Clean Architecture patterns added significant complexity without proportional benefit
+> for this project's scale. The simplification retained testability while dramatically reducing
+> indirection and cognitive overhead.
+
+---
+
 ## Executive Summary
 
 This document chronicles the comprehensive transformation of Project Rulebook from a traditional Vapor application to a Clean Architecture implementation. It details the migration process, lessons learned, architectural decisions, and provides a roadmap for future evolution.
+
+> **Note**: This migration was later reversed in favor of a simpler controller-centric architecture.
 
 ## Migration Overview
 

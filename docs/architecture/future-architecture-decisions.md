@@ -460,7 +460,6 @@ Request → Middleware Chain → Router → Controller → Service → Repositor
 | Security | FR19-22 | ✅ Implemented |
 | Receipt Validation | FR23 | ✅ Architected |
 | Feedback API | FR24 | 📋 Planned |
-| Usage Analytics | FR25 | 📋 Planned |
 
 ### Implementation Readiness
 
@@ -526,7 +525,7 @@ This architecture document is your complete guide for implementing project-ruleb
 4. Add database migrations for transaction storage
 5. Connect to mobile app purchase flows
 6. Implement Feedback API for user rule corrections
-7. Add anonymous usage analytics collection
+7. Implement Phase 2 reliability and performance improvements
 
 ---
 
