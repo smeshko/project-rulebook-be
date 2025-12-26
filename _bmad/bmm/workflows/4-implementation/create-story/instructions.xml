@@ -1,5 +1,5 @@
 <workflow>
-  <critical>The workflow execution engine is governed by: {project-root}/{bmad_folder}/core/tasks/workflow.xml</critical>
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
 
@@ -381,9 +381,53 @@
     context engine analysis completed - comprehensive developer guide created"</action>
   </step>
 
-  <step n="6" goal="Update sprint status and finalize">
-    <invoke-task>Validate against checklist at {installed_path}/checklist.md using {bmad_folder}/core/tasks/validate-workflow.xml</invoke-task>
+  <step n="6" goal="Update sprint status, Linear integration, and finalize">
+    <invoke-task>Validate against checklist at {installed_path}/checklist.md using _bmad/core/tasks/validate-workflow.xml</invoke-task>
     <action>Save story document unconditionally</action>
+
+    <!-- Linear Issue Integration -->
+    <critical>Ensure story is linked to Linear issue tracking</critical>
+    <action>Check if project has .linear configuration file at {project-root}/.linear</action>
+
+    <check if=".linear config exists">
+      <action>Extract story title from {{story_key}} (e.g., "1-2-user-auth" → "User Auth")</action>
+      <action>Create Linear issue with title: "[{{story_id}}] {{story_title_formatted}}"</action>
+      <action>Run: python ~/.claude/skills/linear/scripts/create_issue.py \
+        --title "[{{story_id}}] {{story_title_formatted}}" \
+        --description "Story: {{story_key}}\nFile: {{story_file}}" \
+        --json</action>
+      <action>Parse the returned JSON to extract the issue identifier (e.g., "ENG-123")</action>
+      <action>Store as {{linear_issue_id}}</action>
+
+      <!-- Move issue to Todo state -->
+      <action>Get team workflow states: python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json</action>
+      <action>Find the state ID for "Todo" or "Backlog" status</action>
+      <action>Update issue to Todo state: python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
+
+      <!-- Update story file with Linear issue ID -->
+      <action>Update the story file's "Linear Issue:" field with {{linear_issue_id}}</action>
+      <action>Save story file</action>
+
+      <!-- Update Linear issue with full story content -->
+      <action>Read the complete story file content from {{story_file}}</action>
+      <action>Update the Linear issue description with the full story content:
+        python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} \
+          --description "{{full_story_content}}"
+      </action>
+
+      <output>🔗 **Linear Issue Created:** {{linear_issue_id}}
+        Status: Todo
+        Description: Updated with full story content
+        Link: https://linear.app/issue/{{linear_issue_id}}
+      </output>
+    </check>
+
+    <check if=".linear config does NOT exist">
+      <output>ℹ️ No .linear configuration found - skipping Linear integration
+        To enable: Create .linear file in project root with workspace config
+      </output>
+      <action>Set {{linear_issue_id}} = "not-configured"</action>
+    </check>
 
     <!-- Update sprint status -->
     <check if="sprint status file exists">

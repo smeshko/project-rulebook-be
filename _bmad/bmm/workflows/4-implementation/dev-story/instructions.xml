@@ -7,7 +7,7 @@
     Continue until story is COMPLETE or explicit HALT condition.
     STOPPING TO ASK PERMISSION IS A SYSTEM FAILURE.</critical>
 
-  <critical>The workflow execution engine is governed by: {project-root}/{bmad_folder}/core/tasks/workflow.xml</critical>
+  <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and language MUST be tailored to {user_skill_level}</critical>
   <critical>Generate all documents in {document_output_language}</critical>
@@ -274,7 +274,23 @@
     </check>
   </step>
 
-  <step n="4" goal="Mark story in-progress" tag="sprint-status">
+  <step n="4" goal="Mark story in-progress and update Linear" tag="sprint-status">
+    <!-- Linear Issue Status Update -->
+    <action>Check if project has .linear configuration file at {project-root}/.linear</action>
+    <action>Extract Linear issue ID from story file's "Linear Issue:" field</action>
+
+    <check if=".linear config exists AND linear_issue_id is valid (not empty or 'not-configured')">
+      <action>Get team workflow states: python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json</action>
+      <action>Find the state ID for "In Progress" status</action>
+      <action>Update Linear issue: python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} --state-id {{in_progress_state_id}}</action>
+      <output>🔗 **Linear Issue Updated:** {{linear_issue_id}} → In Progress</output>
+    </check>
+
+    <check if=".linear config does NOT exist OR linear_issue_id is invalid">
+      <note>Skipping Linear update - no configuration or issue ID</note>
+    </check>
+
+    <!-- Sprint Status Update -->
     <check if="{{sprint_status}} file exists">
       <action>Load the FULL file: {{sprint_status}}</action>
       <action>Read all development_status entries to find {{story_key}}</action>
@@ -410,6 +426,17 @@
     <critical>COMMIT IS MANDATORY - Agent MUST NOT proceed to next task without completing this entire sequence</critical>
 
     <check if="{{task_validated}} == true">
+      <!-- Sync story state to Linear -->
+      <action>Check if .linear config exists AND linear_issue_id is valid</action>
+      <check if="Linear is configured">
+        <action>Read the complete updated story file content</action>
+        <action>Update Linear issue description with current story state:
+          python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} \
+            --description "{{full_story_content}}"
+        </action>
+        <note>Linear issue now reflects: completed tasks, dev notes, file list updates</note>
+      </check>
+
       <!-- Determine commit type based on task nature -->
       <action>Determine commit type from task description:
         - If task mentions "fix", "bug", "resolve", "address" → type = "fix"

@@ -1,6 +1,7 @@
 # Story {{epic_num}}.{{story_num}}: {{story_title}}
 
 Status: drafted
+Linear Issue: {{linear_issue_id}}
 
 ## Story
 

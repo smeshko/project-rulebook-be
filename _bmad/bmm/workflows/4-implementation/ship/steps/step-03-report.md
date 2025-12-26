@@ -102,6 +102,16 @@ Output to stdout:
 
 #### IF deployment succeeded:
 
+**Update Linear Issue to Done (if configured):**
+
+1. Check if .linear config exists at {project-root}/.linear
+2. Check if there's a story context with Linear issue ID (from sprint artifacts or environment)
+3. If Linear is configured and issue ID available:
+   - Get team states: `python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json`
+   - Find "Done" or "Completed" state ID from the workflow states
+   - Update issue: `python ~/.claude/skills/linear/scripts/update_issue.py {linear_issue_id} --state-id {done_state_id}`
+   - Log: `[step-03] 🔗 Linear Issue Updated: {linear_issue_id} → Done`
+
 Output to stdout:
 ```
 [step-03]
@@ -110,6 +120,7 @@ Output to stdout:
 [step-03] Version [version] has been deployed successfully!
 [step-03] Destination: [where it was published]
 [step-03] Duration: [time elapsed]
+[step-03] Linear: [issue_id] → Done (if configured)
 [step-03]
 [step-03] Exit Code: 0
 [step-03] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

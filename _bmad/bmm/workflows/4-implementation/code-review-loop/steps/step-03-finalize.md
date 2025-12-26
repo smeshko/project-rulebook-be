@@ -83,6 +83,39 @@ Update `{sprint_status_file}` to mark the story as done:
 {story-key}: done
 ```
 
+### 2b. Update Linear Issue Status
+
+Move the Linear issue to "In Review" state:
+
+```bash
+# Check if .linear config exists
+if [ -f "{project-root}/.linear" ]; then
+  # Extract Linear issue ID from story file
+  linear_issue_id=$(grep -E "^Linear Issue:" {story_file} | sed 's/Linear Issue: *//')
+
+  if [ -n "$linear_issue_id" ] && [ "$linear_issue_id" != "not-configured" ]; then
+    # Get workflow states and find "In Review" state ID
+    states_json=$(python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json)
+    # Parse to find "In Review" or "Review" state ID
+
+    # Update the issue status
+    python ~/.claude/skills/linear/scripts/update_issue.py "$linear_issue_id" --state-id {in_review_state_id}
+
+    echo "🔗 Linear Issue Updated: $linear_issue_id → In Review"
+  fi
+fi
+```
+
+**Alternative approach (recommended):**
+
+1. Extract `linear_issue_id` from story file's "Linear Issue:" field
+2. Check if .linear config exists at {project-root}/.linear
+3. If both valid:
+   - Get team states: `python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json`
+   - Find "In Review" state ID from the workflow states
+   - Update issue: `python ~/.claude/skills/linear/scripts/update_issue.py {linear_issue_id} --state-id {in_review_state_id}`
+4. Display: "🔗 **Linear Issue Updated:** {linear_issue_id} → In Review"
+
 ### 3. Print Terminal Summary
 
 Display comprehensive summary:
