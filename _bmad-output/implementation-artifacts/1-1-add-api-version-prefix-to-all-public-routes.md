@@ -1,6 +1,6 @@
 # Story 1.1: Add API Version Prefix to All Public Routes
 
-Status: Ready for Review
+Status: Done
 Linear Issue: not-configured
 
 ## Story
