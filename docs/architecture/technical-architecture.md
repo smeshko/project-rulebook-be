@@ -111,8 +111,8 @@ Input → Sanitization → Injection Detection → AI Processing → Response Va
 - 80% API cost reduction
 
 **Endpoints**:
-- `POST /api/rules-generation/game-box-analysis` - Analyze game box
-- `POST /api/rules-generation/rules-summary` - Generate rules
+- `POST /api/v1/rules-generation/game-box-analysis` - Analyze game box
+- `POST /api/v1/rules-generation/rules-summary` - Generate rules
 
 #### 5. CacheAdminModule
 **Purpose**: Cache management and monitoring
@@ -137,9 +137,9 @@ Input → Sanitization → Injection Detection → AI Processing → Response Va
 - Email notification integration
 
 **Endpoints**:
-- `POST /api/waitlist/subscribe` - Join waitlist
-- `GET /api/waitlist/unsubscribe` - Remove from waitlist
-- `POST /api/waitlist/notify` - Admin: send notifications
+- `POST /api/v1/waitlist/subscribe` - Join waitlist
+- `GET /api/v1/waitlist/unsubscribe` - Remove from waitlist
+- `POST /api/v1/waitlist/notify` - Admin: send notifications
 
 ## Service Layer & Dependency Injection
 

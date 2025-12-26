@@ -1,0 +1,28 @@
+[
+  {
+    "session_id": "62964881-484c-4b47-b019-0915c2fc7c57",
+    "transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/62964881-484c-4b47-b019-0915c2fc7c57.jsonl",
+    "cwd": "/Users/A1E6E98/Developer/Projects/project-rulebook/project-rulebook-be/trees/cd6cc78d",
+    "permission_mode": "default",
+    "hook_event_name": "SubagentStop",
+    "stop_hook_active": false,
+    "agent_id": "a4d4dcf",
+    "agent_transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/agent-a4d4dcf.jsonl",
+    "adw_id": null,
+    "issue_id": null,
+    "phase": null
+  },
+  {
+    "session_id": "62964881-484c-4b47-b019-0915c2fc7c57",
+    "transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/62964881-484c-4b47-b019-0915c2fc7c57.jsonl",
+    "cwd": "/Users/A1E6E98/Developer/Projects/project-rulebook/project-rulebook-be/trees/cd6cc78d",
+    "permission_mode": "default",
+    "hook_event_name": "SubagentStop",
+    "stop_hook_active": false,
+    "agent_id": "affef04",
+    "agent_transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/agent-affef04.jsonl",
+    "adw_id": null,
+    "issue_id": null,
+    "phase": null
+  }
+]

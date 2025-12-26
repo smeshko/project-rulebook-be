@@ -1,0 +1,13 @@
+[
+  {
+    "session_id": "2bfd5383-bc56-479e-b81a-bf1e02c42e4b",
+    "transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/2bfd5383-bc56-479e-b81a-bf1e02c42e4b.jsonl",
+    "cwd": "/Users/A1E6E98/Developer/Projects/project-rulebook/project-rulebook-be/trees/cd6cc78d",
+    "permission_mode": "default",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false,
+    "adw_id": null,
+    "issue_id": null,
+    "phase": null
+  }
+]
