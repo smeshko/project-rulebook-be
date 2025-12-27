@@ -35,32 +35,44 @@ private final class SharedTestRepositories: @unchecked Sendable {
 private actor SharedTestApplication {
     static let shared = SharedTestApplication()
     private var _app: Application?
-    
+
     private init() {}
-    
+
+    deinit {
+        // Ensure proper cleanup when actor is deallocated
+        _app?.shutdown()
+    }
+
     func getSharedApp() async throws -> Application {
         if let app = _app {
             return app
         }
-        
+
         let app = try await Application.make(.testing)
-        
+
         // Pre-configure test repositories and services BEFORE running configure()
         let testWorld = try TestWorldPreConfiguration(app: app)
-        testWorld.setupTestRepositories() 
+        testWorld.setupTestRepositories()
         testWorld.setupTestServices()
-        
+
         try configure(app)
         self._app = app
-        
+
         // Reset repositories for clean test state
         await SharedTestRepositories.shared.reset()
-        
+
         return app
     }
-    
+
     func resetRepositories() async {
         await SharedTestRepositories.shared.reset()
+    }
+
+    func shutdown() async {
+        if let app = _app {
+            try? await app.asyncShutdown()
+            _app = nil
+        }
     }
 }
 

@@ -1,0 +1,53 @@
+# Project Configuration
+# Auto-generated for Swift/Vapor project
+
+test:
+  # Pre-test commands (run before tests)
+  pre_commands:
+    - name: "Clean build artifacts"
+      command: "swift package clean"
+      enabled: false
+      description: "Clean build artifacts before running tests"
+
+  # Unit tests
+  unit:
+    enabled: true
+    command: "swift test"
+    description: "Run all Swift unit tests"
+    timeout: 600000  # 10 minutes
+
+  # E2E tests (disabled by default)
+  e2e:
+    enabled: false
+    command: "swift test --filter E2E"
+    description: "Run end-to-end tests"
+
+  # Linting
+  lint:
+    enabled: false
+    command: "swiftlint"
+    description: "Run SwiftLint"
+
+  # Type checking
+  typecheck:
+    enabled: true
+    command: "swift build"
+    description: "Type check by building the project"
+    timeout: 600000  # 10 minutes
+
+  # Custom test commands
+  custom: []
+
+# Build configuration
+build:
+  commands:
+    - name: "Build"
+      command: "swift build"
+      enabled: true
+    - name: "Build Release"
+      command: "swift build -c release"
+      enabled: false
+
+# Deployment configuration
+deploy:
+  commands: []
