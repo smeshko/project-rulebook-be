@@ -2,6 +2,7 @@
   <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate elsewhere. All paths are relative to cwd.</critical>
 
   <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
   <context-boundaries>

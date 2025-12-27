@@ -7,6 +7,8 @@
     Continue until story is COMPLETE or explicit HALT condition.
     STOPPING TO ASK PERMISSION IS A SYSTEM FAILURE.</critical>
 
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). NEVER use 'cd' to navigate to a different directory. All file paths and git commands must operate in cwd. This is critical for git worktree environments.</critical>
+
   <critical>The workflow execution engine is governed by: {project-root}/_bmad/core/tasks/workflow.xml</critical>
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and language MUST be tailored to {user_skill_level}</critical>

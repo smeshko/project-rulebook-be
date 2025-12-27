@@ -7,6 +7,7 @@
     <mandate>Execute ALL steps in instructions IN EXACT ORDER</mandate>
     <mandate>Save to template output file after EVERY "template-output" tag</mandate>
     <mandate>NEVER skip a step - YOU are responsible for every steps execution without fail or excuse</mandate>
+    <mandate>WORKTREE SUPPORT: {project-root} is ALWAYS the current working directory (pwd). Never use 'cd' to navigate to a different project directory. All file paths must be relative to cwd or use {project-root} which equals cwd.</mandate>
   </llm>
 
   <WORKFLOW-RULES critical="true">
@@ -23,7 +24,12 @@
         <mandate>Load config_source (REQUIRED for all modules)</mandate>
         <phase n="1">Load external config from config_source path</phase>
         <phase n="2">Resolve all {config_source}: references with values from config</phase>
-        <phase n="3">Resolve system variables (date:system-generated) and paths ({project-root}, {installed_path})</phase>
+        <phase n="3">Resolve system variables and paths:
+          <critical>{project-root} = Current Working Directory (pwd) at session start. NEVER traverse up to find a git root or main repo. This is essential for git worktree support where the cwd may be a worktree subdirectory.</critical>
+          <resolve var="project-root">Use the ACTUAL current working directory. Do NOT use absolute paths from config files if they differ from cwd.</resolve>
+          <resolve var="installed_path">Path to the workflow's own directory, relative to {project-root}</resolve>
+          <resolve var="date">System-generated current date</resolve>
+        </phase>
         <phase n="4">Ask user for input of any variables that are still unknown</phase>
       </substep>
 

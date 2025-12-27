@@ -65,7 +65,37 @@ Use the first one that responds successfully.
 3. Poll health endpoint until ready (timeout: 30s)
 4. If startup fails, include error in report and abort
 
-### 6. Test Endpoints
+### 6. Authenticate (if required)
+
+Before testing endpoints, check if authentication is needed:
+
+**Step 1: Detect auth requirements**
+- Look for auth-related endpoints in the plan (login, signin, auth, token)
+- Check for protected routes mentioned (requires auth, authenticated, etc.)
+- Look for JWT, Bearer, API key references
+
+**Step 2: Find test credentials**
+Search in order:
+1. `.env` or `.env.test` files for: `TEST_USER`, `TEST_PASSWORD`, `TEST_EMAIL`, `API_KEY`, `TEST_TOKEN`
+2. `config/` directory for test configuration
+3. Plan file for example credentials or test user info
+4. Seeds or fixtures for test users
+
+**Step 3: Authenticate**
+If login endpoint found and credentials available:
+```bash
+# Example: POST to login endpoint
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "$TEST_EMAIL", "password": "$TEST_PASSWORD"}'
+```
+
+Extract the token from the response (look for `token`, `accessToken`, `access_token`, `jwt`).
+
+**Step 4: Store token for subsequent requests**
+Use the token as `Authorization: Bearer <token>` header for all protected endpoints.
+
+### 7. Test Endpoints
 
 For each discovered endpoint, use [test_endpoint.py](scripts/test_endpoint.py):
 
@@ -74,22 +104,22 @@ python scripts/test_endpoint.py --method GET --url "http://localhost:3000/api/us
 ```
 
 **Authentication handling:**
-- Check for auth configuration in project (env files, config)
-- Look for test tokens or API keys
-- If auth required but not found, note in report and attempt unauthenticated
+- Use the token obtained in step 6 for all requests
+- If auth fails (401/403), note in report but continue testing
+- Try endpoints both with and without auth if unclear
 
 Capture for each endpoint:
 - Request details (method, URL, headers, body)
 - Response (status, headers, body, duration)
 - Any errors
 
-### 7. Stop Server
+### 8. Stop Server
 
 1. Send SIGTERM to server process
 2. Wait up to 5s for graceful shutdown
 3. Send SIGKILL if still running
 
-### 8. Generate Report
+### 9. Generate Report
 
 Return a structured report to the main agent using the format from [output-formats.md](references/output-formats.md).
 

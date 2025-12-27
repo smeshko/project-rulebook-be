@@ -5,6 +5,7 @@
   <critical>Execute ALL steps in exact order; do NOT skip steps</critical>
   <critical>This is an AUTONOMOUS workflow - make decisions automatically based on project state</critical>
   <critical>INFORM the user of decisions, do NOT ask for input except in Step 1 (uncommitted changes)</critical>
+  <critical>WORKTREE SUPPORT: {project-root} = current working directory (pwd). When invoking child workflows (dev-story), they inherit the cwd which may be a worktree. Child workflows must NOT navigate back to a different directory.</critical>
 
   <step n="1" goal="Verify git state and handle uncommitted changes">
     <critical>Ensure clean working tree before proceeding</critical>
