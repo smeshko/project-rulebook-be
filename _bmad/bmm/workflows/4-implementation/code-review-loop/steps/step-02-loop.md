@@ -91,20 +91,75 @@ Execute review based on `review_mode` setting from step 1.
 
 #### 2a. Build the Review Prompt
 
-**Base prompt (always included):**
+Construct the review prompt with exact output format specification.
+
+**Base prompt structure:**
 ```
-Run the /bmad:bmm:workflows:code-review workflow on the current branch. Return findings as a structured list with: severity (HIGH/MEDIUM/LOW), file path, line number, issue description, and suggested fix.
+You are an adversarial code reviewer. Analyze the code changes on this branch and find issues.
+
+## Files to Review
+{List of changed_files from step 1}
+
+## Story Context
+{Story acceptance criteria and dev notes}
+
+## Architecture Context
+{Relevant architecture patterns}
+
+## Your Task
+Find code quality issues: bugs, security vulnerabilities, logic errors, missing error handling,
+violations of project patterns, incomplete implementations, and test gaps.
+
+## REQUIRED OUTPUT FORMAT (strict JSON)
+
+Return your findings as a JSON array. Each finding MUST follow this exact structure:
+
+```json
+{
+  "findings": [
+    {
+      "severity": "HIGH|MEDIUM|LOW",
+      "file": "path/to/file.ext",
+      "line": 42,
+      "issue": "Clear description of the problem",
+      "suggested_fix": "Specific fix recommendation",
+      "category": "bug|security|logic|error-handling|pattern|incomplete|test"
+    }
+  ],
+  "summary": {
+    "high_count": 0,
+    "medium_count": 0,
+    "low_count": 0,
+    "files_reviewed": 5
+  }
+}
 ```
 
-**If `cycle_count > 1` AND `issues_skipped` is not empty, append this context:**
+If no issues found, return:
+```json
+{
+  "findings": [],
+  "summary": {
+    "high_count": 0,
+    "medium_count": 0,
+    "low_count": 0,
+    "files_reviewed": 5
+  }
+}
 ```
 
-IMPORTANT: The following issues were found in previous cycles but dismissed as false positives. DO NOT report these issues again:
+IMPORTANT: Output ONLY the JSON. No markdown, no explanation, no preamble.
+```
+
+**If `cycle_count > 1` AND `issues_skipped` is not empty, append exclusion context:**
+```
+
+## EXCLUDED ISSUES (Already Dismissed as False Positives)
+DO NOT report these issues - they were validated and dismissed in previous cycles:
 
 {For each item in issues_skipped:}
 - File: {file}, Line: {line}
   Issue: {issue}
-  Suggested Fix: {suggested_fix}
   Reason Dismissed: {reason}
 
 Focus only on NEW issues not listed above.
@@ -114,16 +169,33 @@ Focus only on NEW issues not listed above.
 
 ---
 
-##### MODE: "fast" (GLM-only, default)
+##### MODE: "fast" (GLM-only via subagent, default)
 
-Display: "⚡ Running GLM review..."
+Display: "⚡ Running GLM review in background..."
 
-Execute via z.ai GLM:
-```bash
-~/.claude/skills/zai/scripts/zai.sh --model sonnet "headless=true auto_fix_mode=report-only {constructed_prompt}"
+**Spawn GLM subagent in background:**
+
+Use the Task tool with:
+- `subagent_type`: "glm"
+- `run_in_background`: true
+- `description`: "GLM code review cycle {cycle_count}"
+- `prompt`: The constructed review prompt from 2a
+
+Example invocation pattern:
+```
+Task(
+  subagent_type: "glm",
+  run_in_background: true,
+  description: "GLM code review cycle {cycle_count}",
+  prompt: "{constructed_prompt with JSON output format}"
+)
 ```
 
-**Timeout:** 5 minutes (300000ms) - GLM is typically 3-5x faster than Codex.
+**While GLM runs:** You may continue with other lightweight checks or simply wait.
+
+**Retrieve results:** Use `TaskOutput(task_id: {glm_task_id}, block: true, timeout: 300000)` to get results.
+
+**Parse the JSON response** into the findings structure.
 
 **If GLM fails (error, timeout, or API unavailable):**
 - Display: "⚠️ GLM review failed, falling back to Codex..."
@@ -149,68 +221,101 @@ codex exec --full-auto \
 
 ---
 
-##### MODE: "thorough" (GLM + Codex in parallel)
+##### MODE: "thorough" (GLM + Codex in parallel via subagents)
 
 Display: "🔍 Running thorough review (GLM + Codex in parallel)..."
 
-**Execute BOTH reviewers simultaneously:**
+**Spawn BOTH reviewers as background subagents simultaneously:**
 
-1. Start GLM review (background):
-   ```bash
-   ~/.claude/skills/zai/scripts/zai.sh --model sonnet "headless=true auto_fix_mode=report-only {constructed_prompt}"
+1. **Start GLM review (background subagent):**
    ```
+   Task(
+     subagent_type: "glm",
+     run_in_background: true,
+     description: "GLM review cycle {cycle_count}",
+     prompt: "{constructed_prompt with JSON output format}"
+   )
+   ```
+   Store the returned `task_id` as `glm_task_id`.
 
-2. Start Codex review (background):
+2. **Start Codex review (background):**
    ```bash
    codex exec --full-auto \
      -c 'headless=true' \
      -c 'auto_fix_mode="report-only"' \
-     "{constructed_prompt}"
+     "{constructed_prompt}" &
    ```
+   Run in background shell, capture process for later.
 
-3. Wait for both to complete (timeout: 10 minutes for the slower one)
+3. **Wait for both to complete:**
+   - `TaskOutput(task_id: glm_task_id, block: true, timeout: 600000)`
+   - Wait for Codex background process
 
 4. **Merge findings:**
-   - Collect all findings from both reviewers
+   - Parse JSON from GLM subagent response
+   - Parse Codex output (may need flexible parsing)
    - Deduplicate by file+line+issue similarity
-   - If both find same issue → higher confidence
-   - If only one finds issue → still include, will be validated in step 4
-   - Track source: `found_by: "glm" | "codex" | "both"`
+   - If both find same issue → mark `found_by: "both"` (higher confidence)
+   - If only one finds issue → mark `found_by: "glm"` or `found_by: "codex"`
 
 **If one reviewer fails:** Continue with the other's findings.
 **If both fail:** Set `exit_reason = "review_failed"` and proceed to step 3.
 
 ---
 
-Capture the output (merged if thorough mode).
+Capture the output (merged if thorough mode). Parse JSON into findings array.
 
 ### 3. Parse Review Findings
 
-Parse the reviewer output to extract findings. Expected format:
+Parse the JSON response from the reviewer(s).
 
+**Expected JSON structure:**
+```json
+{
+  "findings": [
+    {
+      "severity": "HIGH|MEDIUM|LOW",
+      "file": "path/to/file.ext",
+      "line": 42,
+      "issue": "Description of the problem",
+      "suggested_fix": "How to fix it",
+      "category": "bug|security|logic|error-handling|pattern|incomplete|test"
+    }
+  ],
+  "summary": {
+    "high_count": 0,
+    "medium_count": 0,
+    "low_count": 0,
+    "files_reviewed": 5
+  }
+}
 ```
-FINDING 1:
-  Severity: HIGH|MEDIUM|LOW
-  File: path/to/file.py
-  Line: 42
-  Issue: Description of the problem
-  Suggested Fix: How to fix it
-  Found By: glm|codex|both  (only in thorough mode)
 
-FINDING 2:
-  ...
-```
+**Parsing logic:**
 
-If reviewer returns "No issues found" or empty findings:
+1. Extract JSON from the subagent response (may be wrapped in markdown code blocks)
+2. Parse into structured `findings` array
+3. In thorough mode, add `found_by` field to each finding during merge
+
+**If `findings` array is empty:**
 - Set `exit_reason = "clean"`
+- Display: "✅ No issues found - code is clean"
 - Proceed to step 3 (finalize)
 
-**In thorough mode:** Display count from each source:
+**Display findings summary:**
 ```
-  GLM found: {glm_count} issues
-  Codex found: {codex_count} issues
-  Both found: {both_count} issues (high confidence)
-  Total unique: {total_count} issues
+  Review findings: {total_count} issues
+    HIGH: {high_count}
+    MEDIUM: {medium_count}
+    LOW: {low_count}
+```
+
+**In thorough mode, also display source breakdown:**
+```
+  Source breakdown:
+    GLM only: {glm_only_count}
+    Codex only: {codex_only_count}
+    Both (high confidence): {both_count}
 ```
 
 ### 4. Validate Each Finding
@@ -264,9 +369,13 @@ For each VALID issue:
    ```
    issues_fixed.append({
      cycle: cycle_count,
+     severity: "HIGH|MEDIUM|LOW",
      file: "path/to/file",
+     line: 42,
      issue: "Brief description",
-     fix: "What was changed"
+     fix: "What was changed",
+     category: "bug|security|logic|...",
+     found_by: "glm|codex|both"  // only in thorough mode
    })
    ```
 
@@ -274,16 +383,18 @@ For each VALID issue:
 
 For each FALSE_POSITIVE:
 1. Do NOT modify any code
-2. Add to tracking with FULL context (so Codex won't report it again):
+2. Add to tracking with FULL context (so reviewer won't report it again):
    ```
    issues_skipped.append({
      cycle: cycle_count,
      severity: "HIGH|MEDIUM|LOW",
      file: "path/to/file",
      line: 42,
-     issue: "Full issue description from Codex",
-     suggested_fix: "The fix Codex suggested",
-     reason: "Why this was dismissed"
+     issue: "Full issue description from reviewer",
+     suggested_fix: "The fix suggested",
+     category: "bug|security|logic|...",
+     reason: "Why this was dismissed",
+     found_by: "glm|codex|both"  // only in thorough mode
    })
    ```
 
@@ -354,9 +465,11 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 ### ✅ SUCCESS:
 
-- Reviewer(s) invoked correctly based on review_mode
+- GLM subagent spawned in background correctly (fast/thorough modes)
+- TaskOutput used to retrieve subagent results with proper timeout
+- JSON response parsed correctly into findings structure
 - GLM fallback to Codex works when needed (fast mode)
-- Parallel execution works correctly (thorough mode)
+- Parallel subagent execution works correctly (thorough mode)
 - Findings properly merged and deduplicated (thorough mode)
 - Each finding validated before action
 - Valid issues fixed, false positives dismissed
@@ -366,6 +479,9 @@ This step contains an internal loop. Only proceed to step-03-finalize.md when an
 
 ### ❌ SYSTEM FAILURE:
 
+- Not using Task tool with run_in_background for GLM subagent
+- Not using TaskOutput to retrieve subagent results
+- Failing to parse JSON response from subagent
 - Fixing issues without validation
 - Not committing after fixes
 - Exceeding 2 cycles

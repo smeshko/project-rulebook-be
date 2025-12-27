@@ -157,6 +157,7 @@ Summary:
 - Issues found: [Y]
 - Issues fixed: [Z]
 - Commit: [hash]
+- Pushed: [Yes/No - include warning if failed]
 
 Standard documentation gaps have been addressed.
 ```
@@ -174,6 +175,7 @@ Summary:
 - Feature doc created: docs/features/[name].md
 - Conditional guide: [Created/Updated]
 - Commit: [hash]
+- Pushed: [Yes/No - include warning if failed]
 
 New reusable knowledge has been captured and made discoverable!
 ```

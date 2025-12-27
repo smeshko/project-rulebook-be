@@ -235,7 +235,7 @@ Read the existing file and add:
 | [Created/Updated] | Added entry for [feature] |
 | Conditions | [list of conditions] |"
 
-### 7. Commit All Documentation Changes
+### 7. Commit and Push Documentation Changes
 
 Stage all modified documentation files:
 
@@ -257,6 +257,19 @@ Conditional docs guide:
 ```
 
 Display: "Committed documentation updates in [commit hash]"
+
+**Push changes to remote:**
+
+```bash
+git push
+```
+
+Display: "Pushed documentation changes to remote"
+
+**If push fails:**
+- Display warning: "⚠️ Push failed - changes committed locally but not pushed"
+- Store push_status = "failed" for reporting
+- Continue to next step (don't halt workflow)
 
 ### 8. Store Update Context and Proceed
 

@@ -19,11 +19,29 @@
 
   <step n="1" goal="Determine target story">
     <!-- ADW SDK Integration: Check for ADW environment first -->
-    <check if="environment variable ADW_ISSUE_BODY is set and non-empty">
-      <critical>Running in ADW environment - parse story ID from ADW_ISSUE_BODY</critical>
-      <action>Parse story ID from ADW_ISSUE_BODY (expected format: "1.2" or "1-2")</action>
-      <action>Extract epic_num (first number) and story_num (second number)</action>
-      <action>Set {{epic_num}} and {{story_num}} from parsed values</action>
+    <check if="environment variable ADW_STATE_FILE is set and file exists">
+      <critical>Running in ADW environment - detect via ADW_STATE_FILE existence</critical>
+
+      <!-- Verify ADW_STATE_FILE exists -->
+      <action>Check ADW environment:
+        if [ -n "$ADW_STATE_FILE" ] && [ -f "$ADW_STATE_FILE" ]; then
+          echo "ADW environment detected"
+        fi
+      </action>
+
+      <!-- Parse story ID from ADW_ISSUE_BODY if available -->
+      <check if="environment variable ADW_ISSUE_BODY is set and non-empty">
+        <action>Parse story ID from ADW_ISSUE_BODY (expected format: "1.2" or "1-2")</action>
+        <action>Extract epic_num (first number) and story_num (second number)</action>
+        <action>Set {{epic_num}} and {{story_num}} from parsed values</action>
+      </check>
+
+      <!-- Fallback: Check if story_id already exists in state file -->
+      <check if="ADW_ISSUE_BODY not set but story_id exists in ADW_STATE_FILE">
+        <action>Read story_id from state: jq -r '.story_id // empty' "$ADW_STATE_FILE"</action>
+        <action>Parse {{epic_num}} and {{story_num}} from story_id</action>
+      </check>
+
       <action>Derive {{story_key}} by looking up the story in epics file or sprint-status matching epic_num-story_num pattern</action>
       <action>Set {{story_id}} = "{{epic_num}}.{{story_num}}"</action>
 
@@ -33,7 +51,7 @@
       <action>Write updated state back to $ADW_STATE_FILE using:
         jq '. + {"story_id": "{{story_id}}"}' $ADW_STATE_FILE > tmp.json && mv tmp.json $ADW_STATE_FILE
       </action>
-      <output>🤖 ADW Mode: Story {{story_id}} loaded from ADW_ISSUE_BODY</output>
+      <output>🤖 ADW Mode: Story {{story_id}} detected from ADW environment</output>
       <action>GOTO step 1b</action>
     </check>
 
@@ -384,6 +402,14 @@
   <step n="6" goal="Update sprint status, Linear integration, and finalize">
     <invoke-task>Validate against checklist at {installed_path}/checklist.md using _bmad/core/tasks/validate-workflow.xml</invoke-task>
     <action>Save story document unconditionally</action>
+
+    <!-- ADW SDK Integration: Update plan_file in state for subsequent phases -->
+    <check if="environment variable ADW_STATE_FILE is set and file exists">
+      <action>Update ADW state with plan_file pointing to the created story:
+        jq '. + {"plan_file": "{{story_file}}"}' $ADW_STATE_FILE > tmp.json && mv tmp.json $ADW_STATE_FILE
+      </action>
+      <output>🤖 ADW: Updated plan_file in state → {{story_file}}</output>
+    </check>
 
     <!-- Linear Issue Integration -->
     <critical>Ensure story is linked to Linear issue tracking</critical>

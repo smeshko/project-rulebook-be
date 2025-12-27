@@ -191,20 +191,27 @@
     <!-- ================================================================== -->
     <!-- COMMIT CONTRACT - Agent MUST verbally acknowledge this commitment  -->
     <!-- ================================================================== -->
-    <critical>COMMIT CONTRACT ACKNOWLEDGMENT REQUIRED</critical>
-    <output>📋 **Commit Contract**
+    <critical>COMMIT CONTRACT ACKNOWLEDGMENT REQUIRED - MUST BE VERBALIZED EXACTLY AS WRITTEN</critical>
+    <critical>🚨 FAILURE TO COMMIT AFTER EACH TASK IS A SYSTEM FAILURE - NO EXCEPTIONS</critical>
+    <output>📋 **COMMIT CONTRACT - I SHALL HONOR THIS**
 
-      Before proceeding with implementation, I acknowledge and commit to the following:
+      Before proceeding with implementation, I solemnly acknowledge and commit to the following:
 
-      **🔒 I WILL COMMIT AFTER EVERY TASK COMPLETION.**
+      **🔒 I SHALL COMMIT AFTER EVERY SINGLE TASK COMPLETION.**
 
       This means:
-      - After each task passes validation, I will immediately run `git add -A` and `git commit`
-      - I will use conventional commit format: `&lt;type&gt;(story-{{story_key}}): &lt;description&gt;`
-      - I will NOT proceed to the next task until the commit is verified
-      - I will NOT skip commits under any circumstances
+      - After EACH task passes validation, I SHALL immediately run `git add -A` and `git commit`
+      - I SHALL use conventional commit format: `&lt;type&gt;(story-{{story_key}}): &lt;description&gt;`
+      - I SHALL NOT proceed to the next task until the commit is verified
+      - I SHALL NOT batch multiple tasks into one commit
+      - I SHALL NOT skip commits under any circumstances
+      - After each commit, I SHALL explicitly state: "✅ COMMIT CONTRACT HONORED - Task N committed"
 
-      This contract is non-negotiable and I am bound by it for this entire session.
+      **This contract is NON-NEGOTIABLE. Batching tasks or skipping commits is a SYSTEM FAILURE.**
+
+      I understand that after completing Task 1, I must commit before starting Task 2.
+      I understand that after completing Task 2, I must commit before starting Task 3.
+      And so on for every task in this story.
     </output>
 
     <!-- ================================================================== -->
@@ -227,10 +234,15 @@
       This contract is non-negotiable and I am bound by it for this entire session.
     </output>
 
+    <!-- Initialize commit tracking -->
+    <action>Initialize {{tasks_committed}} = 0</action>
+    <action>Initialize {{current_task_number}} = 0</action>
+
     <output>✅ **Context Loaded**
       Story and project context available for implementation
       Commit contract acknowledged and active
       Continuous execution contract acknowledged and active
+      Commit counter initialized: 0 tasks committed
     </output>
   </step>
 
@@ -326,6 +338,10 @@
 
   <step n="5" goal="Implement task following red-green-refactor cycle">
     <critical>FOLLOW THE STORY FILE TASKS/SUBTASKS SEQUENCE EXACTLY AS WRITTEN - NO DEVIATION</critical>
+
+    <!-- Track current task number -->
+    <action>Increment {{current_task_number}} by 1</action>
+    <output>📌 **Starting Task {{current_task_number}}** (Commits so far: {{tasks_committed}})</output>
 
     <action>Review the current task/subtask from the story file - this is your authoritative implementation guide</action>
     <action>Plan implementation following red-green-refactor cycle</action>
@@ -466,11 +482,20 @@
       </action>
       <action>Run: git rev-parse HEAD</action>
       <action>Store result as {{last_commit_sha}}</action>
-      <output>✅ **COMMITTED** (Contract Honored)
+      <action>Increment {{tasks_committed}} counter</action>
+
+      <!-- MANDATORY: Verbalize contract honored -->
+      <critical>MUST explicitly state the contract honored message - this is NOT optional</critical>
+      <output>✅ **COMMIT CONTRACT HONORED - Task {{current_task_number}} committed**
+
         ```
         {{commit_type}}(story-{{story_key}}): {{task_summary_lowercase}}
         ```
-        SHA: {{last_commit_sha}}</output>
+        SHA: {{last_commit_sha}}
+
+        Tasks committed this session: {{tasks_committed}}
+        Contract Status: HONORED ✓
+      </output>
 
       <!-- CONTINUOUS EXECUTION CONTRACT ENFORCEMENT -->
       <critical>⚡ CONTINUOUS EXECUTION CONTRACT - Proceeding immediately to next task without pause</critical>
@@ -499,6 +524,25 @@
   </step>
 
   <step n="9" goal="Story completion and mark for review" tag="sprint-status">
+    <!-- COMMIT CONTRACT FINAL VALIDATION -->
+    <critical>Verify commit contract was honored throughout the session</critical>
+    <action>Compare {{tasks_committed}} against {{current_task_number}}</action>
+    <check if="{{tasks_committed}} != {{current_task_number}}">
+      <output>🚨 **COMMIT CONTRACT VIOLATION DETECTED**
+        Tasks completed: {{current_task_number}}
+        Tasks committed: {{tasks_committed}}
+        Missing commits: {{current_task_number - tasks_committed}}
+
+        The commit contract was NOT honored. Some tasks were batched together.
+      </output>
+      <action>HALT: "Commit contract violation - tasks were not committed individually"</action>
+    </check>
+    <check if="{{tasks_committed}} == {{current_task_number}}">
+      <output>✅ **COMMIT CONTRACT FULLY HONORED**
+        All {{tasks_committed}} tasks were committed individually as required.
+      </output>
+    </check>
+
     <action>Verify ALL tasks and subtasks are marked [x] (re-scan the story document now)</action>
     <action>Run the full regression suite (do not skip)</action>
     <action>Confirm File List includes every changed file</action>
