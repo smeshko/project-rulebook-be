@@ -14,13 +14,9 @@ import subprocess
 from pathlib import Path
 from datetime import datetime
 
-from utils.constants import ensure_session_log_dir, get_adw_context
+from utils.constants import ensure_session_log_dir, get_adw_context, load_adw_env
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenv is optional
+load_adw_env()
 
 
 

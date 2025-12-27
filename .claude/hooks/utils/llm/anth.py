@@ -9,7 +9,37 @@
 
 import os
 import sys
-from dotenv import load_dotenv
+from pathlib import Path
+
+
+# ADW-specific environment file names
+ADW_ENV_FILE = ".adw.env"
+FALLBACK_ENV_FILE = ".env"
+
+
+def _load_adw_env():
+    """Load ADW environment variables from .adw.env or fallback to .env."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+
+    working_dir = Path.cwd()
+
+    # Try .adw.env first
+    adw_env_path = working_dir / ADW_ENV_FILE
+    if adw_env_path.exists():
+        load_dotenv(dotenv_path=adw_env_path, override=True)
+        return
+
+    # Fall back to .env for backwards compatibility
+    env_path = working_dir / FALLBACK_ENV_FILE
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=True)
+        return
+
+    # Try default dotenv behavior
+    load_dotenv(override=True)
 
 
 def prompt_llm(prompt_text):
@@ -22,7 +52,7 @@ def prompt_llm(prompt_text):
     Returns:
         str: The model's response text, or None if error
     """
-    load_dotenv()
+    _load_adw_env()
 
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:

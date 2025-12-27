@@ -89,3 +89,48 @@ def get_adw_context() -> dict:
         "issue_id": ADW_ISSUE_ID,
         "phase": ADW_PHASE,
     }
+
+
+# ADW-specific environment file names
+ADW_ENV_FILE = ".adw.env"
+FALLBACK_ENV_FILE = ".env"
+
+
+def load_adw_env(working_dir: Path = None) -> bool:
+    """
+    Load ADW environment variables from .adw.env or fallback to .env.
+
+    Looks for .adw.env first (ADW-specific config), then falls back to .env
+    for backwards compatibility with existing projects.
+
+    Args:
+        working_dir: Directory to search for env files. Defaults to cwd.
+
+    Returns:
+        True if an env file was loaded, False otherwise.
+    """
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return False
+
+    if working_dir is None:
+        working_dir = Path.cwd()
+    else:
+        working_dir = Path(working_dir)
+
+    # Try .adw.env first
+    adw_env_path = working_dir / ADW_ENV_FILE
+    if adw_env_path.exists():
+        load_dotenv(dotenv_path=adw_env_path, override=True)
+        return True
+
+    # Fall back to .env for backwards compatibility
+    env_path = working_dir / FALLBACK_ENV_FILE
+    if env_path.exists():
+        load_dotenv(dotenv_path=env_path, override=True)
+        return True
+
+    # Try default dotenv behavior (searches parent directories)
+    load_dotenv(override=True)
+    return False
