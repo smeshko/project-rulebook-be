@@ -1,6 +1,6 @@
 # Story 1.2: Implement Remote Config Endpoint
 
-Status: Ready for Review
+Status: done
 Linear Issue: not-configured
 
 ## Story
