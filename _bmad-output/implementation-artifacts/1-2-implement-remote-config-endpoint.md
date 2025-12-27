@@ -78,31 +78,31 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add validation rules for required fields
   - [x] Support JSON encoding/decoding for nested configuration objects
 
-- [ ] Implement public GET endpoint (AC: 1, 2)
-  - [ ] Create `RemoteConfigController.swift` with `getConfig()` handler
-  - [ ] Fetch all active configs from repository
-  - [ ] Format response as nested JSON with featureFlags and settings groups
-  - [ ] Add caching layer with 5 minute TTL
+- [x] Implement public GET endpoint (AC: 1, 2)
+  - [x] Create `RemoteConfigController.swift` with `getConfig()` handler
+  - [x] Fetch all active configs from repository
+  - [x] Format response as nested JSON with featureFlags and settings groups
+  - [x] Add caching layer with 5 minute TTL
 
-- [ ] Implement admin CRUD endpoints (AC: 5)
-  - [ ] Add POST `/api/v1/admin/config` for creating configurations
-  - [ ] Add PATCH `/api/v1/admin/config/:key` for updating configurations
-  - [ ] Add DELETE `/api/v1/admin/config/:key` for removing configurations
-  - [ ] Require authentication + admin middleware
-  - [ ] Invalidate cache on mutations
+- [x] Implement admin CRUD endpoints (AC: 5)
+  - [x] Add POST `/api/v1/admin/config` for creating configurations
+  - [x] Add PATCH `/api/v1/admin/config/:key` for updating configurations
+  - [x] Add DELETE `/api/v1/admin/config/:key` for removing configurations
+  - [x] Require authentication + admin middleware
+  - [x] Invalidate cache on mutations
 
-- [ ] Create router with versioned routes (AC: 1 - Uses /v1/ prefix)
-  - [ ] Create `RemoteConfigRouter.swift` implementing `RouteCollection`
-  - [ ] Register public GET at `/api/v1/config`
-  - [ ] Register admin endpoints under `/api/v1/admin/config`
-  - [ ] Add OpenAPI documentation for all endpoints
+- [x] Create router with versioned routes (AC: 1 - Uses /v1/ prefix)
+  - [x] Create `RemoteConfigRouter.swift` implementing `RouteCollection`
+  - [x] Register public GET at `/api/v1/config`
+  - [x] Register admin endpoints under `/api/v1/admin/config`
+  - [x] Add OpenAPI documentation for all endpoints
 
-- [ ] Implement Redis caching (AC: 3, 6)
-  - [ ] Use existing `AICacheServiceInterface` for caching
-  - [ ] Cache key: `remote_config:all_active`
-  - [ ] TTL: 300 seconds (5 minutes)
-  - [ ] Cache invalidation on admin updates
-  - [ ] Fallback to database on cache miss
+- [x] Implement Redis caching (AC: 3, 6)
+  - [x] Use existing `AICacheServiceInterface` for caching
+  - [x] Cache key: `remote_config:all_active`
+  - [x] TTL: 300 seconds (5 minutes)
+  - [x] Cache invalidation on admin updates
+  - [x] Fallback to database on cache miss
 
 - [ ] Write comprehensive tests (AC: All)
   - [ ] Test public endpoint returns correct format
@@ -839,16 +839,29 @@ claude-sonnet-4-5-20250929
 - Marked AnyCodable as @unchecked Sendable for Swift 6 concurrency
 - Build verified successful
 
+✅ Tasks 5-8: Implemented controller, router, and caching (combined commit)
+- Created RemoteConfigController with getConfig() public endpoint
+- Implemented getConfig() with config grouping by prefix (featureFlags.*, settings.*)
+- Added admin CRUD endpoints: create, update, delete configurations
+- Integrated AICacheServiceInterface for 5-minute TTL caching
+- Cache key pattern: `remote_config:all_active`
+- Automatic cache invalidation on all admin mutations
+- Created RemoteConfigRouter with versioned routes (/api/v1/config)
+- Public GET endpoint accessible without authentication
+- Admin endpoints protected with UserAccountModel.guard() and EnsureAdminUserMiddleware
+- Full OpenAPI documentation for all endpoints
+- Build verified successful
+
 ### File List
 
 **Created:**
 - Sources/App/Modules/RemoteConfig/RemoteConfigModule.swift
-- Sources/App/Modules/RemoteConfig/RemoteConfigRouter.swift
 - Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift
 - Sources/App/Modules/RemoteConfig/Database/Models/RemoteConfigModel.swift
 - Sources/App/Modules/RemoteConfig/Repositories/RemoteConfigRepository.swift
 - Sources/App/Modules/RemoteConfig/Models/RemoteConfig+Model.swift
-- Sources/App/Modules/RemoteConfig/Controllers/ (directory)
+- Sources/App/Modules/RemoteConfig/Controllers/RemoteConfigController.swift
+- Sources/App/Modules/RemoteConfig/RemoteConfigRouter.swift
 
 **Modified:**
 - Sources/App/Entrypoint/Application-Setup.swift
