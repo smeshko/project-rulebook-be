@@ -15,12 +15,6 @@ infrastructure:
   environment: local
   review: github_pr
 
-workflow:
-  # Global workflow settings
-  default_model_set: base
-  webhook_port: 8001
-  max_concurrent_worktrees: 15
-
 evidence:
   enabled: true
   platform: backend
@@ -28,6 +22,12 @@ evidence:
 
 storage:
   enabled: false
+
+workflow:
+  # Global workflow settings
+  default_model_set: base
+  webhook_port: 8001
+  max_concurrent_worktrees: 15
 
   # # SDLC Phase Configuration
   phases:
