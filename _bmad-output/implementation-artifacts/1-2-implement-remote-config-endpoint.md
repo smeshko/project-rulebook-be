@@ -61,11 +61,11 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Create module folders: Controllers, Models, Database/Models, Database/Migrations, Repositories
   - [x] Register module in `Application-Setup.swift`
 
-- [ ] Define database model and migration (AC: 3 - PostgreSQL storage)
-  - [ ] Create `RemoteConfigModel.swift` with fields: id, key, value, valueType, version, isActive, createdAt, updatedAt
-  - [ ] Create `RemoteConfigMigrations.swift` with table schema
-  - [ ] Add unique constraint on `key` field
-  - [ ] Register migration in module boot
+- [x] Define database model and migration (AC: 3 - PostgreSQL storage)
+  - [x] Create `RemoteConfigModel.swift` with fields: id, key, value, valueType, version, isActive, createdAt, updatedAt
+  - [x] Create `RemoteConfigMigrations.swift` with table schema
+  - [x] Add unique constraint on `key` field
+  - [x] Register migration in module boot
 
 - [ ] Create repository layer (AC: 3 - Data persistence)
   - [ ] Define `RemoteConfigRepository` protocol with CRUD operations
@@ -816,16 +816,24 @@ claude-sonnet-4-5-20250929
 - Created placeholder router and migrations for subsequent tasks
 - Build verified successful
 
+✅ Task 2: Defined database model and migration
+- Created RemoteConfigModel.swift with all required fields (id, key, value, valueType, version, isActive, createdAt, updatedAt)
+- Implemented FieldKeys struct with v1 schema for column mapping
+- Created AsyncMigration with proper table schema including unique constraint on key field
+- Followed project patterns from WaitlistEntryModel
+- Build verified successful
+
 ### File List
 
 **Created:**
 - Sources/App/Modules/RemoteConfig/RemoteConfigModule.swift
 - Sources/App/Modules/RemoteConfig/RemoteConfigRouter.swift
 - Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift
+- Sources/App/Modules/RemoteConfig/Database/Models/RemoteConfigModel.swift
 - Sources/App/Modules/RemoteConfig/Controllers/ (directory)
 - Sources/App/Modules/RemoteConfig/Models/ (directory)
-- Sources/App/Modules/RemoteConfig/Database/Models/ (directory)
 - Sources/App/Modules/RemoteConfig/Repositories/ (directory)
 
 **Modified:**
 - Sources/App/Entrypoint/Application-Setup.swift
+- Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift
