@@ -154,6 +154,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.llmService = self.fakeLLMService
         app.aiCacheService = self.mockAICacheService
         app.cacheService = InMemoryTestCacheService()
+        app.configCacheService = MockConfigCacheService()
         app.randomGeneratorService = RiggedRandomGeneratorService(value: "test_random_value")
         app.uuidGeneratorService = self.constantUUIDGenerator
 

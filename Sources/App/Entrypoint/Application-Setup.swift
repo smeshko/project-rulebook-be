@@ -87,6 +87,7 @@ extension Application {
       RulesGenerationModule(),
       CacheAdminModule(),
       WaitlistModule(),
+      RemoteConfigModule(),
     ]
 
     for module in modules {
@@ -216,6 +217,10 @@ extension Application {
     aiCacheService = RedisAICacheService(
       cacheService: cacheService,
       keyGenerator: cacheKeyGeneratorService,
+      logger: logger
+    )
+    configCacheService = RedisConfigCacheService(
+      redis: redis,
       logger: logger
     )
 
