@@ -21,6 +21,14 @@ workflow:
   webhook_port: 8001
   max_concurrent_worktrees: 15
 
+evidence:
+  enabled: true
+  platform: backend
+  test_user_env: "TEST"  # looks for TEST_EMAIL, TEST_PASSWORD in .env
+
+storage:
+  enabled: false
+
   # # SDLC Phase Configuration
   phases:
     # Planning phase: Classify issue and create implementation plan

@@ -454,17 +454,6 @@
     <critical>COMMIT IS MANDATORY - Agent MUST NOT proceed to next task without completing this entire sequence</critical>
 
     <check if="{{task_validated}} == true">
-      <!-- Sync story state to Linear -->
-      <action>Check if .linear config exists AND linear_issue_id is valid</action>
-      <check if="Linear is configured">
-        <action>Read the complete updated story file content</action>
-        <action>Update Linear issue description with current story state:
-          python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} \
-            --description "{{full_story_content}}"
-        </action>
-        <note>Linear issue now reflects: completed tasks, dev notes, file list updates</note>
-      </check>
-
       <!-- Determine commit type based on task nature -->
       <action>Determine commit type from task description:
         - If task mentions "fix", "bug", "resolve", "address" → type = "fix"
