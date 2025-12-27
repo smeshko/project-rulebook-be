@@ -19,3 +19,13 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-config.md
+  - Conditions:
+    - When implementing configuration management features
+    - When adding Redis caching to endpoints
+    - When creating admin-only management endpoints
+    - When working with multi-type data storage patterns
+    - When implementing feature flags or remote settings
+    - When building cache invalidation logic
+    - When transforming flat database rows to nested JSON responses
