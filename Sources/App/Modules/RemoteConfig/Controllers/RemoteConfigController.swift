@@ -11,10 +11,14 @@ struct RemoteConfigController {
 
         // Try cache first (Task 8: Redis caching)
         if let cachedJSON = await req.services.aiCache.get(key: cacheKey),
-           let cachedData = cachedJSON.data(using: .utf8),
-           let cached = try? JSONDecoder().decode(RemoteConfig.Entry.Response.self, from: cachedData) {
-            req.logger.info("Remote config served from cache")
-            return cached
+           let cachedData = cachedJSON.data(using: .utf8) {
+            do {
+                let cached = try JSONDecoder().decode(RemoteConfig.Entry.Response.self, from: cachedData)
+                req.logger.info("Remote config served from cache")
+                return cached
+            } catch {
+                req.logger.warning("Cache decode failed for key: \(cacheKey), error: \(error)")
+            }
         }
 
         // Cache miss - fetch from database
@@ -29,11 +33,15 @@ struct RemoteConfigController {
             let parsedValue = parseConfigValue(config.value, type: config.valueType)
 
             if config.key.hasPrefix("featureFlags.") {
-                let key = String(config.key.dropFirst("featureFlags.".count))
-                featureFlags[key] = parsedValue
+                let key = config.key.replacingOccurrences(of: "featureFlags.", with: "", options: .anchored)
+                if !key.isEmpty {
+                    featureFlags[key] = parsedValue
+                }
             } else if config.key.hasPrefix("settings.") {
-                let key = String(config.key.dropFirst("settings.".count))
-                settings[key] = parsedValue
+                let key = config.key.replacingOccurrences(of: "settings.", with: "", options: .anchored)
+                if !key.isEmpty {
+                    settings[key] = parsedValue
+                }
             }
         }
 
@@ -64,11 +72,6 @@ struct RemoteConfigController {
 
         let repository = req.repositories.remoteConfig
 
-        // Check for existing key
-        if let _ = try await repository.find(key: createRequest.key) {
-            throw Abort(.conflict, reason: "Configuration with key '\(createRequest.key)' already exists")
-        }
-
         let config = RemoteConfigModel(
             key: createRequest.key,
             value: createRequest.value,
@@ -77,7 +80,16 @@ struct RemoteConfigController {
             isActive: createRequest.isActive ?? true
         )
 
-        try await repository.create(config)
+        do {
+            try await repository.create(config)
+        } catch {
+            // Check if it's a unique constraint violation
+            let errorDescription = String(describing: error).lowercased()
+            if errorDescription.contains("unique") || errorDescription.contains("constraint") {
+                throw Abort(.conflict, reason: "Configuration with key '\(createRequest.key)' already exists")
+            }
+            throw error
+        }
 
         // Invalidate cache
         await invalidateCache(req)
@@ -165,17 +177,24 @@ struct RemoteConfigController {
         case "json":
             if let data = value.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: data) {
-                // Handle both dictionaries and arrays
-                if let dict = json as? [String: Any] {
-                    return AnyCodable(dict.mapValues { AnyCodable($0) })
-                } else if let array = json as? [Any] {
-                    return AnyCodable(array.map { AnyCodable($0) })
-                }
+                // Handle both dictionaries and arrays, recursively wrapping nested structures
+                return AnyCodable(wrapInAnyCodable(json))
             }
             // Fall back to string for invalid JSON
             return AnyCodable(value)
         default: // string
             return AnyCodable(value)
+        }
+    }
+
+    // Recursively wrap Any values in AnyCodable for proper encoding
+    private func wrapInAnyCodable(_ value: Any) -> Any {
+        if let dict = value as? [String: Any] {
+            return dict.mapValues { wrapInAnyCodable($0) } as [String: Any]
+        } else if let array = value as? [Any] {
+            return array.map { wrapInAnyCodable($0) }
+        } else {
+            return value
         }
     }
 
