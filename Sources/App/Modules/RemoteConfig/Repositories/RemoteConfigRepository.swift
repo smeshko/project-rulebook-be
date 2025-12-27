@@ -62,9 +62,14 @@ struct DatabaseRemoteConfigRepository: RemoteConfigRepositoryProtocol {
             case .string:
                 existing.stringValue = value as? String
             case .json:
-                if let jsonData = try? JSONEncoder().encode(AnyCodable(value)),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                do {
+                    let jsonData = try JSONEncoder().encode(AnyCodable(value))
+                    guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+                        throw Abort(.internalServerError, reason: "Failed to encode JSON value to string")
+                    }
                     existing.jsonValue = jsonString
+                } catch {
+                    throw Abort(.internalServerError, reason: "Failed to encode JSON value: \(error.localizedDescription)")
                 }
             }
 
@@ -82,9 +87,14 @@ struct DatabaseRemoteConfigRepository: RemoteConfigRepositoryProtocol {
             case .string:
                 entry.stringValue = value as? String
             case .json:
-                if let jsonData = try? JSONEncoder().encode(AnyCodable(value)),
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                do {
+                    let jsonData = try JSONEncoder().encode(AnyCodable(value))
+                    guard let jsonString = String(data: jsonData, encoding: .utf8) else {
+                        throw Abort(.internalServerError, reason: "Failed to encode JSON value to string")
+                    }
                     entry.jsonValue = jsonString
+                } catch {
+                    throw Abort(.internalServerError, reason: "Failed to encode JSON value: \(error.localizedDescription)")
                 }
             }
 

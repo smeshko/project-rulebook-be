@@ -14,8 +14,14 @@ struct RemoteConfigController {
         let entries = try await req.remoteConfigRepository.getAllConfig()
         let response = try transformToResponse(entries: entries)
 
-        // Cache the response
-        try await req.configCacheService.set(response)
+        // Cache the response (don't fail endpoint if caching fails)
+        do {
+            try await req.configCacheService.set(response)
+        } catch {
+            req.logger.error("Failed to cache config response", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+        }
 
         return response
     }
@@ -47,8 +53,8 @@ struct RemoteConfigController {
     }
 
     func deleteConfig(req: Request) async throws -> HTTPStatus {
-        guard let key = req.parameters.get("key") else {
-            throw Abort(.badRequest, reason: "Missing key parameter")
+        guard let key = req.parameters.get("key"), !key.isEmpty else {
+            throw Abort(.badRequest, reason: "Missing or empty key parameter")
         }
 
         // Check if config exists
@@ -141,11 +147,15 @@ struct RemoteConfigController {
             return AnyCodable(value)
         case .json:
             guard let jsonString = entry.jsonValue,
-                  let data = jsonString.data(using: .utf8),
-                  let decoded = try? JSONDecoder().decode(AnyCodable.self, from: data) else {
-                throw Abort(.internalServerError, reason: "Missing or invalid JSON value for key: \(entry.key)")
+                  let data = jsonString.data(using: .utf8) else {
+                throw Abort(.internalServerError, reason: "Missing JSON value for key: \(entry.key)")
             }
-            return decoded
+            do {
+                let decoded = try JSONDecoder().decode(AnyCodable.self, from: data)
+                return decoded
+            } catch {
+                throw Abort(.internalServerError, reason: "Invalid JSON value for key: \(entry.key) - \(error.localizedDescription)")
+            }
         }
     }
 }
