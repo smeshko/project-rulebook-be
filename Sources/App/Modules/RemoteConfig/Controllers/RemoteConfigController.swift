@@ -45,6 +45,12 @@ struct RemoteConfigController {
                 if !key.isEmpty {
                     settings[key] = parsedValue
                 }
+            } else {
+                // Log warning for configs that don't match expected prefixes
+                req.logger.warning("Configuration key does not match expected prefix (featureFlags.* or settings.*)", metadata: [
+                    "key": .string(config.key),
+                    "value": .string(config.value)
+                ])
             }
         }
 
@@ -112,8 +118,12 @@ struct RemoteConfigController {
         // Invalidate cache
         await invalidateCache(req)
 
+        guard let configId = config.id else {
+            throw Abort(.internalServerError, reason: "Configuration created but ID not generated")
+        }
+
         return RemoteConfig.Create.Response(
-            id: config.id!,
+            id: configId,
             key: config.key,
             message: "Configuration created successfully"
         )
@@ -152,8 +162,12 @@ struct RemoteConfigController {
         // Invalidate cache
         await invalidateCache(req)
 
+        guard let configId = config.id else {
+            throw Abort(.internalServerError, reason: "Configuration updated but ID is missing")
+        }
+
         return RemoteConfig.Update.Response(
-            id: config.id!,
+            id: configId,
             key: config.key,
             message: "Configuration updated successfully"
         )
