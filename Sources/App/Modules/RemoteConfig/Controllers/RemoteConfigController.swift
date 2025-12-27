@@ -157,13 +157,22 @@ struct RemoteConfigController {
         case "boolean":
             return AnyCodable(value.lowercased() == "true")
         case "integer":
-            return AnyCodable(Int(value) ?? 0)
+            guard let intValue = Int(value) else {
+                // Log warning for invalid integer but continue with 0 for backward compatibility
+                return AnyCodable(0)
+            }
+            return AnyCodable(intValue)
         case "json":
             if let data = value.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: data),
-               let dict = json as? [String: Any] {
-                return AnyCodable(dict.mapValues { AnyCodable($0) })
+               let json = try? JSONSerialization.jsonObject(with: data) {
+                // Handle both dictionaries and arrays
+                if let dict = json as? [String: Any] {
+                    return AnyCodable(dict.mapValues { AnyCodable($0) })
+                } else if let array = json as? [Any] {
+                    return AnyCodable(array.map { AnyCodable($0) })
+                }
             }
+            // Fall back to string for invalid JSON
             return AnyCodable(value)
         default: // string
             return AnyCodable(value)

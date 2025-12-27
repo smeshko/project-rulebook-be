@@ -68,12 +68,18 @@ struct AnyCodable: Codable, @unchecked Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
-        if let bool = try? container.decode(Bool.self) {
+        if container.decodeNil() {
+            value = Optional<Any>.none as Any
+        } else if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
             value = int
+        } else if let double = try? container.decode(Double.self) {
+            value = double
         } else if let string = try? container.decode(String.self) {
             value = string
+        } else if let array = try? container.decode([AnyCodable].self) {
+            value = array
         } else if let dict = try? container.decode([String: AnyCodable].self) {
             value = dict
         } else {
@@ -89,10 +95,16 @@ struct AnyCodable: Codable, @unchecked Sendable {
             try container.encode(bool)
         case let int as Int:
             try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
         case let string as String:
             try container.encode(string)
+        case let array as [AnyCodable]:
+            try container.encode(array)
         case let dict as [String: AnyCodable]:
             try container.encode(dict)
+        case is Optional<Any>:
+            try container.encodeNil()
         default:
             throw EncodingError.invalidValue(
                 value,
