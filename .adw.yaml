@@ -18,7 +18,7 @@ infrastructure:
 evidence:
   enabled: true
   platform: backend
-
+  test_user_env: "TEST"  # looks for TEST_EMAIL, TEST_PASSWORD in .env
 storage:
   enabled: false
 

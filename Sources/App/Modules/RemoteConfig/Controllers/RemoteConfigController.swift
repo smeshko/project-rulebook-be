@@ -33,7 +33,7 @@ struct RemoteConfigController {
         var settings: [String: AnyCodable] = [:]
 
         for config in configs {
-            let parsedValue = parseConfigValue(config.value, type: config.valueType)
+            let parsedValue = parseConfigValue(config.value, type: config.valueType, req: req)
 
             if config.key.hasPrefix("featureFlags.") {
                 let key = config.key.replacingOccurrences(of: "featureFlags.", with: "", options: .anchored)
@@ -196,13 +196,16 @@ struct RemoteConfigController {
 
     // MARK: - Helper Methods
 
-    private func parseConfigValue(_ value: String, type: String) -> AnyCodable {
+    private func parseConfigValue(_ value: String, type: String, req: Request) -> AnyCodable {
         switch type {
         case "boolean":
             return AnyCodable(value.lowercased() == "true")
         case "integer":
             guard let intValue = Int(value) else {
-                // Return string fallback for invalid integer and let caller handle
+                req.logger.warning("Failed to parse integer value, falling back to string", metadata: [
+                    "value": .string(value),
+                    "type": .string(type)
+                ])
                 return AnyCodable(value)
             }
             return AnyCodable(intValue)
@@ -213,6 +216,10 @@ struct RemoteConfigController {
                 return AnyCodable(wrapInAnyCodable(json))
             }
             // Fall back to string for invalid JSON
+            req.logger.warning("Failed to parse JSON value, falling back to string", metadata: [
+                "value": .string(value),
+                "type": .string(type)
+            ])
             return AnyCodable(value)
         default: // string
             return AnyCodable(value)
