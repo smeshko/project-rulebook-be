@@ -7,7 +7,7 @@ enum RemoteConfigMigrations {
     }
 }
 
-private struct RemoteConfigMigrations_v1: AsyncMigration {
+struct RemoteConfigMigrations_v1: AsyncMigration {
     func prepare(on db: Database) async throws {
         try await db.schema(RemoteConfigModel.schema)
             .id()
