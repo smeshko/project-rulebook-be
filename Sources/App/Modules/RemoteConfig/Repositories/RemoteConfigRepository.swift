@@ -26,6 +26,25 @@ struct DatabaseRemoteConfigRepository: RemoteConfigRepositoryProtocol {
     }
 
     func setConfig(key: String, value: Any, type: ConfigValueType) async throws -> ConfigEntryModel {
+        // Validate type match before storing
+        switch type {
+        case .boolean:
+            guard value is Bool else {
+                throw Abort(.badRequest, reason: "Type mismatch: expected Bool, got \(Swift.type(of: value))")
+            }
+        case .integer:
+            guard value is Int else {
+                throw Abort(.badRequest, reason: "Type mismatch: expected Int, got \(Swift.type(of: value))")
+            }
+        case .string:
+            guard value is String else {
+                throw Abort(.badRequest, reason: "Type mismatch: expected String, got \(Swift.type(of: value))")
+            }
+        case .json:
+            // JSON can be any encodable type, so skip validation
+            break
+        }
+
         // Check if config already exists
         if let existing = try await getConfig(key: key) {
             // Update existing config

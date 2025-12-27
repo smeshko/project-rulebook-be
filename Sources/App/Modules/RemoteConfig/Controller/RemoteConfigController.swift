@@ -125,18 +125,27 @@ struct RemoteConfigController {
 
         switch type {
         case .boolean:
-            return AnyCodable(entry.boolValue ?? false)
-        case .integer:
-            return AnyCodable(entry.intValue ?? 0)
-        case .string:
-            return AnyCodable(entry.stringValue ?? "")
-        case .json:
-            if let jsonString = entry.jsonValue,
-               let data = jsonString.data(using: .utf8),
-               let decoded = try? JSONDecoder().decode(AnyCodable.self, from: data) {
-                return decoded
+            guard let value = entry.boolValue else {
+                throw Abort(.internalServerError, reason: "Missing boolean value for key: \(entry.key)")
             }
-            return AnyCodable([:])
+            return AnyCodable(value)
+        case .integer:
+            guard let value = entry.intValue else {
+                throw Abort(.internalServerError, reason: "Missing integer value for key: \(entry.key)")
+            }
+            return AnyCodable(value)
+        case .string:
+            guard let value = entry.stringValue else {
+                throw Abort(.internalServerError, reason: "Missing string value for key: \(entry.key)")
+            }
+            return AnyCodable(value)
+        case .json:
+            guard let jsonString = entry.jsonValue,
+                  let data = jsonString.data(using: .utf8),
+                  let decoded = try? JSONDecoder().decode(AnyCodable.self, from: data) else {
+                throw Abort(.internalServerError, reason: "Missing or invalid JSON value for key: \(entry.key)")
+            }
+            return decoded
         }
     }
 }

@@ -86,7 +86,8 @@ final class IsolatedTestWorld: @unchecked Sendable {
     private let fakeLLMService: FakeLLMService
     private let mockAICacheService: MockAICacheService
     private let constantUUIDGenerator: ConstantUUIDGeneratorService
-    
+    let mockConfigCacheService: MockConfigCacheService
+
     // MARK: - Test Data Factory
     let dataFactory: TestDataFactory
     
@@ -112,7 +113,8 @@ final class IsolatedTestWorld: @unchecked Sendable {
         self.fakeLLMService = FakeLLMService(app: app)
         self.mockAICacheService = MockAICacheService(app: app)
         self.constantUUIDGenerator = ConstantUUIDGeneratorService(app: app)
-        
+        self.mockConfigCacheService = MockConfigCacheService()
+
         // Initialize data factory
         self.dataFactory = TestDataFactory(app: app)
         
@@ -154,7 +156,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.llmService = self.fakeLLMService
         app.aiCacheService = self.mockAICacheService
         app.cacheService = InMemoryTestCacheService()
-        app.configCacheService = MockConfigCacheService()
+        app.configCacheService = self.mockConfigCacheService
         app.randomGeneratorService = RiggedRandomGeneratorService(value: "test_random_value")
         app.uuidGeneratorService = self.constantUUIDGenerator
 

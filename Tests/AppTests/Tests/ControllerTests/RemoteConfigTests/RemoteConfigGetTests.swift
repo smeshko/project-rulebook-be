@@ -75,15 +75,26 @@ struct RemoteConfigGetTests {
         let repo = DatabaseRemoteConfigRepository(database: app.db)
         try await repo.setConfig(key: "feature_test", value: true, type: ConfigValueType.boolean)
 
-        // First request should cache
+        // Reset call counters before testing
+        testWorld.mockConfigCacheService.reset()
+
+        // First request should miss cache, fetch from DB, then cache the result
         try await app.test(.GET, "api/v1/config") { response in
             #expect(response.status == .ok)
         }
 
-        // Second request should use cache (no need to verify cache directly)
+        // Verify cache was accessed and set
+        #expect(testWorld.mockConfigCacheService.getAllCallCount == 1, "Should check cache on first request")
+        #expect(testWorld.mockConfigCacheService.setCallCount == 1, "Should cache result after first request")
+
+        // Second request should hit cache
         try await app.test(.GET, "api/v1/config") { response in
             #expect(response.status == .ok)
         }
+
+        // Verify cache was hit (getAll called again, but no additional set)
+        #expect(testWorld.mockConfigCacheService.getAllCallCount == 2, "Should check cache on second request")
+        #expect(testWorld.mockConfigCacheService.setCallCount == 1, "Should NOT cache again on cache hit")
     }
 
     @Test("Old unversioned route returns 404")

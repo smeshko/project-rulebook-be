@@ -30,10 +30,11 @@ final class RedisConfigCacheService: ConfigCacheServiceProtocol, @unchecked Send
             logger.debug("Config cache hit")
             return config
         } catch {
-            logger.error("Config cache get error", metadata: [
+            logger.error("Config cache get error - falling back to database", metadata: [
                 "error": .string(error.localizedDescription)
             ])
-            throw error
+            // Return nil to allow fallback to database instead of crashing endpoint
+            return nil
         }
     }
 
