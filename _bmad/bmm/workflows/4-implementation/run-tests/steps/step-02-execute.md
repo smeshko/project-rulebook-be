@@ -3,7 +3,7 @@ name: 'step-02-execute'
 description: 'Execute all configured test commands and collect results'
 
 # Path Definitions
-workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/test'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/run-tests'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-02-execute.md'
@@ -143,6 +143,14 @@ Load, read entire file, then execute `{fixStepFile}`
 
 ---
 
+## CRITICAL STEP COMPLETION NOTE
+
+ONLY WHEN [all enabled commands have been executed and results collected], will you then:
+- Route to `{reportStepFile}` if all tests passed
+- Route to `{fixStepFile}` if any tests failed
+
+---
+
 ## 🚨 SYSTEM SUCCESS/FAILURE METRICS
 
 ### ✅ SUCCESS:
@@ -159,4 +167,4 @@ Load, read entire file, then execute `{fixStepFile}`
 - Not tracking all results
 - Wrong routing based on results
 
-**Master Rule:** Run ALL commands and collect ALL results before proceeding.
+**Master Rule:** Execute all actions completely, track all results, and proceed to the correct next step. Run ALL commands and collect ALL results before proceeding.

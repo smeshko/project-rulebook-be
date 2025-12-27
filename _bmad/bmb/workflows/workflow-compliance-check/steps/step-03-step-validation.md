@@ -15,9 +15,13 @@ targetWorkflowStepsPath: '{target_workflow_steps_path}'
 # Template References
 complianceReportTemplate: '{workflow_path}/templates/compliance-report.md'
 
-# Documentation References
+# Documentation References - Interactive (Standard) Templates
 stepTemplate: '{project-root}/_bmad/bmb/docs/workflows/templates/step-template.md'
 workflowTemplate: '{project-root}/_bmad/bmb/docs/workflows/templates/workflow-template.md'
+
+# Documentation References - Action Workflow Templates
+actionStepTemplate: '{project-root}/_bmad/bmb/docs/workflows/templates/action-step-template.md'
+actionWorkflowTemplate: '{project-root}/_bmad/bmb/docs/workflows/templates/action-workflow-template.md'
 ---
 
 # Step 3: Step-by-Step Validation
@@ -71,10 +75,22 @@ Perform systematic adversarial validation of each step file against step-templat
 "Beginning **Phase 2: Step-by-Step Validation**
 Target: `{target_workflow_name}` - [number] step files found
 
-**COMPLIANCE STANDARD:** All validation performed against `{stepTemplate}` - this is THE authoritative standard for step file compliance.
+**Workflow Type:** `{workflowType}` (detected in Phase 1)"
 
-Loading step template and validating each step systematically..."
-[Load stepTemplate, enumerate all step files]. Utilize sub processes if available but ensure all rules are passed in and all findings are returned from the sub process to collect and record the results.
+**Select appropriate step template based on workflow type:**
+
+**IF `workflowType` = "action":**
+
+Set `activeStepTemplate` = `{actionStepTemplate}`
+"**COMPLIANCE STANDARD:** All validation performed against `{actionStepTemplate}` - the authoritative standard for action workflow steps."
+
+**IF `workflowType` = "interactive":**
+
+Set `activeStepTemplate` = `{stepTemplate}`
+"**COMPLIANCE STANDARD:** All validation performed against `{stepTemplate}` - the authoritative standard for interactive workflow steps."
+
+"Loading appropriate step template and validating each step systematically..."
+[Load activeStepTemplate, enumerate all step files]. Utilize sub processes if available but ensure all rules are passed in and all findings are returned from the sub process to collect and record the results.
 
 ### 2. Systematic Step File Analysis
 
@@ -105,7 +121,9 @@ outputFile: [if appropriate for workflow type]
 - Missing `Template References` section (Major)
 
 **B. MANDATORY EXECUTION RULES Validation:**
-Check for complete sections:
+Check for complete sections based on workflow type:
+
+**IF `workflowType` = "interactive":**
 
 ```markdown
 ## MANDATORY EXECUTION RULES (READ FIRST):
@@ -119,7 +137,30 @@ Check for complete sections:
 
 ### Role Reinforcement:
 
-[Complete role reinforcement section]
+[Complete role reinforcement section with partnership language]
+
+### Step-Specific Rules:
+
+[Step-specific rules with proper emoji usage]
+```
+
+**IF `workflowType` = "action":**
+
+```markdown
+## MANDATORY EXECUTION RULES (READ FIRST):
+
+### Universal Rules:
+
+- 📖 CRITICAL: Read the complete step file before taking any action
+- 🎯 This is an action workflow - execute efficiently
+- 🔄 Auto-proceed to next step when complete
+
+### Role Reinforcement:
+
+- ✅ You are a [specific executor role]
+- ✅ Execute actions autonomously
+- ✅ Track results for reporting
+- ✅ Be efficient and clear in execution
 
 ### Step-Specific Rules:
 
@@ -129,11 +170,14 @@ Check for complete sections:
 **Violations to document:**
 
 - Missing Universal Rules (Critical)
-- Modified/skipped Universal Rules (Critical)
+- Modified/skipped Universal Rules for detected workflow type (Critical)
 - Missing Role Reinforcement (Major)
 - Improper emoji usage in rules (Minor)
 
 **C. Task References Validation:**
+
+**IF `workflowType` = "interactive":**
+
 Check for proper references:
 
 ```yaml
@@ -148,7 +192,23 @@ partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
 - Incorrect paths in task references (Major)
 - Missing standard task references (Minor)
 
-**D. Menu Pattern Validation:**
+**IF `workflowType` = "action":**
+
+Task References are optional for action workflows since they execute autonomously without Advanced Elicitation or Party Mode options.
+
+Check for:
+- Config file references if workflow is config-driven
+- Any conditional step file references (successStepFile, failureStepFile)
+
+**Violations to document:**
+
+- Incorrect paths in any references (Major)
+- advancedElicitationTask/partyModeWorkflow present but unused (Minor - cleanup)
+
+**D. Menu Pattern / Progression Validation:**
+
+**IF `workflowType` = "interactive":**
+
 Check menu structure:
 
 ```markdown
@@ -167,6 +227,31 @@ Display: "**Select an Option:** [A] Advanced Elicitation [P] Party Mode [C] Cont
 - Missing Menu Handling Logic section (Major)
 - Incorrect "load, read entire file, then execute" pattern (Major)
 - Improper continuation logic (Critical)
+
+**IF `workflowType` = "action":**
+
+Check auto-proceed pattern:
+
+```markdown
+### N. Proceed to Next Step
+
+Immediately load, read entire file, then execute `{nextStepFile}`.
+
+# OR for conditional routing:
+
+**IF [success condition]:**
+Load, read entire file, then execute `{successStepFile}`
+
+**IF [failure condition]:**
+Load, read entire file, then execute `{failureStepFile}`
+```
+
+**Violations to document:**
+
+- Missing auto-proceed instruction (Major)
+- Incorrect "load, read entire file, then execute" pattern (Major)
+- Menu patterns present in action workflow (Major - should be auto-proceed)
+- Missing conditional routing when branching logic exists (Major)
 
 ### 3. Workflow Type Appropriateness Check
 

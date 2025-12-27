@@ -3,7 +3,7 @@ name: 'step-04-report'
 description: 'Generate final test report with pass/fail/fixed summary'
 
 # Path Definitions
-workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/test'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/run-tests'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-04-report.md'
@@ -166,4 +166,4 @@ Return appropriate exit status based on final test results:
 - Not providing next steps
 - Wrong exit status
 
-**Master Rule:** Generate a clear, actionable report that tells the user exactly what happened and what to do next.
+**Master Rule:** Execute all actions completely, track all results, and proceed to the correct next step. Generate a clear, actionable report that tells the user exactly what happened and what to do next.

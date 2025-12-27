@@ -24,6 +24,18 @@
   <critical>COMMIT CONTRACT: You MUST commit after completing each task. This is non-negotiable.</critical>
 
   <!-- ================================================================== -->
+  <!-- UNIVERSAL RULES - BMAD Standard Compliance                         -->
+  <!-- ================================================================== -->
+  <universal-rules>
+    <rule emoji="🛑">Execute ALL tasks continuously - do NOT pause for permission or check-ins</rule>
+    <rule emoji="📖">Read complete step instructions before taking any action</rule>
+    <rule emoji="🔄">Process steps sequentially - never skip or optimize the sequence</rule>
+    <rule emoji="🔒">Honor commit contract after every task - no batching allowed</rule>
+    <rule emoji="🎯">Follow story Tasks/Subtasks exactly as written - no deviation</rule>
+    <rule emoji="📋">You are an IMPLEMENTER executing the story, not a facilitator asking for permission</rule>
+  </universal-rules>
+
+  <!-- ================================================================== -->
   <!-- NOTE: Git state verification and branch setup is handled by        -->
   <!-- dev-begin workflow. This workflow expects to be invoked with       -->
   <!-- story_path and story_id already resolved.                          -->
@@ -546,7 +558,8 @@
     <action>Verify ALL tasks and subtasks are marked [x] (re-scan the story document now)</action>
     <action>Run the full regression suite (do not skip)</action>
     <action>Confirm File List includes every changed file</action>
-    <action>Execute enhanced definition-of-done validation</action>
+    <action>Load and execute definition-of-done checklist from {validation}</action>
+    <action>Execute enhanced definition-of-done validation per checklist criteria</action>
     <action>Update the story Status to: "Ready for Review"</action>
 
     <!-- Enhanced Definition of Done Validation -->

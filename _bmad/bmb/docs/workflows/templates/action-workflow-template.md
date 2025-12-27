@@ -151,4 +151,4 @@ failureStepFile: '{workflow_path}/steps/step-03-fix.md'
 
 ## Reference Example
 
-See `{project-root}/_bmad/bmm/workflows/4-implementation/test/workflow.md` for a complete action workflow implementation.
+See `{project-root}/_bmad/bmm/workflows/4-implementation/run-tests/workflow.md` for a complete action workflow implementation.

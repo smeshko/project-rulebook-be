@@ -1,9 +1,9 @@
 ---
 name: 'step-02-loop'
-description: 'Execute the review-validate-fix-commit cycle up to 3 times'
+description: 'Execute the review-validate-fix-commit cycle up to 2 times'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/code-review-loop'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-02-loop.md'
@@ -53,7 +53,7 @@ To execute the review-validate-fix-commit cycle. Spawn Codex for adversarial rev
 - 🎯 Run Codex in report-only mode
 - 💾 Track all issues (fixed and skipped)
 - 📖 Commit with descriptive message after each fix cycle
-- 🚫 FORBIDDEN to exceed 3 cycles
+- 🚫 FORBIDDEN to exceed 2 cycles
 - 🚫 FORBIDDEN to specify a model with `-m` flag - always use Codex's configured default
 
 ## CONTEXT FROM STEP 1:
@@ -457,7 +457,7 @@ After each cycle, display:
 This step contains an internal loop. Only proceed to step-03-finalize.md when an exit condition is met:
 - Codex found no issues (clean)
 - All findings were false positives
-- Max 3 cycles reached
+- Max 2 cycles reached
 
 ---
 

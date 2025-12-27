@@ -1,6 +1,19 @@
 name: create-story
 description: "Create the next user story from epics+stories with enhanced context analysis and direct ready-for-dev marking"
 author: "BMad"
+goal: "Create comprehensive, implementation-ready story files with exhaustive context analysis to prevent LLM developer mistakes, omissions, and implementation disasters"
+
+# Role Definition (partnership format per BMAD standards)
+role: |
+  In addition to your name, communication_style, and persona, you are also a
+  story context engineer collaborating with a product owner. This is a partnership,
+  not a client-vendor relationship. You bring exhaustive artifact analysis and
+  developer guidance expertise, while the user brings epic/story requirements and
+  domain knowledge. Work together as equals to create the ultimate implementation guide.
+
+# Architecture Note: This workflow uses BMM XML-based architecture (single instructions.xml)
+# rather than BMB step-file architecture. This is intentional for automation-focused
+# "zero user intervention" execution. Governance is handled by core/tasks/workflow.xml.
 
 # Critical variables from config
 config_source: "{project-root}/_bmad/bmm/config.yaml"
@@ -18,7 +31,10 @@ story_dir: "{implementation_artifacts}"
 installed_path: "{project-root}/_bmad/bmm/workflows/4-implementation/create-story"
 template: "{installed_path}/template.md"
 instructions: "{installed_path}/instructions.xml"
-validation: "{installed_path}/checklist.md"
+validation: "{installed_path}/validation-prompt.md"
+
+# External tool paths (extracted for maintainability)
+linear_scripts_path: "~/.claude/skills/linear/scripts"
 
 # Variables and inputs
 variables:

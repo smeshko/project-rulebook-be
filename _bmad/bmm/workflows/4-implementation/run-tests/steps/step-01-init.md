@@ -3,7 +3,7 @@ name: 'step-01-init'
 description: 'Initialize test workflow by loading and validating project configuration'
 
 # Path Definitions
-workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/test'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/run-tests'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-01-init.md'
@@ -119,6 +119,12 @@ Immediately load, read entire file, then execute `{nextStepFile}` to begin test 
 
 ---
 
+## CRITICAL STEP COMPLETION NOTE
+
+ONLY WHEN [configuration loaded and validated with enabled commands identified], will you then load and read fully `{nextStepFile}` to execute and begin test command execution phase.
+
+---
+
 ## 🚨 SYSTEM SUCCESS/FAILURE METRICS
 
 ### ✅ SUCCESS:
@@ -135,4 +141,4 @@ Immediately load, read entire file, then execute `{nextStepFile}` to begin test 
 - Proceeding without valid commands
 - Not displaying test plan
 
-**Master Rule:** Always validate configuration before attempting to run tests.
+**Master Rule:** Execute all actions completely, track all results, and proceed to the correct next step. Always validate configuration before attempting to run tests.

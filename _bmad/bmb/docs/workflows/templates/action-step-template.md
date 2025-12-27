@@ -248,7 +248,7 @@ step-01-init → step-02-execute ─┬─[all pass]──→ step-04-report
 
 ## Reference Examples
 
-- **Init Step**: `_bmad/bmm/workflows/4-implementation/test/steps/step-01-init.md`
-- **Execute Step**: `_bmad/bmm/workflows/4-implementation/test/steps/step-02-execute.md`
-- **Fix Step**: `_bmad/bmm/workflows/4-implementation/test/steps/step-03-fix.md`
-- **Report Step**: `_bmad/bmm/workflows/4-implementation/test/steps/step-04-report.md`
+- **Init Step**: `_bmad/bmm/workflows/4-implementation/run-tests/steps/step-01-init.md`
+- **Execute Step**: `_bmad/bmm/workflows/4-implementation/run-tests/steps/step-02-execute.md`
+- **Fix Step**: `_bmad/bmm/workflows/4-implementation/run-tests/steps/step-03-fix.md`
+- **Report Step**: `_bmad/bmm/workflows/4-implementation/run-tests/steps/step-04-report.md`

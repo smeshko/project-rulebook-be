@@ -8,7 +8,7 @@ web_bundle: true
 
 **Goal:** Autonomously run all configured test, lint, and quality commands from project-config.yaml, automatically fix failures, and commit fixes.
 
-**Your Role:** You are a test runner and code fixer. Execute all configured test commands, analyze any failures, attempt automatic fixes (up to 3 attempts), commit successful fixes, and report results. Work autonomously without user interaction.
+**Your Role:** You are a test runner and code fixer that executes configured test commands autonomously. Work autonomously to complete all steps, reporting results clearly at completion. User interaction is only needed if unrecoverable errors require manual intervention.
 
 ---
 
@@ -63,9 +63,17 @@ This is an **action workflow** that executes commands and fixes code autonomousl
 
 ### Critical Rules (NO EXCEPTIONS)
 
-- 🛑 **NEVER** skip configured commands
+- 🛑 **NEVER** load multiple step files simultaneously
+- 📖 **ALWAYS** read entire step file before execution
+- 🚫 **NEVER** skip steps or optimize the sequence
+- 🔄 **ALWAYS** run all configured commands (don't fail fast)
+- 🎯 **ALWAYS** follow the exact instructions in the step file
+- 📊 **ALWAYS** track results for final reporting
+- ⏹️ **STOP** only when workflow completes or unrecoverable error occurs
+
+### Workflow-Specific Rules
+
 - 📖 **ALWAYS** read project-config.yaml first
-- 🔄 **ALWAYS** run all commands before attempting fixes
 - 💾 **ALWAYS** commit fixes with descriptive messages
 - 📊 **ALWAYS** log progress to stdout
 - 🎯 **ALWAYS** report final status clearly

@@ -10,7 +10,7 @@ completionDate: 2025-12-09
 ## Initial Project Context
 
 - **Module:** bmm (BMAD Main Method)
-- **Target Location:** .bmad/bmm/workflows/4-implementation/code-review-loop/
+- **Target Location:** _bmad/bmm/workflows/4-implementation/code-review-loop/
 - **Created:** 2025-12-09
 - **Creator:** Ivo
 
@@ -37,7 +37,7 @@ Ivo (expert developer) - for use after completing story implementations.
 |--------|----------|
 | Type | Meta-workflow + Autonomous |
 | Pattern | Loop with safety cap |
-| Max Iterations | 3 cycles |
+| Max Iterations | 2 cycles |
 | Interaction | Fully autonomous |
 
 ### Architecture: Dual-Agent System
@@ -60,7 +60,7 @@ Ivo (expert developer) - for use after completing story implementations.
 │  │         ↓                                           │    │
 │  │ 4. Commit fixes (after each cycle)                  │    │
 │  │         ↓                                           │    │
-│  │ 5. Loop → spawn Codex again (max 3 cycles)          │    │
+│  │ 5. Loop → spawn Codex again (max 2 cycles)          │    │
 │  │         ↓                                           │    │
 │  │ 6. Exit when clean OR cap reached                   │    │
 │  └─────────────────────────────────────────────────────┘    │
@@ -84,7 +84,7 @@ Main agent validates issues against:
 
 - Codex finds 0 issues, OR
 - Main validates 0 issues as real, OR
-- Max 3 cycles reached
+- Max 2 cycles reached
 
 ### Input Requirements
 
@@ -202,7 +202,7 @@ code-review-loop/
 
 ### Step 2: Review Loop (`step-02-loop.md`)
 
-**Goal:** Execute review→validate→fix→commit cycle (max 3 times)
+**Goal:** Execute review→validate→fix→commit cycle (max 2 times)
 
 **Actions:**
 1. Increment cycle counter
@@ -226,7 +226,7 @@ code-review-loop/
    - Commit: `git add -A && git commit -m "fix(review): cycle {N} - {summary}"`
 6. **Check exit conditions:**
    - If no valid issues → proceed to step 3
-   - If cycle >= 3 → proceed to step 3
+   - If cycle >= 2 → proceed to step 3
    - Otherwise → loop back to action 1
 
 **Interaction:** None (auto-loop)
@@ -267,7 +267,7 @@ code-review-loop/
 │  │ 3. Validate each issue         │ │
 │  │ 4. Fix valid issues            │ │
 │  │ 5. Commit fixes                │ │
-│  │ 6. Check: clean OR cycle >= 3? │ │
+│  │ 6. Check: clean OR cycle >= 2? │ │
 │  │    NO  → loop back to 1        │ │
 │  │    YES → proceed to step 3     │ │
 │  └────────────────────────────────┘ │
@@ -300,7 +300,7 @@ code-review-loop/
 
 | File | Path | Purpose |
 |------|------|---------|
-| workflow.md | `.bmad/bmm/workflows/4-implementation/code-review-loop/workflow.md` | Main entry point |
+| workflow.md | `_bmad/bmm/workflows/4-implementation/code-review-loop/workflow.md` | Main entry point |
 | step-01-init.md | `steps/step-01-init.md` | Load story, context, initialize state |
 | step-02-loop.md | `steps/step-02-loop.md` | Review→Validate→Fix→Commit loop |
 | step-03-finalize.md | `steps/step-03-finalize.md` | Update status, create PR, summary |
@@ -308,7 +308,7 @@ code-review-loop/
 ### Directory Structure
 
 ```
-.bmad/bmm/workflows/4-implementation/code-review-loop/
+_bmad/bmm/workflows/4-implementation/code-review-loop/
 ├── workflow.md
 ├── workflow-plan-code-review-loop.md
 └── steps/

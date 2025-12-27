@@ -3,6 +3,16 @@
   <critical>You MUST have already loaded and processed: {installed_path}/workflow.yaml</critical>
   <critical>Communicate all responses in {communication_language} and generate all documents in {document_output_language}</critical>
 
+  <!-- CONTEXT BOUNDARIES (per BMAD standards) -->
+  <context-boundaries>
+    <available>Sprint status, epics file, PRD, architecture, UX docs, previous stories, git history, project context</available>
+    <focus>Creating comprehensive, implementation-ready story files with exhaustive developer guidance</focus>
+    <limits>Do not implement the story; do not modify source documents; do not skip artifact analysis</limits>
+    <dependencies>Epics file must exist; sprint-status recommended; Linear integration optional</dependencies>
+  </context-boundaries>
+
+  <!-- EXECUTION PROTOCOLS: Each <action> tag serves as an execution protocol directive -->
+
   <critical>🔥 CRITICAL MISSION: You are creating the ULTIMATE story context engine that prevents LLM developer mistakes, omissions or
     disasters! 🔥</critical>
   <critical>Your purpose is NOT to copy from epics - it's to create a comprehensive, optimized story file that gives the DEV agent
@@ -52,14 +62,14 @@
         jq '. + {"story_id": "{{story_id}}"}' $ADW_STATE_FILE > tmp.json && mv tmp.json $ADW_STATE_FILE
       </action>
       <output>🤖 ADW Mode: Story {{story_id}} detected from ADW environment</output>
-      <action>GOTO step 1b</action>
+      <action>GOTO step 2</action>
     </check>
 
     <!-- Normal flow: user-provided or auto-discover -->
     <check if="{{story_path}} is provided by user or user provided the epic and story number such as 2-4 or 1.6 or epic 1 story 5">
       <action>Parse user-provided story path: extract epic_num, story_num, story_title from format like "1-2-user-auth"</action>
       <action>Set {{epic_num}}, {{story_num}}, {{story_key}} from user input</action>
-      <action>GOTO step 1b</action>
+      <action>GOTO step 2</action>
     </check>
 
     <action>Check if {{sprint_status}} file exists for auto discover</action>
@@ -85,12 +95,12 @@
       <check if="user provides epic-story number">
         <action>Parse user input: extract epic_num, story_num, story_title</action>
         <action>Set {{epic_num}}, {{story_num}}, {{story_key}} from user input</action>
-        <action>GOTO step 1b</action>
+        <action>GOTO step 2</action>
       </check>
 
       <check if="user provides story docs path">
         <action>Use user-provided path for story documents</action>
-        <action>GOTO step 1b</action>
+        <action>GOTO step 2</action>
       </check>
     </check>
 
@@ -152,67 +162,11 @@
         <output>📊 Epic {{epic_num}} status updated to in-progress</output>
       </check>
 
-      <action>GOTO step 1b</action>
+      <action>GOTO step 2</action>
     </check>
-    <action>Load the FULL file: {{sprint_status}}</action>
-    <action>Read ALL lines from beginning to end - do not skip any content</action>
-    <action>Parse the development_status section completely</action>
-
-    <action>Find the FIRST story (by reading in order from top to bottom) where:
-      - Key matches pattern: number-number-name (e.g., "1-2-user-auth")
-      - NOT an epic key (epic-X) or retrospective (epic-X-retrospective)
-      - Status value equals "backlog"
-    </action>
-
-    <check if="no backlog story found">
-      <output>📋 No backlog stories found in sprint-status.yaml
-
-        All stories are either already drafted, in progress, or done.
-
-        **Options:**
-        1. Run sprint-planning to refresh story tracking
-        2. Load PM agent and run correct-course to add more stories
-        3. Check if current sprint is complete and run retrospective
-      </output>
-      <action>HALT</action>
-    </check>
-
-    <action>Extract from found story key (e.g., "1-2-user-authentication"):
-      - epic_num: first number before dash (e.g., "1")
-      - story_num: second number after first dash (e.g., "2")
-      - story_title: remainder after second dash (e.g., "user-authentication")
-    </action>
-    <action>Set {{story_id}} = "{{epic_num}}.{{story_num}}"</action>
-    <action>Store story_key for later use (e.g., "1-2-user-authentication")</action>
-
-    <!-- Mark epic as in-progress if this is first story -->
-    <action>Check if this is the first story in epic {{epic_num}} by looking for {{epic_num}}-1-* pattern</action>
-    <check if="this is first story in epic {{epic_num}}">
-      <action>Load {{sprint_status}} and check epic-{{epic_num}} status</action>
-      <action>If epic status is "backlog" → update to "in-progress"</action>
-      <action>If epic status is "contexted" (legacy status) → update to "in-progress" (backward compatibility)</action>
-      <action>If epic status is "in-progress" → no change needed</action>
-      <check if="epic status is 'done'">
-        <output>🚫 ERROR: Cannot create story in completed epic</output>
-        <output>Epic {{epic_num}} is marked as 'done'. All stories are complete.</output>
-        <output>If you need to add more work, either:</output>
-        <output>1. Manually change epic status back to 'in-progress' in sprint-status.yaml</output>
-        <output>2. Create a new epic for additional work</output>
-        <action>HALT - Cannot proceed</action>
-      </check>
-      <check if="epic status is not one of: backlog, contexted, in-progress, done">
-        <output>🚫 ERROR: Invalid epic status '{{epic_status}}'</output>
-        <output>Epic {{epic_num}} has invalid status. Expected: backlog, in-progress, or done</output>
-        <output>Please fix sprint-status.yaml manually or run sprint-planning to regenerate</output>
-        <action>HALT - Cannot proceed</action>
-      </check>
-      <output>📊 Epic {{epic_num}} status updated to in-progress</output>
-    </check>
-
-    <action>GOTO step 1b</action>
   </step>
 
-  <step n="1b" goal="Load relevant conditional documentation">
+  <step n="2" goal="Load relevant conditional documentation">
     <critical>Check for relevant feature docs BEFORE loading other context - prevents reinventing wheels!</critical>
 
     <action>Check if {project-root}/docs/CONDITIONAL_DOCS.md exists</action>
@@ -254,10 +208,11 @@
       <note>No conditional docs guide configured - skipping feature doc lookup</note>
     </check>
 
-    <action>GOTO step 2</action>
+    <action>GOTO step 3</action>
   </step>
 
-  <step n="2" goal="Load and analyze core artifacts">
+  <step n="3" goal="Load and analyze core artifacts">
+    <!-- Role Reinforcement: You are a meticulous artifact analyst extracting every relevant detail -->
     <critical>🔬 EXHAUSTIVE ARTIFACT ANALYSIS - This is where you prevent future developer fuckups!</critical>
 
     <!-- Load all available content through discovery protocol -->
@@ -296,7 +251,8 @@
     </check>
   </step>
 
-  <step n="3" goal="Architecture analysis for developer guardrails">
+  <step n="4" goal="Architecture analysis for developer guardrails">
+    <!-- Role Reinforcement: You are a technical architect ensuring developer compliance with system design -->
     <critical>🏗️ ARCHITECTURE INTELLIGENCE - Extract everything the developer MUST follow!</critical> **ARCHITECTURE DOCUMENT ANALYSIS:** <action>Systematically
     analyze architecture content for story-relevant requirements:</action>
 
@@ -317,7 +273,7 @@
     <action>Identify any architectural decisions that override previous patterns</action>
   </step>
 
-  <step n="4" goal="Web research for latest technical specifics">
+  <step n="5" goal="Web research for latest technical specifics">
     <critical>🌐 ENSURE LATEST TECH KNOWLEDGE - Prevent outdated implementations!</critical> **WEB INTELLIGENCE:** <action>Identify specific
     technical areas that require latest version knowledge:</action>
 
@@ -339,7 +295,8 @@
     </action>
   </step>
 
-  <step n="5" goal="Create comprehensive story file">
+  <step n="6" goal="Create comprehensive story file">
+    <!-- Role Reinforcement: You are a technical writer creating the definitive developer implementation guide -->
     <critical>📝 CREATE ULTIMATE STORY FILE - The developer's master implementation guide!</critical>
 
     <action>Initialize from template.md:
@@ -399,7 +356,7 @@
     context engine analysis completed - comprehensive developer guide created"</action>
   </step>
 
-  <step n="6" goal="Update sprint status, Linear integration, and finalize">
+  <step n="7" goal="Update sprint status, Linear integration, and finalize">
     <invoke-task>Validate against checklist at {installed_path}/checklist.md using _bmad/core/tasks/validate-workflow.xml</invoke-task>
     <action>Save story document unconditionally</action>
 
@@ -417,33 +374,40 @@
 
     <check if=".linear config exists">
       <action>Extract story title from {{story_key}} (e.g., "1-2-user-auth" → "User Auth")</action>
+
+      <!-- Create issue with placeholder description first -->
       <action>Create Linear issue with title: "[{{story_id}}] {{story_title_formatted}}"</action>
-      <action>Run: python ~/.claude/skills/linear/scripts/create_issue.py \
+      <action>Run: python {linear_scripts_path}/create_issue.py \
         --title "[{{story_id}}] {{story_title_formatted}}" \
-        --description "Story: {{story_key}}\nFile: {{story_file}}" \
+        --description "Story: {{story_key}} - Full content loading..." \
         --json</action>
       <action>Parse the returned JSON to extract the issue identifier (e.g., "ENG-123")</action>
       <action>Store as {{linear_issue_id}}</action>
 
-      <!-- Move issue to Todo state -->
-      <action>Get team workflow states: python ~/.claude/skills/linear/scripts/get_teams.py --detailed --json</action>
-      <action>Find the state ID for "Todo" or "Backlog" status</action>
-      <action>Update issue to Todo state: python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
-
-      <!-- Update story file with Linear issue ID -->
+      <!-- Update story file with Linear issue ID before updating Linear with full content -->
       <action>Update the story file's "Linear Issue:" field with {{linear_issue_id}}</action>
       <action>Save story file</action>
 
-      <!-- Update Linear issue with full story content -->
-      <action>Read the complete story file content from {{story_file}}</action>
-      <action>Update the Linear issue description with the full story content:
-        python ~/.claude/skills/linear/scripts/update_issue.py {{linear_issue_id}} \
-          --description "{{full_story_content}}"
-      </action>
+      <!-- Update Linear issue with full story content via stdin piping -->
+      <action>Pipe the complete story file content to update the Linear issue description:
+        cat "{{story_file}}" | python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --description-stdin</action>
+
+      <!-- Verify the description was updated successfully -->
+      <action>Verify issue was updated by checking response success</action>
+      <check if="update command failed or returned error">
+        <output>⚠️ Warning: Linear issue description update may have failed. Manual update may be required.</output>
+        <output>Story file: {{story_file}}</output>
+        <output>Linear issue: {{linear_issue_id}}</output>
+      </check>
+
+      <!-- Move issue to Todo state -->
+      <action>Get team workflow states: python {linear_scripts_path}/get_teams.py --detailed --json</action>
+      <action>Find the state ID for "Todo" or "Backlog" status</action>
+      <action>Update issue to Todo state: python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
 
       <output>🔗 **Linear Issue Created:** {{linear_issue_id}}
         Status: Todo
-        Description: Updated with full story content
+        Description: Updated with full story content via stdin
         Link: https://linear.app/issue/{{linear_issue_id}}
       </output>
     </check>
@@ -492,5 +456,29 @@
       **The developer now has everything needed for flawless implementation!**
     </output>
   </step>
+
+  <!-- SUCCESS/FAILURE METRICS (per BMAD standards) -->
+  <metrics>
+    <success>
+      <item>Story file created at {story_dir}/{{story_key}}.md with all required sections</item>
+      <item>Exhaustive artifact analysis completed (epics, architecture, previous stories, git history)</item>
+      <item>Developer guardrails extracted and documented</item>
+      <item>Sprint status updated from "backlog" to "ready-for-dev"</item>
+      <item>Linear issue created and linked (if .linear config exists)</item>
+      <item>ADW state updated with story_id and plan_file (if ADW environment)</item>
+      <item>Validation checklist passed via validate-workflow.xml</item>
+    </success>
+    <failure>
+      <item>No epic/story found in source files or sprint status</item>
+      <item>Incomplete or superficial artifact analysis (skimming instead of exhaustive review)</item>
+      <item>Missing critical developer context (architecture constraints, previous learnings)</item>
+      <item>Story file created without required sections or with placeholder content</item>
+      <item>Sprint status not updated after story creation</item>
+      <item>Linear integration failed without graceful fallback messaging</item>
+      <item>Proceeding without user input when story selection is ambiguous</item>
+    </failure>
+  </metrics>
+
+  <master-rule>Skipping artifact analysis, optimizing sequences, or creating superficial story context is FORBIDDEN and constitutes SYSTEM FAILURE.</master-rule>
 
 </workflow>

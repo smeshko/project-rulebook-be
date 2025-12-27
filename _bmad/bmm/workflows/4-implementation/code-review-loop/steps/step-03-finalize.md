@@ -3,14 +3,14 @@ name: 'step-03-finalize'
 description: 'Complete the workflow by updating story status, creating PR, and printing summary'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/code-review-loop'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-03-finalize.md'
 workflowFile: '{workflow_path}/workflow.md'
 
 # Config References
-config_source: '{project-root}/.bmad/bmm/config.yaml'
+config_source: '{project-root}/_bmad/bmm/config.yaml'
 sprint_artifacts: '{config_source}:sprint_artifacts'
 sprint_status_file: '{sprint_artifacts}/sprint-status.yaml'
 

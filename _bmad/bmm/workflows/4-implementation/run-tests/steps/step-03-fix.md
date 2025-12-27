@@ -3,7 +3,7 @@ name: 'step-03-fix'
 description: 'Attempt to automatically fix failing tests with up to 3 attempts'
 
 # Path Definitions
-workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/test'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/run-tests'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-03-fix.md'
@@ -199,6 +199,12 @@ Load, read entire file, then execute `{reportStepFile}`
 
 ---
 
+## CRITICAL STEP COMPLETION NOTE
+
+ONLY WHEN [fix loop completes (all fixed OR 3 attempts exhausted) and fixes committed], will you then load and read fully `{reportStepFile}` to execute and begin final reporting phase.
+
+---
+
 ## FIX STRATEGIES BY ERROR TYPE:
 
 ### Lint Errors (ESLint, etc.)
@@ -244,4 +250,4 @@ Load, read entire file, then execute `{reportStepFile}`
 - Asking for approval (should auto-apply)
 - Not re-running after fixes
 
-**Master Rule:** Fix automatically, commit fixes, respect the 3-attempt limit.
+**Master Rule:** Execute all actions completely, track all results, and proceed to the correct next step. Fix automatically, commit fixes, respect the 3-attempt limit.

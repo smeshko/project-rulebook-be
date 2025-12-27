@@ -3,7 +3,7 @@ name: 'step-01-init'
 description: 'Initialize code review loop by loading story context, identifying code changes, and preparing tracking state'
 
 # Path Definitions
-workflow_path: '{project-root}/.bmad/bmm/workflows/4-implementation/code-review-loop'
+workflow_path: '{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop'
 
 # File References
 thisStepFile: '{workflow_path}/steps/step-01-init.md'
@@ -11,7 +11,7 @@ nextStepFile: '{workflow_path}/steps/step-02-loop.md'
 workflowFile: '{workflow_path}/workflow.md'
 
 # Config References
-config_source: '{project-root}/.bmad/bmm/config.yaml'
+config_source: '{project-root}/_bmad/bmm/config.yaml'
 sprint_artifacts: '{config_source}:sprint_artifacts'
 output_folder: '{config_source}:output_folder'
 worktree_base: '{project-root}/.worktrees'

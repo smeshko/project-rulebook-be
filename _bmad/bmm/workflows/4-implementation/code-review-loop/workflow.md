@@ -51,6 +51,7 @@ This uses **step-file architecture** for disciplined execution:
 - **Just-In-Time Loading**: Only the current step file is in memory
 - **Sequential Enforcement**: Execute steps in order, no skipping
 - **Autonomous Execution**: This workflow runs without user interaction
+- **Append-Only Building**: Build review state incrementally across cycles
 
 ### Step Processing Rules
 
@@ -65,6 +66,8 @@ This uses **step-file architecture** for disciplined execution:
 - 📖 **ALWAYS** read entire step file before execution
 - 🚫 **NEVER** skip steps or optimize the sequence
 - 💾 **ALWAYS** commit after each fix cycle
+- 🎯 **ALWAYS** follow the exact instructions in the step file
+- 📋 **NEVER** create mental todo lists from future steps
 
 <!-- AUTONOMOUS WORKFLOW: Standard rules adapted for autonomous operation:
 - "halt at menus" → replaced by auto-proceed (no user interaction)
@@ -78,10 +81,10 @@ This uses **step-file architecture** for disciplined execution:
 
 ### 1. Configuration Loading
 
-Load config from {project-root}/.bmad/bmm/config.yaml and resolve:
+Load config from {project-root}/_bmad/bmm/config.yaml and resolve:
 
 - `project_name`, `output_folder`, `user_name`, `sprint_artifacts`
 
 ### 2. First Step Execution
 
-Load, read the full file, and execute `{project-root}/.bmad/bmm/workflows/4-implementation/code-review-loop/steps/step-01-init.md` to begin the workflow.
+Load, read the full file, and execute `{project-root}/_bmad/bmm/workflows/4-implementation/code-review-loop/steps/step-01-init.md` to begin the workflow.
