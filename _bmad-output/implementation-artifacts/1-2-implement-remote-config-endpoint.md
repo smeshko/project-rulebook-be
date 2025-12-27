@@ -67,11 +67,11 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add unique constraint on `key` field
   - [x] Register migration in module boot
 
-- [ ] Create repository layer (AC: 3 - Data persistence)
-  - [ ] Define `RemoteConfigRepository` protocol with CRUD operations
-  - [ ] Implement `DatabaseRemoteConfigRepository`
-  - [ ] Add repository extension for `Application.Repositories`
-  - [ ] Register repository in `Application-Setup.swift`
+- [x] Create repository layer (AC: 3 - Data persistence)
+  - [x] Define `RemoteConfigRepository` protocol with CRUD operations
+  - [x] Implement `DatabaseRemoteConfigRepository`
+  - [x] Add repository extension for `Application.Repositories`
+  - [x] Register repository in `Application-Setup.swift`
 
 - [ ] Define request/response models (AC: 4 - Typed values support)
   - [ ] Create `RemoteConfig+Model.swift` with Entry.Response, Create.Request, Update.Request types
@@ -823,6 +823,14 @@ claude-sonnet-4-5-20250929
 - Followed project patterns from WaitlistEntryModel
 - Build verified successful
 
+✅ Task 3: Created repository layer
+- Defined RemoteConfigRepository protocol with CRUD operations (find by id/key, allActive, all, create, update, delete)
+- Implemented DatabaseRemoteConfigRepository using Fluent query builder
+- Added repository property to ServiceStorageContainer
+- Added computed property to Application.Repositories extension
+- Registered repository in Application-Setup.swift setupServices method
+- Build verified successful
+
 ### File List
 
 **Created:**
@@ -830,10 +838,11 @@ claude-sonnet-4-5-20250929
 - Sources/App/Modules/RemoteConfig/RemoteConfigRouter.swift
 - Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift
 - Sources/App/Modules/RemoteConfig/Database/Models/RemoteConfigModel.swift
+- Sources/App/Modules/RemoteConfig/Repositories/RemoteConfigRepository.swift
 - Sources/App/Modules/RemoteConfig/Controllers/ (directory)
 - Sources/App/Modules/RemoteConfig/Models/ (directory)
-- Sources/App/Modules/RemoteConfig/Repositories/ (directory)
 
 **Modified:**
 - Sources/App/Entrypoint/Application-Setup.swift
+- Sources/App/Common/Extensions/Application+Services.swift
 - Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift

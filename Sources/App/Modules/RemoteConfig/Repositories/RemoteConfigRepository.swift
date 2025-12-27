@@ -1,0 +1,57 @@
+import Fluent
+import Vapor
+
+protocol RemoteConfigRepository: Repository {
+    func find(id: UUID) async throws -> RemoteConfigModel?
+    func find(key: String) async throws -> RemoteConfigModel?
+    func allActive() async throws -> [RemoteConfigModel]
+    func all() async throws -> [RemoteConfigModel]
+    func create(_ model: RemoteConfigModel) async throws
+    func update(_ model: RemoteConfigModel) async throws
+    func delete(_ model: RemoteConfigModel) async throws
+}
+
+struct DatabaseRemoteConfigRepository: RemoteConfigRepository, DatabaseRepository {
+    typealias Model = RemoteConfigModel
+    let database: Database
+
+    func find(id: UUID) async throws -> RemoteConfigModel? {
+        try await RemoteConfigModel.query(on: database)
+            .filter(\.$id == id)
+            .first()
+    }
+
+    func find(key: String) async throws -> RemoteConfigModel? {
+        try await RemoteConfigModel.query(on: database)
+            .filter(\.$key == key)
+            .first()
+    }
+
+    func allActive() async throws -> [RemoteConfigModel] {
+        try await RemoteConfigModel.query(on: database)
+            .filter(\.$isActive == true)
+            .all()
+    }
+
+    func all() async throws -> [RemoteConfigModel] {
+        try await RemoteConfigModel.query(on: database).all()
+    }
+
+    func create(_ model: RemoteConfigModel) async throws {
+        try await model.create(on: database)
+    }
+
+    func update(_ model: RemoteConfigModel) async throws {
+        try await model.update(on: database)
+    }
+
+    func delete(_ model: RemoteConfigModel) async throws {
+        try await model.delete(on: database)
+    }
+}
+
+extension Application.Repositories {
+    var remoteConfig: any RemoteConfigRepository {
+        application.remoteConfigRepository
+    }
+}
