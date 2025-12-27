@@ -375,41 +375,86 @@
     <check if=".linear config exists">
       <action>Extract story title from {{story_key}} (e.g., "1-2-user-auth" → "User Auth")</action>
 
-      <!-- Create issue with placeholder description first -->
-      <action>Create Linear issue with title: "[{{story_id}}] {{story_title_formatted}}"</action>
-      <action>Run: python {linear_scripts_path}/create_issue.py \
-        --title "[{{story_id}}] {{story_title_formatted}}" \
-        --description "Story: {{story_key}} - Full content loading..." \
-        --json</action>
-      <action>Parse the returned JSON to extract the issue identifier (e.g., "ENG-123")</action>
-      <action>Store as {{linear_issue_id}}</action>
+      <!-- PRIORITY: Check for existing Linear issue from ADW state first -->
+      <check if="ADW_STATE_FILE exists AND contains linear_issue_id">
+        <action>Extract existing issue ID from ADW state:
+          jq -r '.linear_issue_id // empty' "$ADW_STATE_FILE"</action>
+        <action>Store result as {{existing_linear_issue_id}}</action>
 
-      <!-- Update story file with Linear issue ID before updating Linear with full content -->
-      <action>Update the story file's "Linear Issue:" field with {{linear_issue_id}}</action>
-      <action>Save story file</action>
+        <check if="{{existing_linear_issue_id}} is not empty">
+          <action>Set {{linear_issue_id}} = {{existing_linear_issue_id}}</action>
+          <output>🔗 ADW: Using existing Linear issue {{linear_issue_id}}</output>
 
-      <!-- Update Linear issue with full story content via stdin piping -->
-      <action>Pipe the complete story file content to update the Linear issue description:
-        cat "{{story_file}}" | python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --description-stdin</action>
+          <!-- Update story file with the existing Linear issue ID -->
+          <action>Update the story file's "Linear Issue:" field with {{linear_issue_id}}</action>
+          <action>Save story file</action>
 
-      <!-- Verify the description was updated successfully -->
-      <action>Verify issue was updated by checking response success</action>
-      <check if="update command failed or returned error">
-        <output>⚠️ Warning: Linear issue description update may have failed. Manual update may be required.</output>
-        <output>Story file: {{story_file}}</output>
-        <output>Linear issue: {{linear_issue_id}}</output>
+          <!-- Update existing Linear issue with full story content -->
+          <action>Pipe the complete story file content to update the Linear issue description:
+            cat "{{story_file}}" | python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --description-stdin</action>
+
+          <!-- Verify the description was updated successfully -->
+          <action>Verify issue was updated by checking response success</action>
+          <check if="update command failed or returned error">
+            <output>⚠️ Warning: Linear issue description update may have failed. Manual update may be required.</output>
+            <output>Story file: {{story_file}}</output>
+            <output>Linear issue: {{linear_issue_id}}</output>
+          </check>
+
+          <!-- Move issue to Todo state -->
+          <action>Get team workflow states: python {linear_scripts_path}/get_teams.py --detailed --json</action>
+          <action>Find the state ID for "Todo" or "Backlog" status</action>
+          <action>Update issue to Todo state: python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
+
+          <output>🔗 **Linear Issue Updated:** {{linear_issue_id}}
+            Status: Todo
+            Description: Updated with full story content via stdin
+            Link: https://linear.app/issue/{{linear_issue_id}}
+          </output>
+
+          <!-- Skip to sprint status update - don't create new issue -->
+          <action>GOTO sprint status update section</action>
+        </check>
       </check>
 
-      <!-- Move issue to Todo state -->
-      <action>Get team workflow states: python {linear_scripts_path}/get_teams.py --detailed --json</action>
-      <action>Find the state ID for "Todo" or "Backlog" status</action>
-      <action>Update issue to Todo state: python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
+      <!-- Fallback: Create new issue if no existing issue found -->
+      <check if="{{linear_issue_id}} is not set">
+        <!-- Create issue with placeholder description first -->
+        <action>Create Linear issue with title: "[{{story_id}}] {{story_title_formatted}}"</action>
+        <action>Run: python {linear_scripts_path}/create_issue.py \
+          --title "[{{story_id}}] {{story_title_formatted}}" \
+          --description "Story: {{story_key}} - Full content loading..." \
+          --json</action>
+        <action>Parse the returned JSON to extract the issue identifier (e.g., "ENG-123")</action>
+        <action>Store as {{linear_issue_id}}</action>
 
-      <output>🔗 **Linear Issue Created:** {{linear_issue_id}}
-        Status: Todo
-        Description: Updated with full story content via stdin
-        Link: https://linear.app/issue/{{linear_issue_id}}
-      </output>
+        <!-- Update story file with Linear issue ID before updating Linear with full content -->
+        <action>Update the story file's "Linear Issue:" field with {{linear_issue_id}}</action>
+        <action>Save story file</action>
+
+        <!-- Update Linear issue with full story content via stdin piping -->
+        <action>Pipe the complete story file content to update the Linear issue description:
+          cat "{{story_file}}" | python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --description-stdin</action>
+
+        <!-- Verify the description was updated successfully -->
+        <action>Verify issue was updated by checking response success</action>
+        <check if="update command failed or returned error">
+          <output>⚠️ Warning: Linear issue description update may have failed. Manual update may be required.</output>
+          <output>Story file: {{story_file}}</output>
+          <output>Linear issue: {{linear_issue_id}}</output>
+        </check>
+
+        <!-- Move issue to Todo state -->
+        <action>Get team workflow states: python {linear_scripts_path}/get_teams.py --detailed --json</action>
+        <action>Find the state ID for "Todo" or "Backlog" status</action>
+        <action>Update issue to Todo state: python {linear_scripts_path}/update_issue.py {{linear_issue_id}} --state-id {{todo_state_id}}</action>
+
+        <output>🔗 **Linear Issue Created:** {{linear_issue_id}}
+          Status: Todo
+          Description: Updated with full story content via stdin
+          Link: https://linear.app/issue/{{linear_issue_id}}
+        </output>
+      </check>
     </check>
 
     <check if=".linear config does NOT exist">
@@ -464,7 +509,7 @@
       <item>Exhaustive artifact analysis completed (epics, architecture, previous stories, git history)</item>
       <item>Developer guardrails extracted and documented</item>
       <item>Sprint status updated from "backlog" to "ready-for-dev"</item>
-      <item>Linear issue created and linked (if .linear config exists)</item>
+      <item>Linear issue created OR updated with full story content (if .linear config exists)</item>
       <item>ADW state updated with story_id and plan_file (if ADW environment)</item>
       <item>Validation checklist passed via validate-workflow.xml</item>
     </success>
