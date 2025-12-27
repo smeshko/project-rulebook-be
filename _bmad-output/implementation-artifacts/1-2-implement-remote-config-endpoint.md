@@ -73,10 +73,10 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add repository extension for `Application.Repositories`
   - [x] Register repository in `Application-Setup.swift`
 
-- [ ] Define request/response models (AC: 4 - Typed values support)
-  - [ ] Create `RemoteConfig+Model.swift` with Entry.Response, Create.Request, Update.Request types
-  - [ ] Add validation rules for required fields
-  - [ ] Support JSON encoding/decoding for nested configuration objects
+- [x] Define request/response models (AC: 4 - Typed values support)
+  - [x] Create `RemoteConfig+Model.swift` with Entry.Response, Create.Request, Update.Request types
+  - [x] Add validation rules for required fields
+  - [x] Support JSON encoding/decoding for nested configuration objects
 
 - [ ] Implement public GET endpoint (AC: 1, 2)
   - [ ] Create `RemoteConfigController.swift` with `getConfig()` handler
@@ -831,6 +831,14 @@ claude-sonnet-4-5-20250929
 - Registered repository in Application-Setup.swift setupServices method
 - Build verified successful
 
+✅ Task 4: Defined request/response models
+- Created RemoteConfig+Model.swift with nested enums for Entry, Create, Update, Delete
+- Implemented Entry.Response with featureFlags and settings dictionaries
+- Added validation rules for Create and Update requests (key, value, valueType)
+- Created AnyCodable helper for dynamic JSON encoding/decoding
+- Marked AnyCodable as @unchecked Sendable for Swift 6 concurrency
+- Build verified successful
+
 ### File List
 
 **Created:**
@@ -839,8 +847,8 @@ claude-sonnet-4-5-20250929
 - Sources/App/Modules/RemoteConfig/Database/Migrations/RemoteConfigMigrations.swift
 - Sources/App/Modules/RemoteConfig/Database/Models/RemoteConfigModel.swift
 - Sources/App/Modules/RemoteConfig/Repositories/RemoteConfigRepository.swift
+- Sources/App/Modules/RemoteConfig/Models/RemoteConfig+Model.swift
 - Sources/App/Modules/RemoteConfig/Controllers/ (directory)
-- Sources/App/Modules/RemoteConfig/Models/ (directory)
 
 **Modified:**
 - Sources/App/Entrypoint/Application-Setup.swift
