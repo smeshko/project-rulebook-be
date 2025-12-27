@@ -19,3 +19,13 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-config-module.md
+  - Conditions:
+    - When implementing feature flags or remote configuration
+    - When creating cache-backed repository patterns
+    - When working with heterogeneous typed values in API responses
+    - When separating public and admin API endpoints
+    - When implementing cache invalidation strategies
+    - When adding new modules that need database + cache integration
+    - When building configuration delivery systems for mobile apps
