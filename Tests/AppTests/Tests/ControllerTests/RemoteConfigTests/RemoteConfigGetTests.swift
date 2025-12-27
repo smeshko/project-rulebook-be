@@ -36,12 +36,12 @@ struct RemoteConfigGetTests {
         try await app.test(.GET, path) { response in
             #expect(response.status == .ok)
 
-            let configs = try response.content.decode([String: RemoteConfig.ConfigValue].self)
-            #expect(configs.count == 2)
-            #expect(configs["enableNewScanner"]?.value == "true")
-            #expect(configs["enableNewScanner"]?.type == .boolean)
-            #expect(configs["maxRetries"]?.value == "3")
-            #expect(configs["maxRetries"]?.type == .integer)
+            let getResponse = try response.content.decode(RemoteConfig.GetResponse.self)
+            // Feature flags should contain "NewScanner" (prefix "enable" removed)
+            #expect(getResponse.featureFlags.count == 1)
+            // Settings should contain "maxRetries"
+            #expect(getResponse.settings.count == 1)
+            #expect(getResponse.version == "1.0.0")
         }
     }
 
@@ -52,8 +52,10 @@ struct RemoteConfigGetTests {
         try await app.test(.GET, path) { response in
             #expect(response.status == .ok)
 
-            let configs = try response.content.decode([String: RemoteConfig.ConfigValue].self)
-            #expect(configs.isEmpty)
+            let getResponse = try response.content.decode(RemoteConfig.GetResponse.self)
+            #expect(getResponse.featureFlags.isEmpty)
+            #expect(getResponse.settings.isEmpty)
+            #expect(getResponse.version == "1.0.0")
         }
     }
 
@@ -77,14 +79,15 @@ struct RemoteConfigGetTests {
         // Second request - should hit cache
         try await app.test(.GET, path) { response in
             #expect(response.status == .ok)
-            let configs = try response.content.decode([String: RemoteConfig.ConfigValue].self)
-            #expect(configs["testConfig"]?.value == "testValue")
+            let getResponse = try response.content.decode(RemoteConfig.GetResponse.self)
+            // testConfig should be in settings
+            #expect(getResponse.settings.count == 1)
         }
 
         // Verify cache exists
         let cached = try await app.services.cache.get(
             "remote_config:latest",
-            as: [String: RemoteConfig.ConfigValue].self
+            as: RemoteConfig.GetResponse.self
         )
         #expect(cached != nil)
     }

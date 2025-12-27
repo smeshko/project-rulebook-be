@@ -15,8 +15,8 @@ struct RemoteConfigController {
         let configs = try await repository.getAll()
 
         // Transform to response format matching AC structure
-        var featureFlags: [String: Any] = [:]
-        var settings: [String: Any] = [:]
+        var featureFlags: [String: RemoteConfig.AnyCodableValue] = [:]
+        var settings: [String: RemoteConfig.AnyCodableValue] = [:]
         var version = "1.0.0" // Default version
 
         for config in configs {
@@ -45,20 +45,21 @@ struct RemoteConfigController {
         return response
     }
 
-    private func parseConfigValue(_ value: String, type: ConfigValueType) -> Any {
+    private func parseConfigValue(_ value: String, type: ConfigValueType) -> RemoteConfig.AnyCodableValue {
         switch type {
         case .boolean:
-            return value.lowercased() == "true"
+            return .bool(value.lowercased() == "true")
         case .integer:
-            return Int(value) ?? 0
+            return .int(Int(value) ?? 0)
         case .string:
-            return value
+            return .string(value)
         case .json:
+            // For JSON, try to parse as object; fallback to string
             if let data = value.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: data) {
-                return json
+               let dict = try? JSONDecoder().decode([String: RemoteConfig.AnyCodableValue].self, from: data) {
+                return .object(dict)
             }
-            return value
+            return .string(value)
         }
     }
 
