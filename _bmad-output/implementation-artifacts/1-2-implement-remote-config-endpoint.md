@@ -1,7 +1,7 @@
 # Story 1.2: Implement Remote Config Endpoint
 
 <!-- TEMPLATE SECTION: story_header -->
-Status: Ready for Review
+Status: Done
 Linear Issue: RULE-123
 Epic: 1 - API Versioning & Stability
 Created: 2025-12-27

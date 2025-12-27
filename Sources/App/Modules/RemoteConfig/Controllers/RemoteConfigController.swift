@@ -17,7 +17,10 @@ struct RemoteConfigController {
                 req.logger.info("Remote config served from cache")
                 return cached
             } catch {
-                req.logger.warning("Cache decode failed for key: \(cacheKey), error: \(error)")
+                req.logger.warning("Failed to decode cached remote config. Refreshing from database", metadata: [
+                    "key": .string(cacheKey),
+                    "error": .string(String(describing: error))
+                ])
             }
         }
 
@@ -55,10 +58,14 @@ struct RemoteConfigController {
         )
 
         // Cache the response
-        if let responseData = try? JSONEncoder().encode(response),
-           let responseJSON = String(data: responseData, encoding: .utf8) {
-            await req.services.aiCache.set(key: cacheKey, value: responseJSON, ttl: cacheTTL)
-            req.logger.info("Remote config cached for \(Int(cacheTTL)) seconds")
+        do {
+            let responseData = try JSONEncoder().encode(response)
+            if let responseJSON = String(data: responseData, encoding: .utf8) {
+                await req.services.aiCache.set(key: cacheKey, value: responseJSON, ttl: cacheTTL)
+                req.logger.info("Remote config cached for \(Int(cacheTTL)) seconds")
+            }
+        } catch {
+            req.logger.error("Failed to encode remote config for caching", metadata: ["error": .string(String(describing: error))])
         }
 
         return response
@@ -83,9 +90,20 @@ struct RemoteConfigController {
         do {
             try await repository.create(config)
         } catch {
-            // Check if it's a unique constraint violation
-            let errorDescription = String(describing: error).lowercased()
-            if errorDescription.contains("unique") || errorDescription.contains("constraint") {
+            // Check if this is a unique constraint failure for key
+            // Use String(reflecting:) to get the full error details for proper matching
+            let errorString = String(reflecting: error)
+
+            // Check for PostgreSQL unique constraint violation (code 23505)
+            let isPostgreSQLDuplicateKey = errorString.contains("sqlState: 23505") &&
+                (errorString.contains("uq:remote_configs.key") ||
+                 errorString.contains("Key (key)") ||
+                 errorString.contains("duplicate key") && errorString.contains("key"))
+
+            // Check for SQLite unique constraint failures
+            let isSQLiteDuplicateKey = errorString.contains("UNIQUE constraint failed: remote_configs.key")
+
+            if isPostgreSQLDuplicateKey || isSQLiteDuplicateKey {
                 throw Abort(.conflict, reason: "Configuration with key '\(createRequest.key)' already exists")
             }
             throw error
@@ -170,8 +188,8 @@ struct RemoteConfigController {
             return AnyCodable(value.lowercased() == "true")
         case "integer":
             guard let intValue = Int(value) else {
-                // Log warning for invalid integer but continue with 0 for backward compatibility
-                return AnyCodable(0)
+                // Return string fallback for invalid integer and let caller handle
+                return AnyCodable(value)
             }
             return AnyCodable(intValue)
         case "json":
@@ -190,9 +208,9 @@ struct RemoteConfigController {
     // Recursively wrap Any values in AnyCodable for proper encoding
     private func wrapInAnyCodable(_ value: Any) -> Any {
         if let dict = value as? [String: Any] {
-            return dict.mapValues { wrapInAnyCodable($0) } as [String: Any]
+            return dict.mapValues { AnyCodable(wrapInAnyCodable($0)) } as [String: AnyCodable]
         } else if let array = value as? [Any] {
-            return array.map { wrapInAnyCodable($0) }
+            return array.map { AnyCodable(wrapInAnyCodable($0)) }
         } else {
             return value
         }

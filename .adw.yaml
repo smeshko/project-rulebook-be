@@ -15,6 +15,13 @@ infrastructure:
   environment: local
   review: github_pr
 
+evidence:
+  enabled: true
+  platform: backend
+
+storage:
+  enabled: false
+
 workflow:
   # Global workflow settings
   default_model_set: base
