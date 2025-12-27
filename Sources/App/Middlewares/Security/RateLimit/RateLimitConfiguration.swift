@@ -116,7 +116,20 @@ struct RateLimitConfiguration {
     
     /// Time window for general request rate limiting in seconds.
     let generalWindow: Int
-    
+
+    // MARK: - Waitlist Operation Limits
+
+    /// Maximum number of waitlist subscription requests allowed within the time window.
+    ///
+    /// Waitlist operations protect against automated spam while allowing legitimate signups.
+    ///
+    /// **Production**: 10 requests/hour
+    /// **Development**: 100 requests/hour
+    let waitlistLimit: Int
+
+    /// Time window for waitlist rate limiting in seconds.
+    let waitlistWindow: Int
+
     /// Default rate limiting configuration suitable for most deployments.
     ///
     /// Provides balanced limits that protect against abuse while supporting
@@ -135,18 +148,22 @@ struct RateLimitConfiguration {
         imageAnalysisWindow: 3600, // 1 hour
         rulesGenerationLimit: 10,
         rulesGenerationWindow: 3600, // 1 hour
-        
+
         // Admin operations: Restricted but reasonable
         adminLimit: 20,
         adminWindow: 300, // 5 minutes
-        
+
         // API operations: Moderate limits
         apiLimit: 100,
         apiWindow: 3600, // 1 hour
-        
+
         // General web requests: Lenient
         generalLimit: 1000,
-        generalWindow: 3600 // 1 hour
+        generalWindow: 3600, // 1 hour
+
+        // Waitlist operations: Moderate protection
+        waitlistLimit: 10,
+        waitlistWindow: 3600 // 1 hour
     )
     
     /// Production rate limiting configuration optimized for cost control and security.
@@ -180,7 +197,9 @@ struct RateLimitConfiguration {
             apiLimit: 50,
             apiWindow: 3600,
             generalLimit: 500,
-            generalWindow: 3600
+            generalWindow: 3600,
+            waitlistLimit: 10,
+            waitlistWindow: 3600
         )
     }
     
@@ -215,7 +234,9 @@ struct RateLimitConfiguration {
             apiLimit: 1000,
             apiWindow: 3600,
             generalLimit: 10000,
-            generalWindow: 3600
+            generalWindow: 3600,
+            waitlistLimit: 100,
+            waitlistWindow: 3600
         )
     }
 }

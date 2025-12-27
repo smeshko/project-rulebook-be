@@ -1,0 +1,13 @@
+[
+  {
+    "session_id": "2bfd5383-bc56-479e-b81a-bf1e02c42e4b",
+    "transcript_path": "/Users/A1E6E98/.claude/projects/-Users-A1E6E98-Developer-Projects-project-rulebook-project-rulebook-be-trees-cd6cc78d/2bfd5383-bc56-479e-b81a-bf1e02c42e4b.jsonl",
+    "cwd": "/Users/A1E6E98/Developer/Projects/project-rulebook/project-rulebook-be/trees/cd6cc78d",
+    "permission_mode": "default",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "You are doing an adversarial code review. Be THOROUGH and SPECIFIC.\n\nReview the changes on the current git branch (story-1-1: Add API Version Prefix to All Public Routes).\n\nFor each issue found, provide EXACTLY this format:\n\nFINDING N:\n  Severity: HIGH|MEDIUM|LOW\n  File: exact/path/to/file.swift\n  Line: exact line number\n  Issue: Precise description\n  Suggested Fix: Specific fix\n\nThe changed files are:\n- Sources/App/Modules/Auth/AuthRouter.swift\n- Sources/App/Modules/RulesGeneration/RulesGenerationRouter.swift  \n- Sources/App/Modules/User/UserRouter.swift\n- Sources/App/Modules/Waitlist/WaitlistRouter.swift\n- Sources/App/Middlewares/Security/RateLimit/RateLimitConfiguration.swift\n- Tests/AppTests/Framework/Mocks/Services/MockRateLimitService.swift\n- Tests/AppTests/Tests/ControllerTests/RulesGenerationTests/RulesGenerationRouteVersioningTests.swift\n- Tests/AppTests/Tests/ControllerTests/AuthenticationTests/*.swift\n- Tests/AppTests/Tests/ControllerTests/UserTests/*.swift\n\nFocus on: code correctness, testing gaps, security issues, and architecture violations.\n\nIf you find no issues, respond with: \"No issues found\"",
+    "adw_id": null,
+    "issue_id": null,
+    "phase": null
+  }
+]

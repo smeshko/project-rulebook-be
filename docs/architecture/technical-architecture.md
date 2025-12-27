@@ -49,10 +49,10 @@ Sources/App/Modules/[Module]/
 - `UserAccountModel`: Database entity
 
 **Endpoints**:
-- `GET /api/users/profile` - Get current user
-- `PATCH /api/users/profile` - Update profile
-- `DELETE /api/users/profile` - Delete account
-- `GET /api/users/list` - List all users (admin)
+- `GET /api/v1/user/profile` - Get current user
+- `PATCH /api/v1/user/profile` - Update profile
+- `DELETE /api/v1/user/profile` - Delete account
+- `GET /api/v1/user/list` - List all users (admin)
 
 #### 2. AuthModule
 **Purpose**: Authentication, JWT management, email verification
@@ -70,11 +70,11 @@ Sources/App/Modules/[Module]/
 - Rate limiting per operation
 
 **Endpoints**:
-- `POST /api/auth/sign-up` - Registration
-- `POST /api/auth/sign-in` - Login
-- `POST /api/auth/refresh-token` - Token refresh
-- `POST /api/auth/verify-email` - Email verification
-- `POST /api/auth/reset-password` - Password reset
+- `POST /api/v1/auth/sign-up` - Registration
+- `POST /api/v1/auth/sign-in` - Login
+- `POST /api/v1/auth/refresh` - Token refresh
+- `POST /api/v1/auth/verify-email` - Email verification
+- `POST /api/v1/auth/reset-password` - Password reset
 
 #### 3. FrontendModule
 **Purpose**: Server-side rendering with SwiftHtml
@@ -111,8 +111,8 @@ Input → Sanitization → Injection Detection → AI Processing → Response Va
 - 80% API cost reduction
 
 **Endpoints**:
-- `POST /api/rules-generation/game-box-analysis` - Analyze game box
-- `POST /api/rules-generation/rules-summary` - Generate rules
+- `POST /api/v1/rules-generation/game-box-analysis` - Analyze game box
+- `POST /api/v1/rules-generation/rules-summary` - Generate rules
 
 #### 5. CacheAdminModule
 **Purpose**: Cache management and monitoring
@@ -137,9 +137,9 @@ Input → Sanitization → Injection Detection → AI Processing → Response Va
 - Email notification integration
 
 **Endpoints**:
-- `POST /api/waitlist/subscribe` - Join waitlist
-- `GET /api/waitlist/unsubscribe` - Remove from waitlist
-- `POST /api/waitlist/notify` - Admin: send notifications
+- `POST /api/v1/waitlist/subscribe` - Join waitlist
+- `GET /api/v1/waitlist/unsubscribe` - Remove from waitlist
+- `POST /api/v1/waitlist/notify` - Admin: send notifications
 
 ## Service Layer & Dependency Injection
 

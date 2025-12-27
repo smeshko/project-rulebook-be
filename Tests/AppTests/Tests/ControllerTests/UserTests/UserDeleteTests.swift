@@ -8,7 +8,7 @@ struct UserDeleteTests {
     let app: Application
     let user: UserAccountModel
     let testWorld: IsolatedTestWorld
-    let deletePath = "api/user/delete"
+    let deletePath = "api/v1/user/delete"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

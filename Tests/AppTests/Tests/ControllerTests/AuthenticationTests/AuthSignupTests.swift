@@ -10,7 +10,7 @@ extension Auth.SignUp.Request: Content {}
 struct AuthSignupTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let registerPath = "api/auth/sign-up"
+    let registerPath = "api/v1/auth/sign-up"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

@@ -7,7 +7,7 @@ import Crypto
 struct AuthLogoutTests {
     let app: Application
     let testWorld: IsolatedTestWorld
-    let logoutPath = "api/auth/logout"
+    let logoutPath = "api/v1/auth/logout"
     let user: UserAccountModel
     
     init() async throws {

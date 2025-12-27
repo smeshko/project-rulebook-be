@@ -91,7 +91,7 @@ docker-compose -f docker-compose.dev.yml logs -f redis
 
 #### Game Box Image Analysis
 ```http
-POST /api/rules-generation/game-box-analysis
+POST /api/v1/rules-generation/game-box-analysis
 Content-Type: application/octet-stream
 
 [Binary image data]
@@ -110,7 +110,7 @@ Content-Type: application/octet-stream
 
 #### Rules Summary Generation
 ```http
-POST /api/rules-generation/rules-summary
+POST /api/v1/rules-generation/rules-summary
 Content-Type: application/json
 
 {
@@ -141,14 +141,14 @@ Content-Type: application/json
 ### Authentication & User Management
 ```http
 # Admin Login
-POST /api/auth/sign-in
+POST /api/v1/auth/sign-in
 
-# User Registration  
-POST /api/auth/sign-up
+# User Registration
+POST /api/v1/auth/sign-up
 
 # User Profile
-GET /api/users/profile
-PATCH /api/users/profile
+GET /api/v1/user/profile
+PATCH /api/v1/user/profile
 ```
 
 ### Cache Administration (Admin Only)

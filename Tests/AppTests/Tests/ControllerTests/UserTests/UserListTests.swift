@@ -8,7 +8,7 @@ struct UserListTests {
     let app: Application
     let user: UserAccountModel
     let testWorld: IsolatedTestWorld
-    let listPath = "api/user/list"
+    let listPath = "api/v1/user/list"
     
     init() async throws {
         testWorld = try await IsolatedTestWorld()

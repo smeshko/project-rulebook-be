@@ -7,6 +7,7 @@ struct WaitlistRouter: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let api = routes
             .grouped("api")
+            .grouped("v1")
             .grouped("waitlist")
             .groupedOpenAPI(tags: .init(name: "Waitlist", description: "Email waitlist management"))
 

@@ -14,6 +14,7 @@ private extension UserRouter {
     func user(routes: RoutesBuilder) {
         let api = routes
             .grouped("api")
+            .grouped("v1")
             .grouped("user")
             .groupedOpenAPI(tags: .init(name: "User", description: "User profile management and account operations"))
 

@@ -39,7 +39,7 @@ struct FrontendRouter: RouteCollection {
                     securitySchemes: [
                         "bearerAuth": .value(SecuritySchemeObject(
                             type: .http,
-                            description: "JWT access token obtained from /api/auth/sign-in or /api/auth/sign-up",
+                            description: "JWT access token obtained from /api/v1/auth/sign-in or /api/v1/auth/sign-up",
                             scheme: .bearer,
                             bearerFormat: "JWT"
                         ))
