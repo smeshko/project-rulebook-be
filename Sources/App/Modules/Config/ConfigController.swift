@@ -4,6 +4,7 @@ struct ConfigController {
 
     private static let cacheKey = "config:all"
     private static let cacheTTL: TimeInterval = 300 // 5 minutes
+    private static let allowedTypes = ["boolean", "integer", "string", "json"]
 
     // MARK: - Public Endpoints
 
@@ -42,6 +43,11 @@ struct ConfigController {
         let createRequest = try req.content.decode(Config.Admin.CreateRequest.self)
         let repository = req.repositories.config
 
+        // Validate type
+        guard Self.allowedTypes.contains(createRequest.type) else {
+            throw ConfigError.invalidValue("Invalid type '\(createRequest.type)'. Must be one of: \(Self.allowedTypes.joined(separator: ", "))")
+        }
+
         // Check if key already exists
         if try await repository.find(key: createRequest.key) != nil {
             throw ConfigError.keyAlreadyExists(createRequest.key)
@@ -75,6 +81,10 @@ struct ConfigController {
 
         entry.value = updateRequest.value
         if let type = updateRequest.type {
+            // Validate type if provided
+            guard Self.allowedTypes.contains(type) else {
+                throw ConfigError.invalidValue("Invalid type '\(type)'. Must be one of: \(Self.allowedTypes.joined(separator: ", "))")
+            }
             entry.type = type
         }
 
