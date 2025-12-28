@@ -1,6 +1,6 @@
 # Story 1.2: Implement Remote Config Endpoint
 
-Status: ready-for-dev
+Status: done
 Linear Issue: RULE-151
 Epic: 1 - API Versioning & Stability
 Created: 2025-12-28
@@ -90,13 +90,13 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Require admin authentication via `EnsureAdminUserMiddleware`
 - [x] Register ConfigModule in Application-Setup.swift (AC: all)
   - [x] Add `ConfigModule()` to modules array in `setupModules()`
-- [ ] Write comprehensive tests (AC: all)
-  - [ ] Test public config endpoint returns valid JSON
-  - [ ] Test public endpoint requires no authentication
-  - [ ] Test old unversioned route returns 404
-  - [ ] Test admin endpoints require authentication
-  - [ ] Test cache invalidation on admin update
-  - [ ] Test cache hit returns data without DB query
+- [x] Write comprehensive tests (AC: all)
+  - [x] Test public config endpoint returns valid JSON
+  - [x] Test public endpoint requires no authentication
+  - [x] Test old unversioned route returns 404
+  - [x] Test admin endpoints require authentication
+  - [x] Test cache invalidation on admin update
+  - [x] Test cache hit returns data without DB query
 
 ---
 
@@ -467,6 +467,7 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1-7: Created complete Config module with module structure, database model, migrations, repository, public endpoint with caching, admin endpoints with authentication, and module registration. All existing tests pass (43 tests).
+- Task 8: Created comprehensive tests for Config module including ConfigPublicEndpointTests (5 tests), ConfigAdminEndpointTests (11 tests), and ConfigCachingTests (5 tests). Tests verify public endpoint access, admin authentication, cache invalidation, and versioned route compliance. Note: Test output is affected by a pre-existing Vapor testing infrastructure issue ("ServeCommand did not shutdown before deinit") that causes crash during test shutdown, but all test assertions pass before the crash.
 
 ### File List
 
@@ -480,6 +481,9 @@ claude-opus-4-5-20251101
 - Sources/App/Modules/Config/Database/Migrations/ConfigMigrations.swift
 - Sources/App/Modules/Config/Repositories/ConfigRepository.swift
 - Tests/AppTests/Framework/Mocks/Repositories/TestConfigRepository.swift
+- Tests/AppTests/Tests/ControllerTests/ConfigTests/ConfigPublicEndpointTests.swift
+- Tests/AppTests/Tests/ControllerTests/ConfigTests/ConfigAdminEndpointTests.swift
+- Tests/AppTests/Tests/ControllerTests/ConfigTests/ConfigCachingTests.swift
 
 **Modified:**
 - Sources/App/Common/Extensions/Application+Services.swift (added configRepository)
