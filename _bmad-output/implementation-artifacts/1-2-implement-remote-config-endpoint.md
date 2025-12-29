@@ -86,10 +86,10 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Implement PATCH/PUT for updating config values
   - [x] Invalidate Redis cache on update
 
-- [ ] Register module and repository (AC: 3)
-  - [ ] Add ConfigModule to `setupModules()` in Application-Setup.swift
-  - [ ] Add `configRepository` property to Application
-  - [ ] Add repository accessor to Application.Repositories extension
+- [x] Register module and repository (AC: 3)
+  - [x] Add ConfigModule to `setupModules()` in Application-Setup.swift
+  - [x] Add `configRepository` property to Application
+  - [x] Add repository accessor to Application.Repositories extension
 
 - [ ] Create comprehensive tests
   - [ ] Integration tests for GET /api/v1/config
@@ -495,6 +495,7 @@ claude-opus-4-5-20251101
 - Task 3: Repository with caching already implemented in Task 1. Cache-through pattern in ConfigController: check cache first, fallback to DB, cache result with 5-min TTL (300s)
 - Task 4: Public GET endpoint already implemented in Task 1. Route at /api/v1/config, buildConfigResponse groups by key prefix
 - Task 5: Fixed admin route to use /api/v1/admin/config per story requirements. Applied UserAccountModel.guard() and EnsureAdminUserMiddleware(). Cache invalidation via cache.delete()
+- Task 6: Registered ConfigModule in setupModules() and added configRepository initialization in setupServices()
 
 ### File List
 
