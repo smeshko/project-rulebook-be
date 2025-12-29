@@ -73,7 +73,7 @@ Ask conversationally:
 - What type of workflow are you looking to create?
 - What problem will this workflow solve?
 - Who will use this workflow?
-- What module will it belong to (bmb, bmm, cis, custom, stand-alone)?
+- What module will it belong to (bmb, bmm, adw, cis, custom, stand-alone)?
 
 Also, Ask / suggest a workflow name / folder: (kebab-case, e.g., "user-story-generator")
 
