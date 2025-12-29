@@ -74,11 +74,11 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add cache-through pattern: read from Redis, fallback to PostgreSQL
   - [x] Set 5-minute TTL on cached config values
 
-- [ ] Implement public GET endpoint (AC: 1, 2)
-  - [ ] Register public route at `/api/v1/config`
-  - [ ] Implement controller method to fetch all config entries
-  - [ ] Transform database entries into structured JSON response
-  - [ ] Group by key prefix (featureFlags.*, settings.*)
+- [x] Implement public GET endpoint (AC: 1, 2)
+  - [x] Register public route at `/api/v1/config`
+  - [x] Implement controller method to fetch all config entries
+  - [x] Transform database entries into structured JSON response
+  - [x] Group by key prefix (featureFlags.*, settings.*)
 
 - [ ] Implement admin PUT endpoint (AC: 5)
   - [ ] Register admin route at `/api/v1/admin/config`
@@ -493,6 +493,7 @@ claude-opus-4-5-20251101
 - Task 1: Created complete Config module structure with ConfigModule, ConfigRouter, ConfigController, Config+Model (DTOs with Sendable conformance), ConfigEntryModel (database model), ConfigMigrations (v1 migration), and ConfigRepository (protocol + DatabaseConfigRepository implementation)
 - Task 2: Database model and migration already implemented in Task 1 (config_entries table with id, key, value JSON, value_type, created_at, updated_at, unique constraint on key)
 - Task 3: Repository with caching already implemented in Task 1. Cache-through pattern in ConfigController: check cache first, fallback to DB, cache result with 5-min TTL (300s)
+- Task 4: Public GET endpoint already implemented in Task 1. Route at /api/v1/config, buildConfigResponse groups by key prefix
 
 ### File List
 
