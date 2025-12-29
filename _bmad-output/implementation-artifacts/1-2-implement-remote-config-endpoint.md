@@ -68,11 +68,11 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add unique constraint on `key` field
   - [x] Register migration in ConfigModule
 
-- [ ] Implement repository with caching (AC: 3, 6)
-  - [ ] Create ConfigRepository protocol with CRUD methods
-  - [ ] Implement DatabaseConfigRepository
-  - [ ] Add cache-through pattern: read from Redis, fallback to PostgreSQL
-  - [ ] Set 5-minute TTL on cached config values
+- [x] Implement repository with caching (AC: 3, 6)
+  - [x] Create ConfigRepository protocol with CRUD methods
+  - [x] Implement DatabaseConfigRepository
+  - [x] Add cache-through pattern: read from Redis, fallback to PostgreSQL
+  - [x] Set 5-minute TTL on cached config values
 
 - [ ] Implement public GET endpoint (AC: 1, 2)
   - [ ] Register public route at `/api/v1/config`
@@ -492,6 +492,7 @@ claude-opus-4-5-20251101
 
 - Task 1: Created complete Config module structure with ConfigModule, ConfigRouter, ConfigController, Config+Model (DTOs with Sendable conformance), ConfigEntryModel (database model), ConfigMigrations (v1 migration), and ConfigRepository (protocol + DatabaseConfigRepository implementation)
 - Task 2: Database model and migration already implemented in Task 1 (config_entries table with id, key, value JSON, value_type, created_at, updated_at, unique constraint on key)
+- Task 3: Repository with caching already implemented in Task 1. Cache-through pattern in ConfigController: check cache first, fallback to DB, cache result with 5-min TTL (300s)
 
 ### File List
 
