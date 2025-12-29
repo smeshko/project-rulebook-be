@@ -19,10 +19,15 @@ struct ConfigRouter: RouteCollection {
                 response: .type(Config.Response.self)
             )
 
-        // Admin-only endpoints
-        let adminAPI = api
+        // Admin-only endpoints at /api/v1/admin/config
+        let adminAPI = routes
+            .grouped("api")
+            .grouped("v1")
+            .grouped("admin")
+            .grouped("config")
             .grouped(UserAccountModel.guard())
             .grouped(EnsureAdminUserMiddleware())
+            .groupedOpenAPI(tags: .init(name: "Config Admin", description: "Remote configuration administration"))
 
         adminAPI
             .patch(use: controller.updateConfig)

@@ -80,11 +80,11 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Transform database entries into structured JSON response
   - [x] Group by key prefix (featureFlags.*, settings.*)
 
-- [ ] Implement admin PUT endpoint (AC: 5)
-  - [ ] Register admin route at `/api/v1/admin/config`
-  - [ ] Apply `UserAccountModel.guard()` and `EnsureAdminUserMiddleware()`
-  - [ ] Implement PATCH/PUT for updating config values
-  - [ ] Invalidate Redis cache on update
+- [x] Implement admin PUT endpoint (AC: 5)
+  - [x] Register admin route at `/api/v1/admin/config`
+  - [x] Apply `UserAccountModel.guard()` and `EnsureAdminUserMiddleware()`
+  - [x] Implement PATCH/PUT for updating config values
+  - [x] Invalidate Redis cache on update
 
 - [ ] Register module and repository (AC: 3)
   - [ ] Add ConfigModule to `setupModules()` in Application-Setup.swift
@@ -494,6 +494,7 @@ claude-opus-4-5-20251101
 - Task 2: Database model and migration already implemented in Task 1 (config_entries table with id, key, value JSON, value_type, created_at, updated_at, unique constraint on key)
 - Task 3: Repository with caching already implemented in Task 1. Cache-through pattern in ConfigController: check cache first, fallback to DB, cache result with 5-min TTL (300s)
 - Task 4: Public GET endpoint already implemented in Task 1. Route at /api/v1/config, buildConfigResponse groups by key prefix
+- Task 5: Fixed admin route to use /api/v1/admin/config per story requirements. Applied UserAccountModel.guard() and EnsureAdminUserMiddleware(). Cache invalidation via cache.delete()
 
 ### File List
 
