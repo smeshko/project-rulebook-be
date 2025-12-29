@@ -91,12 +91,12 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Add `configRepository` property to Application
   - [x] Add repository accessor to Application.Repositories extension
 
-- [ ] Create comprehensive tests
-  - [ ] Integration tests for GET /api/v1/config
-  - [ ] Integration tests for admin PATCH endpoint
-  - [ ] Test cache hit/miss scenarios
-  - [ ] Test cache invalidation on update
-  - [ ] Test authentication requirement for admin endpoint
+- [x] Create comprehensive tests
+  - [x] Integration tests for GET /api/v1/config
+  - [x] Integration tests for admin PATCH endpoint
+  - [x] Test cache hit/miss scenarios
+  - [x] Test cache invalidation on update
+  - [x] Test authentication requirement for admin endpoint
 
 ---
 
@@ -496,6 +496,7 @@ claude-opus-4-5-20251101
 - Task 4: Public GET endpoint already implemented in Task 1. Route at /api/v1/config, buildConfigResponse groups by key prefix
 - Task 5: Fixed admin route to use /api/v1/admin/config per story requirements. Applied UserAccountModel.guard() and EnsureAdminUserMiddleware(). Cache invalidation via cache.delete()
 - Task 6: Registered ConfigModule in setupModules() and added configRepository initialization in setupServices()
+- Task 7: Created comprehensive tests: ConfigGetTests (5 tests), ConfigAdminTests (5 tests). Added TestConfigRepository mock and integrated with IsolatedTestWorld
 
 ### File List
 
@@ -507,7 +508,12 @@ claude-opus-4-5-20251101
 - Sources/App/Modules/Config/Database/Models/ConfigEntryModel.swift
 - Sources/App/Modules/Config/Database/Migrations/ConfigMigrations.swift
 - Sources/App/Modules/Config/Repositories/ConfigRepository.swift
+- Tests/AppTests/Framework/Mocks/Repositories/TestConfigRepository.swift
+- Tests/AppTests/Tests/ControllerTests/ConfigTests/ConfigGetTests.swift
+- Tests/AppTests/Tests/ControllerTests/ConfigTests/ConfigAdminTests.swift
 
 **Modified:**
 - Sources/App/Common/Extensions/Application+Services.swift (added configRepository)
+- Sources/App/Entrypoint/Application-Setup.swift (added ConfigModule to setupModules, configRepository init)
+- Tests/AppTests/Framework/IsolatedTestWorld.swift (added configRepository integration)
 
