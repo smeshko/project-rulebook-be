@@ -15,13 +15,38 @@ infrastructure:
   environment: local
   review: github_pr
 
+# Evidence gathering configuration
+# Configures HOW evidence is gathered (platform, server settings)
+# To enable/disable evidence in the loop, use validation.evidence.enabled
 evidence:
-  enabled: true
   platform: backend
-  test_user_env: "TEST"  # looks for TEST_EMAIL, TEST_PASSWORD in .env
+  # server_command: "npm run dev"    # Optional: auto-detected
+  # base_url: http://localhost:3000  # Optional: default
 
-storage:
-  enabled: false
+# Validation loop configuration
+# Controls how the validate-and-fix loop behaves
+validation:
+  # Maximum iterations before giving up (1-10)
+  max_iterations: 3
+
+  # Max fix attempts per issue before deferring (1-5)
+  max_fix_attempts_per_issue: 2
+
+  # Validators (all enabled by default)
+  tests:
+    enabled: true
+    command: /bmad:adw:workflows:run-tests   # Optional: override default /adw/test
+
+  review:
+    enabled: true
+    command: /bmad:adw:workflows:code-review # Optional: override default /adw/review
+
+  evidence:
+    enabled: true
+    command: /bmad:adw:workflows:gather-evidence   # Optional: override SDK skill
+
+  # Fixer (uses AI by default)
+  fixer_command: /bmad:adw:workflows:fix  # Optional: override AI fixer
 
 workflow:
   # Global workflow settings
@@ -34,33 +59,28 @@ workflow:
     # Planning phase: Classify issue and create implementation plan
     - name: plan
       enabled: true
-      command: /bmad:bmm:workflows:create-story
+      command: /bmad:adw:workflows:create-story
       # model: sonnet  # Optional: override model for this phase
 
     # Build phase: Implement the solution
     - name: build
       enabled: true
-      command: /bmad:bmm:workflows:dev-story
+      command: /bmad:adw:workflows:dev-story
       # model: opus  # Optional: use Opus for complex implementations
 
-    # Test phase: Run tests
-    - name: test
+    # VALIDATE replaces test + review
+    # Runs all validators, triages issues, fixes, and loops until confident
+    - name: validate
       enabled: true
-      command: /bmad:bmm:workflows:run-tests
       on_failure: block
-
-    # Review phase: Self-review the implementation
-    - name: review
-      enabled: true
-      command: /bmad:bmm:workflows:code-review-loop
 
     # Document phase: Update documentation
     - name: document
       enabled: true
-      command: /bmad:bmm:workflows:document-feature
-      # skip_if: "issue.labels contains 'bug'"
+      command: /bmad:adw:workflows:document-feature
+      skip_if: "issue.labels contains 'bug'"
 
     # Ship phase: Create PR and prepare for merge
     - name: ship
       enabled: false
-      command: /bmad:bmm:workflows:ship
+      command: /bmad:adw:workflows:ship
