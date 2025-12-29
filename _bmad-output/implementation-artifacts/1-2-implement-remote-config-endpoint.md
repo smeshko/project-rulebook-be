@@ -63,10 +63,10 @@ so that app behavior can be controlled remotely without app updates.
   - [x] Create `Sources/App/Modules/Config/Database/Migrations/ConfigMigrations.swift`
   - [x] Create `Sources/App/Modules/Config/Repositories/ConfigRepository.swift`
 
-- [ ] Implement database model and migration (AC: 3, 4)
-  - [ ] Define `config_entries` table with: `id`, `key`, `value` (JSON), `value_type`, `created_at`, `updated_at`
-  - [ ] Add unique constraint on `key` field
-  - [ ] Register migration in ConfigModule
+- [x] Implement database model and migration (AC: 3, 4)
+  - [x] Define `config_entries` table with: `id`, `key`, `value` (JSON), `value_type`, `created_at`, `updated_at`
+  - [x] Add unique constraint on `key` field
+  - [x] Register migration in ConfigModule
 
 - [ ] Implement repository with caching (AC: 3, 6)
   - [ ] Create ConfigRepository protocol with CRUD methods
@@ -491,6 +491,7 @@ claude-opus-4-5-20251101
 ### Completion Notes List
 
 - Task 1: Created complete Config module structure with ConfigModule, ConfigRouter, ConfigController, Config+Model (DTOs with Sendable conformance), ConfigEntryModel (database model), ConfigMigrations (v1 migration), and ConfigRepository (protocol + DatabaseConfigRepository implementation)
+- Task 2: Database model and migration already implemented in Task 1 (config_entries table with id, key, value JSON, value_type, created_at, updated_at, unique constraint on key)
 
 ### File List
 
