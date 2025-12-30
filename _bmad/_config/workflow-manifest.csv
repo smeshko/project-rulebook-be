@@ -50,5 +50,6 @@ name,description,module,path
 "gather-evidence","Gather evidence for implementation by invoking platform-specific skills.","adw","_bmad/adw/workflows/gather-evidence/workflow.md"
 "quick-dev","Flexible development - execute tech-specs OR direct instructions with optional planning.","adw","_bmad/adw/workflows/quick-dev/workflow.yaml"
 "report-issue","Capture, document, and route QA issues found during manual testing.","adw","_bmad/adw/workflows/report-issue/workflow.yaml"
+"project-config","Create project configuration file for test, document, and ship workflows.","adw","_bmad/adw/workflows/project-config/workflow.md"
 "run-tests","Run all configured test commands from project-config.yaml, auto-fix failing tests.","adw","_bmad/adw/workflows/run-tests/workflow.md"
 "ship","Execute deployment pipeline from project-config.yaml: version bump, build, publish, and post-publish hooks.","adw","_bmad/adw/workflows/ship/workflow.md"

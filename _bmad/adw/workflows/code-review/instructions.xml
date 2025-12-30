@@ -125,9 +125,20 @@
       missing error handling, violations of project patterns, incomplete
       implementations, and test gaps.
 
-      ## REQUIRED OUTPUT FORMAT (strict JSON only)
+      ## CRITICAL: OUTPUT FORMAT
 
-      Return ONLY valid JSON matching this exact structure:
+      ⚠️ YOUR ENTIRE RESPONSE MUST BE VALID JSON - NOTHING ELSE ⚠️
+
+      Do NOT output:
+      - Markdown headers (no ## or **)
+      - Code fences (no ```)
+      - Explanatory text before or after the JSON
+      - "Here is the JSON" or similar preamble
+      - Step numbers or status messages
+
+      Your response must start with { and end with } - pure JSON only.
+
+      Required JSON structure:
 
       {
         "issues": [
@@ -149,8 +160,9 @@
       - "warning": Should fix (code quality, missing error handling, incomplete)
       - "info": Nice to fix (style, minor improvements)
 
-      IMPORTANT: Output ONLY the JSON. No markdown, no explanation, no preamble.
-      If no issues found, return: {"issues": []}
+      If no issues found, return exactly: {"issues": []}
+
+      REMEMBER: Raw JSON only. First character must be {, last character must be }
       ```
     </action>
 
