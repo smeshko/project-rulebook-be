@@ -93,18 +93,18 @@
     </action>
   </step>
 
-  <step n="3" goal="Execute GLM review">
-    <critical>Delegate review to GLM subagent and capture structured JSON output</critical>
+  <step n="3" goal="Execute Codex review">
+    <critical>Delegate review to Codex CLI and capture structured JSON output</critical>
 
     <!-- Build the review prompt with all gathered context -->
-    <action>Construct GLM review prompt including:
+    <action>Construct Codex review prompt including:
       1. List of changed files from step 1 (git diff results)
       2. Story acceptance criteria and task descriptions
       3. Architecture patterns and coding standards
       4. Git vs story discrepancies noted in step 1
     </action>
 
-    <action>Include the REQUIRED JSON OUTPUT SCHEMA in the prompt:
+    <action>Build the REVIEW_PROMPT with REQUIRED JSON OUTPUT SCHEMA:
       ```
       You are an adversarial code reviewer. Analyze the code and return findings as JSON.
 
@@ -127,7 +127,7 @@
 
       ## CRITICAL: OUTPUT FORMAT
 
-      ⚠️ YOUR ENTIRE RESPONSE MUST BE VALID JSON - NOTHING ELSE ⚠️
+      YOUR ENTIRE RESPONSE MUST BE VALID JSON - NOTHING ELSE
 
       Do NOT output:
       - Markdown headers (no ## or **)
@@ -166,33 +166,27 @@
       ```
     </action>
 
-    <!-- Spawn GLM subagent in background -->
-    <action>Use Task tool to spawn GLM subagent:
-      - subagent_type: "glm"
-      - run_in_background: true
-      - description: "GLM code review"
-      - prompt: {constructed_review_prompt}
+    <!-- Execute Codex CLI for review -->
+    <action>Write the constructed prompt to a temp file:
+      PROMPT_FILE="/tmp/codex-review-prompt-$(date +%s).txt"
     </action>
-    <action>Store returned task_id as {{glm_task_id}}</action>
 
-    <!-- Wait for GLM results -->
-    <action>Use TaskOutput to retrieve results:
-      - task_id: {{glm_task_id}}
-      - block: true
-      - timeout: 300000 (5 minutes)
+    <action>Run Codex CLI in full-auto mode using Bash tool:
+      codex exec --full-auto -m gpt-5.1-codex-max "$(cat $PROMPT_FILE)"
     </action>
+    <action>Capture stdout as {{codex_response}}</action>
 
     <!-- Parse and validate JSON response -->
-    <action>Extract JSON from GLM response:
+    <action>Extract JSON from Codex response:
       1. Strip any markdown code fences if present
       2. Parse JSON into {{review_findings}} object
       3. Validate structure has "issues" array
       4. Count issues by severity for summary
     </action>
 
-    <check if="GLM fails or times out">
-      <output>⚠️ GLM review failed: {{error_message}}</output>
-      <action>Set {{review_findings}} = {"issues": [], "error": "GLM review failed"}</action>
+    <check if="Codex fails or times out">
+      <output>⚠️ Codex review failed: {{error_message}}</output>
+      <action>Set {{review_findings}} = {"issues": [], "error": "Codex review failed"}</action>
     </check>
 
     <action>Store {{review_findings}} for step 4 output</action>

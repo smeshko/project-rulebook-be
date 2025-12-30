@@ -1,6 +1,6 @@
-# Code Review Workflow (GLM-powered, JSON output)
+# Code Review Workflow (Codex-powered, JSON output)
 name: code-review
-description: "Adversarial code review using GLM subagent. Returns structured JSON findings for downstream processing (fixer agents, CI pipelines). Single-pass review - does NOT fix issues, only reports them."
+description: "Adversarial code review using Codex CLI. Returns structured JSON findings for downstream processing (fixer agents, CI pipelines). Single-pass review - does NOT fix issues, only reports them."
 author: "BMad"
 
 # Execution Mode

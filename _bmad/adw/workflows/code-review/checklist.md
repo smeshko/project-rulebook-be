@@ -1,4 +1,4 @@
-# Code Review (GLM) - Validation Checklist
+# Code Review (Codex) - Validation Checklist
 
 ## Context Gathering
 - [ ] Story file loaded from git branch detection
@@ -7,15 +7,15 @@
 - [ ] Architecture/standards docs loaded (as available)
 - [ ] Project context loaded (if exists)
 
-## GLM Review Execution
+## Codex Review Execution
 - [ ] Review prompt constructed with full context
 - [ ] JSON output schema included in prompt
-- [ ] GLM subagent spawned via Task tool (run_in_background: true)
-- [ ] TaskOutput used to retrieve results (with timeout)
+- [ ] Codex CLI executed via Bash (codex exec --full-auto)
+- [ ] Codex output captured and parsed
 - [ ] JSON response parsed and validated
 
 ## Output
-- [ ] Issues array extracted from GLM response
+- [ ] Issues array extracted from Codex response
 - [ ] Issue counts calculated (error/warning/info)
 - [ ] JSON output delivered (raw for headless, formatted for interactive)
 
