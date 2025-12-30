@@ -42,7 +42,7 @@ development_status:
   # Epic 1: API Versioning & Stability
   epic-1: in-progress
   1-1-add-api-version-prefix-to-all-public-routes: done
-  1-2-implement-remote-config-endpoint: in-progress
+  1-2-implement-remote-config-endpoint: completed
   epic-1-retrospective: optional
 
   # Epic 2: In-App Purchase Verification
