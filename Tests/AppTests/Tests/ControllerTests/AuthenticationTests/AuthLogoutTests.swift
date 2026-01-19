@@ -16,7 +16,7 @@ struct AuthLogoutTests {
         self.user = try UserAccountModel.mock(app: app)
     }
     
-    @Test("User can logout successfully")
+    @Test("User can logout successfully", .tags(.p0Critical, .auth, .integration))
     func logoutHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -33,7 +33,7 @@ struct AuthLogoutTests {
         }
     }
     
-    @Test("Logout requires authentication")
+    @Test("Logout requires authentication", .tags(.p0Critical, .auth, .integration))
     func logoutNotLoggedIn() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.POST, logoutPath) { response in

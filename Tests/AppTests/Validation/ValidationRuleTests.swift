@@ -6,7 +6,7 @@ struct ValidationRuleTests {
     
     // MARK: - String Validation Tests
     
-    @Test("NotEmptyRule validates non-empty strings")
+    @Test("NotEmptyRule validates non-empty strings", .tags(.p1Core, .unit))
     func notEmptyRule() {
         let rule = NotEmptyRule()
         
@@ -15,7 +15,7 @@ struct ValidationRuleTests {
         #expect(rule.validate("").errorMessage == "Value cannot be empty")
     }
     
-    @Test("MinLengthRule validates minimum string length")
+    @Test("MinLengthRule validates minimum string length", .tags(.p1Core, .unit))
     func minLengthRule() {
         let rule = MinLengthRule(5)
         
@@ -29,7 +29,7 @@ struct ValidationRuleTests {
         #expect(customRule.validate("ab").errorMessage == "Too short!")
     }
     
-    @Test("MaxLengthRule validates maximum string length")
+    @Test("MaxLengthRule validates maximum string length", .tags(.p1Core, .unit))
     func maxLengthRule() {
         let rule = MaxLengthRule(5)
         
@@ -39,7 +39,7 @@ struct ValidationRuleTests {
         #expect(rule.validate("hello world").errorMessage == "Must be at most 5 characters long")
     }
     
-    @Test("PatternRule validates regex patterns")
+    @Test("PatternRule validates regex patterns", .tags(.p1Core, .unit))
     func patternRule() {
         let rule = PatternRule(
             pattern: "^[A-Z][a-z]+$",
@@ -52,7 +52,7 @@ struct ValidationRuleTests {
         #expect(rule.validate("hello").errorMessage == "Must start with capital letter")
     }
     
-    @Test("EmailRule validates email addresses")
+    @Test("EmailRule validates email addresses", .tags(.p0Critical, .auth, .unit))
     func emailRule() {
         let rule = EmailRule()
         
@@ -65,7 +65,7 @@ struct ValidationRuleTests {
     
     // MARK: - Numeric Validation Tests
     
-    @Test("RangeRule validates numeric ranges")
+    @Test("RangeRule validates numeric ranges", .tags(.p2Extended, .unit))
     func rangeRule() {
         let rule = RangeRule(1...10)
         
@@ -76,7 +76,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate(11).isValid)
     }
     
-    @Test("MinRule validates minimum values")
+    @Test("MinRule validates minimum values", .tags(.p2Extended, .unit))
     func minRule() {
         let rule = MinRule(18, message: "Must be 18 or older")
         
@@ -86,7 +86,7 @@ struct ValidationRuleTests {
         #expect(rule.validate(17).errorMessage == "Must be 18 or older")
     }
     
-    @Test("MaxRule validates maximum values")
+    @Test("MaxRule validates maximum values", .tags(.p2Extended, .unit))
     func maxRule() {
         let rule = MaxRule(100.0)
         
@@ -97,7 +97,7 @@ struct ValidationRuleTests {
     
     // MARK: - Composite Rule Tests
     
-    @Test("AndRule validates all conditions")
+    @Test("AndRule validates all conditions", .tags(.p1Core, .unit))
     func andRule() {
         let rule = AndRule(
             MinLengthRule(5),
@@ -111,7 +111,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate("Hello").isValid)  // Capital letter
     }
     
-    @Test("OrRule validates any condition")
+    @Test("OrRule validates any condition", .tags(.p1Core, .unit))
     func orRule() {
         let rule = OrRule(
             EmailRule(message: "Invalid email"),
@@ -123,7 +123,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate("invalid@").isValid)  // Neither valid
     }
     
-    @Test("NotRule validates inverse condition")
+    @Test("NotRule validates inverse condition", .tags(.p2Extended, .unit))
     func notRule() {
         let rule = NotRule(
             PatternRule(pattern: "^test", message: ""),
@@ -137,7 +137,7 @@ struct ValidationRuleTests {
     
     // MARK: - Custom Rule Tests
     
-    @Test("CustomRule validates with closure")
+    @Test("CustomRule validates with closure", .tags(.p2Extended, .unit))
     func customRuleWithClosure() {
         let rule = CustomRule<String> { value in
             value.count % 2 == 0 ? .valid : .invalid("Must have even length")
@@ -148,7 +148,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate("hello").isValid)
     }
     
-    @Test("CustomRule validates with boolean closure")
+    @Test("CustomRule validates with boolean closure", .tags(.p2Extended, .unit))
     func customRuleWithBooleanClosure() {
         let rule = CustomRule<Int>(
             { $0 > 0 },
@@ -162,7 +162,7 @@ struct ValidationRuleTests {
     
     // MARK: - Optional Value Tests
     
-    @Test("OptionalRule validates optional values")
+    @Test("OptionalRule validates optional values", .tags(.p2Extended, .unit))
     func optionalRule() {
         let rule = OptionalRule(MinLengthRule(5))
         
@@ -171,7 +171,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate("hi").isValid)
     }
     
-    @Test("RequiredRule validates required values")
+    @Test("RequiredRule validates required values", .tags(.p1Core, .unit))
     func requiredRule() {
         let rule = RequiredRule<String>()
         
@@ -182,7 +182,7 @@ struct ValidationRuleTests {
     
     // MARK: - Complex Validation Scenarios
     
-    @Test("Complex password validation")
+    @Test("Complex password validation", .tags(.p0Critical, .auth, .security, .unit))
     func passwordValidation() {
         // Password must be 8-20 chars with at least one letter and one number
         let rule = AndRule(
@@ -204,7 +204,7 @@ struct ValidationRuleTests {
         #expect(!rule.validate("12345678").isValid)  // No letter
     }
     
-    @Test("Complex username validation")
+    @Test("Complex username validation", .tags(.p0Critical, .auth, .security, .unit))
     func usernameValidation() {
         // Username: 3-20 chars, alphanumeric with underscores
         let rule = AndRule(

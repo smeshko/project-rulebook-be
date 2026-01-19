@@ -31,7 +31,7 @@ struct EmailTokenRepositoryTests {
         try await UserAccountModel.query(on: app.db).delete()
     }
     
-    @Test("Email token can be created")
+    @Test("Email token can be created", .tags(.p0Critical, .database, .auth, .unit))
     func creatingEmailToken() async throws {
         try await user.create(on: app.db)
         let plainToken = "email-\(UUID().uuidString)"
@@ -43,7 +43,7 @@ struct EmailTokenRepositoryTests {
         #expect(count == 1)
     }
     
-    @Test("Email token can be found by token value")
+    @Test("Email token can be found by token value", .tags(.p0Critical, .database, .auth, .unit))
     func findingEmailTokenByToken() async throws {
         try await user.create(on: app.db)
         let plainToken = "email-find-\(UUID().uuidString)"
@@ -54,7 +54,7 @@ struct EmailTokenRepositoryTests {
         #expect(found != nil)
     }
     
-    @Test("Email token can be deleted")
+    @Test("Email token can be deleted", .tags(.p1Core, .database, .auth, .unit))
     func deleteEmailToken() async throws {
         try await user.create(on: app.db)
         let plainToken = "email-delete-\(UUID().uuidString)"

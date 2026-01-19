@@ -16,7 +16,7 @@ struct EmailVerificationTests {
         app = testWorld.app
     }
     
-    @Test("Email verification succeeds with valid token")
+    @Test("Email verification succeeds with valid token", .tags(.p0Critical, .auth, .integration))
     func verifyingEmailHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))
@@ -43,7 +43,7 @@ struct EmailVerificationTests {
         })
     }
     
-    @Test("Email verification fails with invalid token")
+    @Test("Email verification fails with invalid token", .tags(.p1Core, .auth, .integration))
     func verifyingEmailWithInvalidTokenFails() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, verifyURL, beforeRequest: { req in
@@ -57,7 +57,7 @@ struct EmailVerificationTests {
         })
     }
     
-    @Test("Email verification fails with expired token")
+    @Test("Email verification fails with expired token", .tags(.p2Extended, .auth, .integration))
     func verifyingEmailWithExpiredTokenFails() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test@test.com", password: try app.password.hash("123"))

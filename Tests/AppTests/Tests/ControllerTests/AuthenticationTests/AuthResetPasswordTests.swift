@@ -18,7 +18,7 @@ struct AuthResetPasswordTests {
         app = testWorld.app
     }
     
-    @Test("Password reset creates token for valid user")
+    @Test("Password reset creates token for valid user", .tags(.p1Core, .auth, .integration))
     func resetPassword() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
@@ -35,7 +35,7 @@ struct AuthResetPasswordTests {
         })
     }
     
-    @Test("Password reset fails with non-existing email")
+    @Test("Password reset fails with non-existing email", .tags(.p1Core, .auth, .integration))
     func resetPasswordFailsWithNonExistingEmail() async throws {
         await testWorld.resetAll() // Clean state before test
         let resetPasswordRequest = Auth.PasswordReset.Request(email: "none@test.com")
@@ -45,7 +45,7 @@ struct AuthResetPasswordTests {
         })
     }
 
-    @Test("Account can be recovered with valid token")
+    @Test("Account can be recovered with valid token", .tags(.p1Core, .auth, .integration))
     func recoverAccount() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "oldpassword")
@@ -73,7 +73,7 @@ struct AuthResetPasswordTests {
         })
     }
 
-    @Test("Account recovery fails with expired token")
+    @Test("Account recovery fails with expired token", .tags(.p2Extended, .auth, .integration))
     func recoverAccountWithExpiredTokenFails() async throws {
         await testWorld.resetAll() // Clean state before test
         let plainToken = "passwordtoken"
@@ -95,7 +95,7 @@ struct AuthResetPasswordTests {
         })
     }
     
-    @Test("Account recovery fails with invalid token")
+    @Test("Account recovery fails with invalid token", .tags(.p2Extended, .auth, .integration))
     func recoverAccountWithInvalidTokenFails() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, "reset-password?token=blah", afterResponse: { res in

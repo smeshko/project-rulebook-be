@@ -25,7 +25,7 @@ struct UserPatchTests {
         )
     }
     
-    @Test("User patch updates user details successfully")
+    @Test("User patch updates user details successfully", .tags(.p0Critical, .users, .integration))
     func patchHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -39,7 +39,7 @@ struct UserPatchTests {
         })
     }
     
-    @Test("User patch fails when not logged in")
+    @Test("User patch fails when not logged in", .tags(.p0Critical, .users, .security, .integration))
     func patchNotLoggedIn() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.PATCH, patchPath, content: request, afterResponse: { response in
@@ -47,7 +47,7 @@ struct UserPatchTests {
         })
     }
     
-    @Test("User patch allows partial updates")
+    @Test("User patch allows partial updates", .tags(.p1Core, .users, .integration))
     func patchPartialUpdate() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -69,7 +69,7 @@ struct UserPatchTests {
         })
     }
     
-    @Test("User patch handles empty values")
+    @Test("User patch handles empty values", .tags(.p2Extended, .users, .integration))
     func patchWithEmptyValues() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)

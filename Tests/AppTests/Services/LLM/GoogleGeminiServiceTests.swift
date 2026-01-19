@@ -5,7 +5,7 @@ import Testing
 @Suite(.serialized)
 struct GoogleGeminiServiceTests {
 
-    @Test("Gemini service generates successful response")
+    @Test("Gemini service generates successful response", .tags(.p0Critical, .aiServices, .integration))
     func successfulGeneration() async throws {
         let testWorld = try await TestWorld()
         let app = testWorld.app
@@ -36,7 +36,7 @@ struct GoogleGeminiServiceTests {
         try await app.asyncShutdown()
     }
 
-    @Test("Response text extraction works correctly")
+    @Test("Response text extraction works correctly", .tags(.p0Critical, .aiServices, .unit))
     func responseTextExtraction() async throws {
         let normal = GeminiResponse(
             candidates: [

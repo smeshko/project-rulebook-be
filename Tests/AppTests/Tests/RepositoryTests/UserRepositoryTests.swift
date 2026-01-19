@@ -20,14 +20,14 @@ struct UserRepositoryTests {
     }
     
     
-    @Test("DatabaseUserRepository can be instantiated with database")
+    @Test("DatabaseUserRepository can be instantiated with database", .tags(.p2Extended, .database, .unit))
     func defaultProvider() async throws {
         // Test that DatabaseUserRepository can be instantiated with database
         let defaultProvider = DatabaseUserRepository(database: app.db)
         #expect(type(of: defaultProvider) == DatabaseUserRepository.self)
     }
     
-    @Test("User can be created and retrieved")
+    @Test("User can be created and retrieved", .tags(.p0Critical, .database, .unit))
     func creatingUser() async throws {
         let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await repository.create(user)
@@ -40,7 +40,7 @@ struct UserRepositoryTests {
         // Cleanup
     }
     
-    @Test("User can be deleted")
+    @Test("User can be deleted", .tags(.p0Critical, .database, .unit))
     func deletingUser() async throws {
         let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await user.create(on: app.db)
@@ -52,7 +52,7 @@ struct UserRepositoryTests {
         #expect(countAfterDelete == 0)
     }
     
-    @Test("Repository can retrieve all users")
+    @Test("Repository can retrieve all users", .tags(.p1Core, .database, .unit))
     func getAllUsers() async throws {
         // Clean database before this test to ensure clean state
         
@@ -74,7 +74,7 @@ struct UserRepositoryTests {
         #expect(foundEmails.contains(user2Email))
     }
     
-    @Test("User can be found by ID")
+    @Test("User can be found by ID", .tags(.p0Critical, .database, .unit))
     func findUserById() async throws {
         let user = UserAccountModel(email: "test-\(UUID().uuidString.lowercased())@test.com", password: "123")
         try await user.create(on: app.db)
@@ -83,7 +83,7 @@ struct UserRepositoryTests {
         #expect(userFound != nil)
     }
     
-    @Test("User can be found by Apple ID")
+    @Test("User can be found by Apple ID", .tags(.p1Core, .database, .unit))
     func findByAppleID() async throws {
         let user = UserAccountModel(email: "test@test.com", password: "123", appleUserIdentifier: "1")
         try await user.create(on: app.db)
@@ -92,7 +92,7 @@ struct UserRepositoryTests {
         #expect(foundUser != nil)
     }
 
-    @Test("User can be found by email")
+    @Test("User can be found by email", .tags(.p0Critical, .database, .unit))
     func findByEmail() async throws {
         let email = "test-find-\(UUID().uuidString.lowercased())@test.com"
         let user = UserAccountModel(email: email, password: "123", appleUserIdentifier: "1")
@@ -102,7 +102,7 @@ struct UserRepositoryTests {
         #expect(foundUser != nil)
     }
 
-    @Test("User field values can be updated")
+    @Test("User field values can be updated", .tags(.p0Critical, .database, .unit))
     func setFieldValue() async throws {
         let email = "test-update-\(UUID().uuidString.lowercased())@test.com"
         let user = UserAccountModel(email: email, password: "123", isEmailVerified: false)
@@ -114,7 +114,7 @@ struct UserRepositoryTests {
         #expect(updatedUser!.isEmailVerified == true)
     }
     
-    @Test("Email lookup works correctly with multiple users")
+    @Test("Email lookup works correctly with multiple users", .tags(.p1Core, .database, .unit))
     func userEmailLookup() async throws {
         let user1 = UserAccountModel(email: "user1@test.com", password: "123")
         let user2 = UserAccountModel(email: "user2@test.com", password: "123")
@@ -134,7 +134,7 @@ struct UserRepositoryTests {
         #expect(foundUser2?.email == "user2@test.com")
     }
     
-    @Test("User information can be updated")
+    @Test("User information can be updated", .tags(.p1Core, .database, .unit))
     func userUpdate() async throws {
         let user = UserAccountModel(
             email: "original@test.com", 

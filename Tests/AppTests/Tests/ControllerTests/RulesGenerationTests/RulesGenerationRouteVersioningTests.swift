@@ -14,7 +14,7 @@ struct RulesGenerationRouteVersioningTests {
 
     // VERSIONED ROUTE TESTS - These should pass after implementation
 
-    @Test("Versioned rules-summary endpoint exists and accepts POST")
+    @Test("Versioned rules-summary endpoint exists and accepts POST", .tags(.p0Critical, .aiServices, .integration))
     func versionedRulesSummaryExists() async throws {
         await testWorld.resetAll()
 
@@ -29,7 +29,7 @@ struct RulesGenerationRouteVersioningTests {
 
     // NEGATIVE TESTS - Old unversioned routes should return 404
 
-    @Test("Old unversioned rules-summary route returns 404")
+    @Test("Old unversioned rules-summary route returns 404", .tags(.p1Core, .integration))
     func oldRulesSummaryReturns404() async throws {
         await testWorld.resetAll()
 

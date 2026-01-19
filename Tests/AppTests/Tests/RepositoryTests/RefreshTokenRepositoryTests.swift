@@ -27,7 +27,7 @@ struct RefreshTokenRepositoryTests {
         await testWorld.resetAll()
     }
     
-    @Test("Refresh token can be created and retrieved")
+    @Test("Refresh token can be created and retrieved", .tags(.p0Critical, .database, .auth, .unit))
     func creatingToken() async throws {
         try await userRepository.create(user)
         let tokenValue = "create-\(UUID().uuidString)"
@@ -42,7 +42,7 @@ struct RefreshTokenRepositoryTests {
         #expect(tokenRetrieved!.$user.id == userID)
     }
     
-    @Test("Refresh token can be found by ID")
+    @Test("Refresh token can be found by ID", .tags(.p1Core, .database, .auth, .unit))
     func findingTokenById() async throws {
         try await userRepository.create(user)
         let tokenValue = "token-\(UUID().uuidString)"
@@ -53,7 +53,7 @@ struct RefreshTokenRepositoryTests {
         #expect(tokenFound != nil)
     }
     
-    @Test("Refresh token can be found by token string")
+    @Test("Refresh token can be found by token string", .tags(.p0Critical, .database, .auth, .unit))
     func findingTokenByTokenString() async throws {
         try await userRepository.create(user)
         let tokenValue = "token-\(UUID().uuidString)"
@@ -63,7 +63,7 @@ struct RefreshTokenRepositoryTests {
         #expect(tokenFound != nil)
     }
     
-    @Test("Refresh token can be deleted")
+    @Test("Refresh token can be deleted", .tags(.p1Core, .database, .auth, .unit))
     func deletingToken() async throws {
         try await userRepository.create(user)
         let tokenValue = "token-\(UUID().uuidString)"
@@ -76,7 +76,7 @@ struct RefreshTokenRepositoryTests {
         #expect(newTokenCount == 0)
     }
     
-    @Test("Repository can count refresh tokens")
+    @Test("Repository can count refresh tokens", .tags(.p2Extended, .database, .unit))
     func getCount() async throws {
         try await userRepository.create(user)
         let tokenValue = "token-\(UUID().uuidString)"

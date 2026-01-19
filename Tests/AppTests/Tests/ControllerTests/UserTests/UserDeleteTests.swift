@@ -16,7 +16,7 @@ struct UserDeleteTests {
         user = try UserAccountModel.mock(app: app)
     }
     
-    @Test("User delete removes user successfully")
+    @Test("User delete removes user successfully", .tags(.p0Critical, .users, .integration))
     func deleteHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -27,7 +27,7 @@ struct UserDeleteTests {
         }
     }
     
-    @Test("User delete fails when not authenticated")
+    @Test("User delete fails when not authenticated", .tags(.p0Critical, .users, .security, .integration))
     func deleteUnauthenticatedRequestShouldFail() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.DELETE, deletePath) { response in
