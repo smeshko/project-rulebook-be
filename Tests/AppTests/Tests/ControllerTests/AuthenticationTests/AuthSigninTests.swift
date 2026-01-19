@@ -15,7 +15,7 @@ struct AuthSigninTests {
         app = testWorld.app
     }
     
-    @Test("User can login with valid credentials")
+    @Test("User can login with valid credentials", .tags(.p0Critical, .auth, .integration))
     func loginHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)
@@ -35,7 +35,7 @@ struct AuthSigninTests {
         })
     }
     
-    @Test("Login fails with non-existing user")
+    @Test("Login fails with non-existing user", .tags(.p0Critical, .auth, .integration))
     func loginWithNonExistingUserFails() async throws {
         await testWorld.resetAll() // Clean state before test
         let loginRequest = Auth.Login.Request(email: "none@login.com", password: "123")
@@ -45,7 +45,7 @@ struct AuthSigninTests {
         })
     }
     
-    @Test("Login fails with incorrect password")
+    @Test("Login fails with incorrect password", .tags(.p0Critical, .auth, .integration))
     func loginWithIncorrectPasswordFails() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)
@@ -59,7 +59,7 @@ struct AuthSigninTests {
         })
     }
     
-    @Test("Login requires email verification")
+    @Test("Login requires email verification", .tags(.p0Critical, .auth, .integration))
     func loginRequiresEmailVerification() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app, isEmailVerified: false)
@@ -73,7 +73,7 @@ struct AuthSigninTests {
         })
     }
     
-    @Test("Login removes old refresh tokens")
+    @Test("Login removes old refresh tokens", .tags(.p1Core, .auth, .integration))
     func loginDeletesOldRefreshTokens() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app)

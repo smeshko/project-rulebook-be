@@ -16,7 +16,7 @@ struct UserListTests {
         user = try await testWorld.dataFactory.createAdminUser()
     }
     
-    @Test("User list returns all users for admin")
+    @Test("User list returns all users for admin", .tags(.p1Core, .users, .integration))
     func listHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -27,7 +27,7 @@ struct UserListTests {
         }
     }
     
-    @Test("User list fails for non-admin user")
+    @Test("User list fails for non-admin user", .tags(.p0Critical, .users, .security, .integration))
     func listRequestedByNonAdminShouldFail() async throws {
         await testWorld.resetAll() // Clean state before test
         let nonAdmin = try UserAccountModel.mock(app: app)
@@ -38,7 +38,7 @@ struct UserListTests {
         }
     }
     
-    @Test("User list fails for unauthenticated request")
+    @Test("User list fails for unauthenticated request", .tags(.p0Critical, .users, .security, .integration))
     func listUnauthenticatedRequestShouldFail() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, listPath) { response in

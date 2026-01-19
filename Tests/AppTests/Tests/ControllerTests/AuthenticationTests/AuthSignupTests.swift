@@ -17,7 +17,7 @@ struct AuthSignupTests {
         app = testWorld.app
     }
     
-    @Test("User registration succeeds with valid data") 
+    @Test("User registration succeeds with valid data", .tags(.p0Critical, .auth, .integration))
     func registerHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
@@ -70,7 +70,7 @@ struct AuthSignupTests {
         })
     }
     
-    @Test("Registration fails when email already exists")
+    @Test("Registration fails when email already exists", .tags(.p0Critical, .auth, .integration))
     func registerFailsWithExistingEmail() async throws {
         await testWorld.resetAll() // Clean state before test
         // Create a user first using the test repository
@@ -98,7 +98,7 @@ struct AuthSignupTests {
         })
     }
     
-    @Test("Registration validates email and password requirements")
+    @Test("Registration validates email and password requirements", .tags(.p1Core, .auth, .integration))
     func registerValidations() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
@@ -120,7 +120,7 @@ struct AuthSignupTests {
         })
     }
     
-    @Test("Registration converts email to lowercase")
+    @Test("Registration converts email to lowercase", .tags(.p2Extended, .auth, .integration))
     func registerLowercaseEmail() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
@@ -142,7 +142,7 @@ struct AuthSignupTests {
         })
     }
     
-    @Test("Registration works with optional fields omitted")
+    @Test("Registration works with optional fields omitted", .tags(.p2Extended, .auth, .integration))
     func registerWithOptionalFields() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
@@ -167,7 +167,7 @@ struct AuthSignupTests {
         })
     }
     
-    @Test("Registration treats empty strings as nil for optional fields")
+    @Test("Registration treats empty strings as nil for optional fields", .tags(.p3Edge, .auth, .integration))
     func registerWithEmptyOptionalFields() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
