@@ -12,7 +12,7 @@ struct RandomGeneratorTests {
         self.app = testWorld.app
     }
     
-    @Test("Random generator service is properly configured")
+    @Test("Random generator service is properly configured", .tags(.p1Core, .unit))
     func serviceConfiguration() async throws {
         let defaultGenerator = app.randomGeneratorService
 
@@ -20,7 +20,7 @@ struct RandomGeneratorTests {
         #expect(type(of: defaultGenerator) == RiggedRandomGeneratorService.self)
     }
 
-    @Test("Random generator can generate tokens of specified bit lengths")
+    @Test("Random generator can generate tokens of specified bit lengths", .tags(.p0Critical, .security, .unit))
     func generateTokensWithDifferentBitLengths() async throws {
         let generator = app.randomGeneratorService
 
@@ -41,7 +41,7 @@ struct RandomGeneratorTests {
         #expect(token256.count > 0)
     }
 
-    @Test("Random generator produces consistent behavior for request context")
+    @Test("Random generator produces consistent behavior for request context", .tags(.p2Extended, .unit))
     func requestContextBehavior() async throws {
         _ = Request(
             application: app,

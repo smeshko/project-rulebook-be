@@ -10,7 +10,7 @@ import Vapor
 final class AIResponseValidationServiceTests: Sendable {
     
     /// Test validation of clean, safe AI responses.
-    @Test("AI response validation approves safe content")
+    @Test("AI response validation approves safe content", .tags(.p0Critical, .security, .aiServices, .unit))
     func testSafeContentValidation() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -47,7 +47,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test detection of XSS injection attempts.
-    @Test("AI response validation detects XSS injection attempts")
+    @Test("AI response validation detects XSS injection attempts", .tags(.p0Critical, .security, .aiServices, .unit))
     func testXSSInjectionDetection() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -84,7 +84,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test detection of JavaScript injection patterns.
-    @Test("AI response validation detects JavaScript injection patterns")
+    @Test("AI response validation detects JavaScript injection patterns", .tags(.p0Critical, .security, .aiServices, .unit))
     func testJavaScriptInjectionDetection() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -121,7 +121,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test generic response validation.
-    @Test("AI response validation handles generic responses")
+    @Test("AI response validation handles generic responses", .tags(.p1Core, .security, .aiServices, .unit))
     func testGenericResponseValidation() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -149,7 +149,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test response size validation.
-    @Test("AI response validation enforces size limits")
+    @Test("AI response validation enforces size limits", .tags(.p1Core, .security, .aiServices, .unit))
     func testResponseSizeValidation() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -181,7 +181,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test validation of legitimate game content.
-    @Test("AI response validation allows legitimate game content")
+    @Test("AI response validation allows legitimate game content", .tags(.p0Critical, .security, .aiServices, .unit))
     func testLegitimateGameContent() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -218,7 +218,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test JSON structure validation.
-    @Test("AI response validation rejects invalid JSON")
+    @Test("AI response validation rejects invalid JSON", .tags(.p1Core, .security, .aiServices, .unit))
     func testInvalidJSONDetection() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -238,7 +238,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test validation of response with missing required fields.
-    @Test("AI response validation detects missing required fields")
+    @Test("AI response validation detects missing required fields", .tags(.p1Core, .aiServices, .unit))
     func testMissingRequiredFields() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -265,7 +265,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test GameboxRecognition response validation.
-    @Test("AI response validation handles GameboxRecognition responses")
+    @Test("AI response validation handles GameboxRecognition responses", .tags(.p1Core, .aiServices, .unit))
     func testGameboxRecognitionValidation() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()
@@ -292,7 +292,7 @@ final class AIResponseValidationServiceTests: Sendable {
     }
     
     /// Test concurrent validation operations.
-    @Test("AI response validation handles concurrent requests safely")
+    @Test("AI response validation handles concurrent requests safely", .tags(.p1Core, .security, .aiServices, .unit))
     func testConcurrentValidation() async throws {
         // Arrange
         let service = DefaultAIResponseValidationService()

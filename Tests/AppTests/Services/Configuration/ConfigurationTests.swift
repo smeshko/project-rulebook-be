@@ -6,7 +6,7 @@ import Testing
 @Suite(.serialized)
 struct ConfigurationTests {
     
-    @Test("Development configuration provides correct defaults from environment")
+    @Test("Development configuration provides correct defaults from environment", .tags(.p1Core, .unit))
     func developmentConfigurationDefaults() async throws {
         // Set up testing environment variables to simulate .env.testing being loaded
         setenv("DATABASE_NAME", "test_db", 1)
@@ -60,7 +60,7 @@ struct ConfigurationTests {
         #expect(throws: Never.self) { try config.validate() }
     }
     
-    @Test("Testing configuration provides sensible defaults")
+    @Test("Testing configuration provides sensible defaults", .tags(.p0Critical, .unit))
     func testingConfigurationProvidesSensibleDefaults() async throws {
         let config = TestingConfiguration()
         
@@ -79,7 +79,7 @@ struct ConfigurationTests {
         #expect(throws: Never.self) { try config.validate() }
     }
     
-    @Test("Configuration factory creates different types for environments")
+    @Test("Configuration factory creates different types for environments", .tags(.p0Critical, .unit))
     func configurationFactoryCreatesDifferentTypesForEnvironments() {
         let devConfig = ConfigurationFactory.create(for: .development)
         #expect(devConfig is DevelopmentConfiguration)
@@ -94,7 +94,7 @@ struct ConfigurationTests {
         #expect(testConfig is TestingConfiguration)
     }
     
-    @Test("Development configuration validation works correctly")
+    @Test("Development configuration validation works correctly", .tags(.p1Core, .unit))
     func developmentConfigurationValidation() async throws {
         let config = DevelopmentConfiguration()
         
@@ -109,7 +109,7 @@ struct ConfigurationTests {
         #expect(security.jwtKey.count >= 16)  // Development minimum
     }
     
-    @Test("Testing configuration validation works correctly")
+    @Test("Testing configuration validation works correctly", .tags(.p1Core, .unit))
     func testingConfigurationValidation() async throws {
         let config = TestingConfiguration()
         
@@ -123,7 +123,7 @@ struct ConfigurationTests {
         #expect(security.jwtKey.count == 32)  // Testing has fixed 32-char key
     }
     
-    @Test("Cache configuration provides correct defaults")
+    @Test("Cache configuration provides correct defaults", .tags(.p1Core, .unit))
     func cacheConfigurationDefaults() async throws {
         // Set up testing environment variables to simulate .env.testing being loaded
         setenv("CACHE_MAX_ENTRIES", "100", 1)
@@ -156,7 +156,7 @@ struct ConfigurationTests {
         #expect(testCache.enableLogging == false)  // Disabled in tests
     }
     
-    @Test("Security configuration provides correct defaults")
+    @Test("Security configuration provides correct defaults", .tags(.p0Critical, .security, .unit))
     func securityConfigurationDefaults() async throws {
         setenv("RATE_LIMIT_MAX_REQUESTS", "1000", 1)
         setenv("RATE_LIMIT_WINDOW_MINUTES", "1", 1)
@@ -185,7 +185,7 @@ struct ConfigurationTests {
         #expect(testSecurity.rateLimitWindowMinutes == 1)
     }
     
-    @Test("AWS configuration provides correct defaults")
+    @Test("AWS configuration provides correct defaults", .tags(.p1Core, .unit))
     func awsConfigurationDefaults() async throws {
         setenv("AWS_S3_BUCKET_NAME", "test-bucket", 1)
         setenv("AWS_ACCESS_KEY", "test_access_key", 1)
@@ -209,7 +209,7 @@ struct ConfigurationTests {
         #expect(testAWS.s3BucketName == "test-bucket")
     }
     
-    @Test("APNS configuration provides correct defaults")
+    @Test("APNS configuration provides correct defaults", .tags(.p2Extended, .unit))
     func apnsConfigurationDefaults() async throws {
         setenv("APNS_TEAM_ID", "TEST_TEAM_ID", 1)
         setenv("APNS_KEY", "test_apns_key", 1)
@@ -234,7 +234,7 @@ struct ConfigurationTests {
     // Test that production configuration requires environment variables
     // Note: We can't easily test production config validation without setting
     // actual environment variables, but we can test the factory selection
-    @Test("Production configuration requires strict validation")
+    @Test("Production configuration requires strict validation", .tags(.p1Core, .security, .unit))
     func productionConfigurationRequiresStrictValidation() async throws {
         let prodConfig = ConfigurationFactory.create(for: .production)
         #expect(prodConfig is ProductionConfiguration)

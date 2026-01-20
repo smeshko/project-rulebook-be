@@ -6,7 +6,7 @@ import Testing
 @Suite(.serialized)
 struct OpenAIServiceTests {
     
-    @Test("OpenAI service generates successful response")
+    @Test("OpenAI service generates successful response", .tags(.p0Critical, .aiServices, .integration))
     func successfulGeneration() async throws {
         // Arrange - Create TestWorld with proper mock services
         let testWorld = try await TestWorld()
@@ -61,7 +61,7 @@ struct OpenAIServiceTests {
         try await app.asyncShutdown()
     }
     
-    @Test("OpenAI service retries on rate limit")
+    @Test("OpenAI service retries on rate limit", .tags(.p1Core, .aiServices, .integration))
     func rateLimitWithRetry() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. The retry logic is tested manually.
@@ -71,7 +71,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("OpenAI service fails after max retries exceeded")
+    @Test("OpenAI service fails after max retries exceeded", .tags(.p1Core, .aiServices, .integration))
     func maxRetriesExceeded() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. The retry logic is tested manually.
@@ -81,7 +81,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("OpenAI service handles authentication failure")
+    @Test("OpenAI service handles authentication failure", .tags(.p0Critical, .aiServices, .security, .integration))
     func authenticationFailure() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. Authentication handling is tested manually.
@@ -91,7 +91,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("OpenAI service handles empty response")
+    @Test("OpenAI service handles empty response", .tags(.p1Core, .aiServices, .integration))
     func emptyResponse() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. Empty response handling is tested manually.
@@ -101,7 +101,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("OpenAI service handles invalid JSON response")
+    @Test("OpenAI service handles invalid JSON response", .tags(.p1Core, .aiServices, .integration))
     func invalidJSONResponse() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. JSON error handling is tested manually.
@@ -111,7 +111,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("OpenAI service handles optimized generation with custom parameters")
+    @Test("OpenAI service handles optimized generation with custom parameters", .tags(.p2Extended, .aiServices, .integration))
     func generateOptimizedWithCustomParameters() async throws {
         // NOTE: This test is currently disabled due to HTTP client initialization 
         // issues in the test environment. Custom parameters are tested manually.
@@ -121,7 +121,7 @@ struct OpenAIServiceTests {
         return
     }
     
-    @Test("Response text extraction works correctly")
+    @Test("Response text extraction works correctly", .tags(.p0Critical, .aiServices, .unit))
     func responseTextExtraction() async throws {
         // Test extractText() method with various formats
         

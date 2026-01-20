@@ -18,7 +18,7 @@ struct GeneratedRuleRepositoryTests {
         try await cleanup()
     }
 
-    @Test("Generated rules can be created and retrieved by sanitized title")
+    @Test("Generated rules can be created and retrieved by sanitized title", .tags(.p0Critical, .database, .unit))
     func createAndFindBySanitizedTitle() async throws {
         try await cleanup()
         let sanitizedTitle = try world.app.aiInputValidatorService
@@ -36,7 +36,7 @@ struct GeneratedRuleRepositoryTests {
         #expect(stored?.resourcesVideoLinks == ["https://videos.example/catan"])
     }
 
-    @Test("Touch updates last accessed timestamp")
+    @Test("Touch updates last accessed timestamp", .tags(.p1Core, .database, .unit))
     func touchUpdatesLastAccessedAt() async throws {
         try await cleanup()
         let sanitizedTitle = try world.app.aiInputValidatorService
@@ -57,7 +57,7 @@ struct GeneratedRuleRepositoryTests {
         #expect((updated?.lastAccessedAt ?? initialAccess) > initialAccess)
     }
 
-    @Test("Unique constraints prevent duplicate sanitized titles")
+    @Test("Unique constraints prevent duplicate sanitized titles", .tags(.p0Critical, .database, .unit))
     func uniqueConstraintEnforced() async throws {
         try await cleanup()
         let sanitizedTitle = try world.app.aiInputValidatorService

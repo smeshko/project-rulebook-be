@@ -4,7 +4,7 @@ import VaporTesting
 
 @Suite(.serialized)
 struct ConfigurationIntegrationTests {
-    @Test("Application startup works with valid configuration")
+    @Test("Application startup works with valid configuration", .tags(.p0Critical, .integration))
     func applicationStartupWithValidConfiguration() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
@@ -23,7 +23,7 @@ struct ConfigurationIntegrationTests {
         try await app.asyncShutdown()
     }
     
-    @Test("Application can configure services properly")
+    @Test("Application can configure services properly", .tags(.p1Core, .integration))
     func applicationCanConfigureServices() async throws {
         let testWorld = try await TestWorld()
         let app = testWorld.app
@@ -39,7 +39,7 @@ struct ConfigurationIntegrationTests {
         // TestWorld manages app lifecycle, no manual cleanup needed
     }
     
-    @Test("Testing environment uses testing defaults")
+    @Test("Testing environment uses testing defaults", .tags(.p1Core, .integration))
     func testingEnvironmentUsesTestingDefaults() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end
@@ -56,7 +56,7 @@ struct ConfigurationIntegrationTests {
         try await app.asyncShutdown()
     }
     
-    @Test("Configuration logging does not expose secrets")
+    @Test("Configuration logging does not expose secrets", .tags(.p0Critical, .security, .integration))
     func configurationLoggingDoesNotExposeSecrets() async throws {
         let app = try await Application.make(.testing)
         // No defer needed - will clean up at end

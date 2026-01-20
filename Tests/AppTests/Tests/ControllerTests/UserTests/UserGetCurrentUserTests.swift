@@ -15,7 +15,7 @@ struct UserGetCurrentUserTests {
         app = testWorld.app
     }
     
-    @Test("Get current user returns user details")
+    @Test("Get current user returns user details", .tags(.p0Critical, .users, .integration))
     func currentUserHappyPath() async throws {
         await testWorld.resetAll() // Clean state before test
         let user = try UserAccountModel.mock(app: app, email: "test@test.com")
@@ -33,7 +33,7 @@ struct UserGetCurrentUserTests {
         }
     }
     
-    @Test("Get current user fails when not logged in")
+    @Test("Get current user fails when not logged in", .tags(.p0Critical, .users, .integration))
     func currentUserNotLoggedIn() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.test(.GET, path) { response in

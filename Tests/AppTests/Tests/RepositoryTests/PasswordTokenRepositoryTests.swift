@@ -27,7 +27,7 @@ struct PasswordTokenRepositoryTests {
         try await userRepository.create(user)
     }
     
-    @Test("Password token can be found by user ID")
+    @Test("Password token can be found by user ID", .tags(.p0Critical, .database, .auth, .unit))
     func findByUserID() async throws {
         let userID = try user.requireID()
         let plainToken = "password-\(UUID().uuidString)"
@@ -39,7 +39,7 @@ struct PasswordTokenRepositoryTests {
         #expect(foundToken != nil)
     }
     
-    @Test("Password token can be found by token value")
+    @Test("Password token can be found by token value", .tags(.p0Critical, .database, .auth, .unit))
     func findByToken() async throws {
         let plainToken = "find-\(UUID().uuidString)"
         let hashedToken = SHA256.hash(plainToken)
@@ -49,7 +49,7 @@ struct PasswordTokenRepositoryTests {
         #expect(foundToken != nil)
     }
     
-    @Test("Repository can count password tokens")
+    @Test("Repository can count password tokens", .tags(.p2Extended, .database, .unit))
     func count() async throws {
         let plainToken1 = "count1-\(UUID().uuidString)"
         let plainToken2 = "count2-\(UUID().uuidString)"
@@ -63,7 +63,7 @@ struct PasswordTokenRepositoryTests {
         #expect(count == 2)
     }
     
-    @Test("Password token can be created")
+    @Test("Password token can be created", .tags(.p0Critical, .database, .auth, .unit))
     func create() async throws {
         let plainToken = "token-\(UUID().uuidString)"
         let hashedToken = SHA256.hash(plainToken)
@@ -73,7 +73,7 @@ struct PasswordTokenRepositoryTests {
         #expect(foundToken != nil)
     }
     
-    @Test("Password token can be deleted")
+    @Test("Password token can be deleted", .tags(.p1Core, .database, .auth, .unit))
     func delete() async throws {
         let plainToken = "token-\(UUID().uuidString)"
         let hashedToken = SHA256.hash(plainToken)

@@ -1,0 +1,263 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [main, staging]
+  schedule:
+    # Nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_stage:
+        description: 'Test stage to run'
+        required: false
+        default: 'prCheck'
+        type: choice
+        options:
+          - fastGate
+          - prCheck
+          - nightly
+          - full
+          - performance
+
+env:
+  SWIFT_VERSION: '6.0'
+
+jobs:
+  # ============================================
+  # Fast Gate - P0 Critical Tests
+  # ============================================
+  fast-gate:
+    name: Fast Gate (P0 Critical)
+    runs-on: macos-14
+    timeout-minutes: 5
+    if: github.event_name != 'schedule'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Run P0 Critical Tests
+        env:
+          TEST_STAGE: fastGate
+          CI: true
+        run: |
+          swift test --filter "p0Critical" --parallel 2>&1 | tee test-output.log
+
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fast-gate-test-output
+          path: test-output.log
+
+  # ============================================
+  # PR Check - P0 + P1 Core Tests
+  # ============================================
+  pr-check:
+    name: PR Check (P0 + P1 Core)
+    runs-on: macos-14
+    timeout-minutes: 15
+    needs: fast-gate
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Run Core Tests
+        env:
+          TEST_STAGE: prCheck
+          CI: true
+        run: |
+          swift test --filter "p0Critical|p1Core" --parallel 2>&1 | tee test-output.log
+
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-check-test-output
+          path: test-output.log
+
+  # ============================================
+  # Nightly - Full Test Suite
+  # ============================================
+  nightly:
+    name: Nightly Suite
+    runs-on: macos-14
+    timeout-minutes: 30
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Run All Tests (except flaky)
+        env:
+          TEST_STAGE: nightly
+          CI: true
+        run: |
+          # Run all tests, flaky tests should be tagged and can be filtered if needed
+          swift test 2>&1 | tee test-output.log
+
+      - name: Burn-in Core Tests
+        env:
+          CI: true
+        run: |
+          echo "Running burn-in (3 iterations) for stability check..."
+          for i in 1 2 3; do
+            echo "Burn-in iteration $i/3"
+            swift test --filter "p0Critical|p1Core" || exit 1
+          done
+
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-output
+          path: test-output.log
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Nightly test suite failed. Check test-output.log artifact for details."
+
+  # ============================================
+  # Manual/Dispatch - Configurable Test Run
+  # ============================================
+  manual:
+    name: Manual Test Run
+    runs-on: macos-14
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build
+        run: swift build --build-tests
+
+      - name: Run Tests (${{ github.event.inputs.test_stage }})
+        env:
+          TEST_STAGE: ${{ github.event.inputs.test_stage }}
+          CI: true
+        run: |
+          case "${{ github.event.inputs.test_stage }}" in
+            "fastGate")
+              swift test --filter "p0Critical" --parallel
+              ;;
+            "prCheck")
+              swift test --filter "p0Critical|p1Core" --parallel
+              ;;
+            "nightly")
+              swift test
+              ;;
+            "full")
+              swift test
+              ;;
+            "performance")
+              swift test --filter "performance"
+              ;;
+            *)
+              swift test
+              ;;
+          esac
+
+  # ============================================
+  # Build Verification (all PRs and pushes)
+  # ============================================
+  build:
+    name: Build Verification
+    runs-on: macos-14
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: ${{ env.SWIFT_VERSION }}
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: .build
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Build Release
+        run: swift build -c release
+
+      - name: Check for warnings
+        run: |
+          swift build 2>&1 | tee build-output.log
+          if grep -q "warning:" build-output.log; then
+            echo "::warning::Build produced warnings. Review build-output.log."
+          fi

@@ -19,7 +19,7 @@ struct AuthRefreshAccessTokenTests {
         self.user = UserAccountModel(email: "test@test.com", password: "123")
     }
     
-    @Test("Access token can be refreshed with valid refresh token")
+    @Test("Access token can be refreshed with valid refresh token", .tags(.p0Critical, .auth, .integration))
     func refreshAccessToken() async throws {
         await testWorld.resetAll() // Clean state before test
         // TestWorld already configures random generator with "test_random_value"
@@ -51,7 +51,7 @@ struct AuthRefreshAccessTokenTests {
         })
     }
     
-    @Test("Token refresh fails with expired refresh token")
+    @Test("Token refresh fails with expired refresh token", .tags(.p0Critical, .auth, .integration))
     func refreshAccessTokenFailsWithExpiredRefreshToken() async throws {
         await testWorld.resetAll() // Clean state before test
         try await app.repositories.users.create(user)
@@ -71,7 +71,7 @@ struct AuthRefreshAccessTokenTests {
         })
     }
     
-    @Test("Token refresh fails when user doesn't exist")
+    @Test("Token refresh fails when user doesn't exist", .tags(.p1Core, .auth, .integration))
     func refreshAccessTokenFailsWhenUserDoesntExist() async throws {
         await testWorld.resetAll() // Clean state before test
         // Create a user that will be deleted
