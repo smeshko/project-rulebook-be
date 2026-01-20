@@ -29,3 +29,6 @@ logs/
 _bmad-backup/
 .claude/hooks/__*
 .claude/hooks/utils/__*
+
+# ADW worktree directory
+trees/
