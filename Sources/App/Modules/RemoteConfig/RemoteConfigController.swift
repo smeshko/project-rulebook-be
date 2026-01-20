@@ -67,7 +67,20 @@ struct RemoteConfigController {
             description: createRequest.description
         )
 
-        try await repository.create(entry)
+        do {
+            try await repository.create(entry)
+        } catch {
+            // Handle race condition: unique constraint violation if concurrent creates
+            let errorString = String(reflecting: error)
+            let isPostgreSQLDuplicate = errorString.contains("sqlState: 23505") ||
+                (errorString.contains("duplicate key") && errorString.contains("key"))
+            let isSQLiteDuplicate = errorString.contains("UNIQUE constraint failed: remote_config_entries.key")
+
+            if isPostgreSQLDuplicate || isSQLiteDuplicate {
+                throw Abort(.conflict, reason: "Configuration key '\(createRequest.key)' already exists")
+            }
+            throw error
+        }
 
         // Invalidate cache
         try await invalidateCache(req)

@@ -1,3 +1,4 @@
+import Foundation
 import Vapor
 
 enum RemoteConfig {
@@ -94,7 +95,10 @@ struct AnyCodable: Codable, Equatable, @unchecked Sendable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 
-        if let bool = try? container.decode(Bool.self) {
+        // Handle null values first - must check before other types
+        if container.decodeNil() {
+            value = NSNull()
+        } else if let bool = try? container.decode(Bool.self) {
             value = bool
         } else if let int = try? container.decode(Int.self) {
             value = int
@@ -115,6 +119,8 @@ struct AnyCodable: Codable, Equatable, @unchecked Sendable {
         var container = encoder.singleValueContainer()
 
         switch value {
+        case is NSNull:
+            try container.encodeNil()
         case let bool as Bool:
             try container.encode(bool)
         case let int as Int:
