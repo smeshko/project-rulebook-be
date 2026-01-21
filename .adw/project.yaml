@@ -56,14 +56,3 @@ security:
 #   enabled: false  # Enable webhook server
 #   port: 8000
 #   host: "0.0.0.0"
-
-# === Ship Phase ===
-# ship:
-#   enabled: true  # Enable ship phase
-#   commands:
-#     version_bump: null  # Version bump command
-#     build: null  # Build command
-#     publish: null  # Publish command
-#   pr:
-#     merge_on_success: false  # Auto-merge PR
-#     merge_method: "squash"  # Merge method

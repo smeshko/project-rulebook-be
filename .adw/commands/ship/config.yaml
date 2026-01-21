@@ -3,7 +3,7 @@
 #
 # Uncomment settings to customize this phase.
 
-enabled: false
+enabled: true
 # timeout_seconds: 900  # Phase-specific timeout
 
 # pre_hook: null  # Shell command before phase
@@ -14,5 +14,15 @@ enabled: false
 #   architecture: docs/architecture.md
 
 # === Ship Phase Settings ===
-# Note: Ship configuration is typically in project.yaml
-# These are phase-level overrides only.
+# commands:
+#   version_bump: null  # Version bump command
+#   build: null  # Build command for deployment
+#   publish: null  # Publish/deploy command
+
+# post_publish:  # Commands after publishing
+#   - git push --tags
+
+# pr:
+#   merge_on_success: false  # Auto-merge PR
+#   delete_branch_on_merge: true  # Delete branch
+#   merge_method: squash  # merge/squash/rebase
