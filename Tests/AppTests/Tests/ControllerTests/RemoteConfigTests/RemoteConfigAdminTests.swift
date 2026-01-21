@@ -20,7 +20,8 @@ struct RemoteConfigAdminTests {
     func adminCanListConfigEntries() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         // Create some config entries
         let entry1 = RemoteConfigEntryModel(key: "feature1", value: "true", valueType: .boolean)
@@ -41,7 +42,8 @@ struct RemoteConfigAdminTests {
     func nonAdminCannotListConfigEntries() async throws {
         await testWorld.resetAll()
 
-        let user = try await testWorld.dataFactory.createUser()
+        let user = try UserAccountModel.mock(app: app, isAdmin: false)
+        try await app.repositories.users.create(user)
 
         try await app.test(.GET, adminConfigPath, user: user, afterResponse: { res in
             #expect(res.status == .unauthorized)
@@ -63,7 +65,8 @@ struct RemoteConfigAdminTests {
     func adminCanCreateBooleanConfig() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "enableFeature",
@@ -91,7 +94,8 @@ struct RemoteConfigAdminTests {
     func adminCanCreateIntegerConfig() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "maxRetries",
@@ -114,7 +118,8 @@ struct RemoteConfigAdminTests {
     func adminCanCreateJsonConfig() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "serverSettings",
@@ -136,7 +141,8 @@ struct RemoteConfigAdminTests {
     func createFailsWithDuplicateKey() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         // Create initial entry
         let entry = RemoteConfigEntryModel(key: "existingKey", value: "value1", valueType: .string)
@@ -159,7 +165,8 @@ struct RemoteConfigAdminTests {
     func createFailsWithInvalidBooleanValue() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "badBoolean",
@@ -177,7 +184,8 @@ struct RemoteConfigAdminTests {
     func createFailsWithInvalidIntegerValue() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "badInteger",
@@ -195,7 +203,8 @@ struct RemoteConfigAdminTests {
     func createFailsWithInvalidJsonValue() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let createRequest = RemoteConfig.Create.Request(
             key: "badJson",
@@ -215,7 +224,8 @@ struct RemoteConfigAdminTests {
     func adminCanUpdateConfigEntry() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let entry = RemoteConfigEntryModel(key: "updateMe", value: "oldValue", valueType: .string)
         try await app.repositories.remoteConfig.create(entry)
@@ -239,7 +249,8 @@ struct RemoteConfigAdminTests {
     func updateFailsForNonExistentEntry() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let updateRequest = RemoteConfig.Update.Request(
             value: "value",
@@ -259,7 +270,8 @@ struct RemoteConfigAdminTests {
     func adminCanDeleteConfigEntry() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let entry = RemoteConfigEntryModel(key: "deleteMe", value: "value", valueType: .string)
         try await app.repositories.remoteConfig.create(entry)
@@ -280,7 +292,8 @@ struct RemoteConfigAdminTests {
     func deleteFailsForNonExistentEntry() async throws {
         await testWorld.resetAll()
 
-        let admin = try await testWorld.dataFactory.createAdminUser()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
 
         let nonExistentId = UUID()
         try await app.test(.DELETE, "\(adminConfigPath)/\(nonExistentId)", user: admin, afterResponse: { res in
@@ -292,7 +305,8 @@ struct RemoteConfigAdminTests {
     func nonAdminCannotDeleteConfigEntry() async throws {
         await testWorld.resetAll()
 
-        let user = try await testWorld.dataFactory.createUser()
+        let user = try UserAccountModel.mock(app: app, isAdmin: false)
+        try await app.repositories.users.create(user)
 
         let entry = RemoteConfigEntryModel(key: "protectedEntry", value: "value", valueType: .string)
         try await app.repositories.remoteConfig.create(entry)
