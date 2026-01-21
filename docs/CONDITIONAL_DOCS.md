@@ -19,3 +19,12 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-config.md
+  - Conditions:
+    - When adding feature flags to control mobile app behavior
+    - When implementing server-driven configuration
+    - When working with the AnyCodable type for heterogeneous JSON
+    - When adding new admin endpoints with authentication
+    - When implementing caching strategies for API responses
+    - When creating public (unauthenticated) API endpoints
