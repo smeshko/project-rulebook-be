@@ -243,7 +243,10 @@ if let maxRetries = config.settings["max_retries"] as? Int {
 // Test admin authorization
 @Test("Non-admin cannot list config entries")
 func nonAdminCannotListConfigEntries() async throws {
-    let user = try await testWorld.dataFactory.createUser()  // Regular user
+    // Create user via mock and repository (not dataFactory) for proper auth token generation
+    let user = try UserAccountModel.mock(app: app, isAdmin: false)
+    try await app.repositories.users.create(user)
+
     try await app.test(.GET, adminConfigPath, user: user, afterResponse: { res in
         #expect(res.status == .unauthorized)
     })
