@@ -9,19 +9,27 @@ struct RemoteConfigController {
     func getConfig(_ req: Request) async throws -> RemoteConfig.Response {
         let cacheService = req.application.cacheService
 
-        // Try cache first
-        if let cached = try await cacheService.get(Self.cacheKey, as: RemoteConfig.Response.self) {
-            return cached
+        // Try cache first (gracefully handle cache failures)
+        do {
+            if let cached = try await cacheService.get(Self.cacheKey, as: RemoteConfig.Response.self) {
+                return cached
+            }
+        } catch {
+            req.logger.warning("Cache read failed, falling back to database: \(error)")
         }
 
-        // Cache miss - build response from database
+        // Cache miss or error - build response from database
         let repository = req.repositories.remoteConfig
         let entries = try await repository.all()
 
         let response = buildConfigResponse(from: entries)
 
-        // Cache the response
-        try await cacheService.set(Self.cacheKey, value: response, ttl: Self.cacheTTL)
+        // Cache the response (best-effort, don't fail on cache errors)
+        do {
+            try await cacheService.set(Self.cacheKey, value: response, ttl: Self.cacheTTL)
+        } catch {
+            req.logger.warning("Cache write failed: \(error)")
+        }
 
         return response
     }
@@ -80,7 +88,7 @@ struct RemoteConfigController {
 
         let repository = req.repositories.remoteConfig
 
-        // Check for duplicate key
+        // Check for duplicate key (pre-check for fast-fail, but DB constraint is authoritative)
         if let _ = try await repository.find(key: createRequest.key) {
             throw Abort(.conflict, reason: "Configuration key already exists")
         }
@@ -92,10 +100,18 @@ struct RemoteConfigController {
             description: createRequest.description
         )
 
-        try await repository.create(entry)
+        do {
+            try await repository.create(entry)
+        } catch {
+            // Handle unique constraint violation from concurrent creates
+            if "\(error)".contains("UNIQUE constraint failed") || "\(error)".contains("duplicate key") {
+                throw Abort(.conflict, reason: "Configuration key already exists")
+            }
+            throw error
+        }
 
         // Invalidate cache
-        try await invalidateCache(req)
+        await invalidateCache(req)
 
         return RemoteConfig.Create.Response(
             id: entry.id!,
@@ -140,7 +156,7 @@ struct RemoteConfigController {
         try await repository.update(entry)
 
         // Invalidate cache
-        try await invalidateCache(req)
+        await invalidateCache(req)
 
         return RemoteConfig.Update.Response(
             id: entry.id!,
@@ -166,7 +182,7 @@ struct RemoteConfigController {
         try await repository.delete(entry)
 
         // Invalidate cache
-        try await invalidateCache(req)
+        await invalidateCache(req)
 
         return RemoteConfig.Delete.Response(
             message: "Configuration entry deleted successfully"
@@ -230,7 +246,12 @@ struct RemoteConfigController {
         }
     }
 
-    private func invalidateCache(_ req: Request) async throws {
-        try await req.application.cacheService.delete(Self.cacheKey)
+    private func invalidateCache(_ req: Request) async {
+        // Best-effort cache invalidation - don't fail mutations on cache errors
+        do {
+            try await req.application.cacheService.delete(Self.cacheKey)
+        } catch {
+            req.logger.warning("Cache invalidation failed: \(error)")
+        }
     }
 }
