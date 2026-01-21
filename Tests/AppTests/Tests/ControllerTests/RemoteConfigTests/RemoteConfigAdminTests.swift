@@ -61,6 +61,49 @@ struct RemoteConfigAdminTests {
 
     // MARK: - Create Tests
 
+    @Test("Non-admin cannot create config entry", .tags(.p0Critical, .integration))
+    func nonAdminCannotCreateConfigEntry() async throws {
+        await testWorld.resetAll()
+
+        let user = try UserAccountModel.mock(app: app, isAdmin: false)
+        try await app.repositories.users.create(user)
+
+        let createRequest = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "true",
+            valueType: .boolean,
+            description: nil
+        )
+
+        try await app.test(.POST, adminConfigPath, user: user, content: createRequest, afterResponse: { res in
+            #expect(res.status == .unauthorized)
+        })
+
+        // Verify nothing was created
+        let count = try await app.repositories.remoteConfig.count()
+        #expect(count == 0)
+    }
+
+    @Test("Unauthenticated user cannot create config entry", .tags(.p0Critical, .integration))
+    func unauthenticatedCannotCreateConfigEntry() async throws {
+        await testWorld.resetAll()
+
+        let createRequest = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "true",
+            valueType: .boolean,
+            description: nil
+        )
+
+        try await app.test(.POST, adminConfigPath, content: createRequest, afterResponse: { res in
+            #expect(res.status == .unauthorized)
+        })
+
+        // Verify nothing was created
+        let count = try await app.repositories.remoteConfig.count()
+        #expect(count == 0)
+    }
+
     @Test("Admin can create boolean config entry", .tags(.p1Core, .integration))
     func adminCanCreateBooleanConfig() async throws {
         await testWorld.resetAll()
@@ -219,6 +262,53 @@ struct RemoteConfigAdminTests {
     }
 
     // MARK: - Update Tests
+
+    @Test("Non-admin cannot update config entry", .tags(.p0Critical, .integration))
+    func nonAdminCannotUpdateConfigEntry() async throws {
+        await testWorld.resetAll()
+
+        let user = try UserAccountModel.mock(app: app, isAdmin: false)
+        try await app.repositories.users.create(user)
+
+        let entry = RemoteConfigEntryModel(key: "protectedEntry", value: "originalValue", valueType: .string)
+        try await app.repositories.remoteConfig.create(entry)
+
+        let updateRequest = RemoteConfig.Update.Request(
+            value: "hackedValue",
+            valueType: nil,
+            description: nil
+        )
+
+        try await app.test(.PATCH, "\(adminConfigPath)/\(entry.id!)", user: user, content: updateRequest, afterResponse: { res in
+            #expect(res.status == .unauthorized)
+        })
+
+        // Verify the entry was NOT modified
+        let fetched = try await app.repositories.remoteConfig.find(entry.id!)
+        #expect(fetched?.value == "originalValue")
+    }
+
+    @Test("Unauthenticated user cannot update config entry", .tags(.p0Critical, .integration))
+    func unauthenticatedCannotUpdateConfigEntry() async throws {
+        await testWorld.resetAll()
+
+        let entry = RemoteConfigEntryModel(key: "protectedEntry", value: "originalValue", valueType: .string)
+        try await app.repositories.remoteConfig.create(entry)
+
+        let updateRequest = RemoteConfig.Update.Request(
+            value: "hackedValue",
+            valueType: nil,
+            description: nil
+        )
+
+        try await app.test(.PATCH, "\(adminConfigPath)/\(entry.id!)", content: updateRequest, afterResponse: { res in
+            #expect(res.status == .unauthorized)
+        })
+
+        // Verify the entry was NOT modified
+        let fetched = try await app.repositories.remoteConfig.find(entry.id!)
+        #expect(fetched?.value == "originalValue")
+    }
 
     @Test("Admin can update config entry", .tags(.p1Core, .integration))
     func adminCanUpdateConfigEntry() async throws {
