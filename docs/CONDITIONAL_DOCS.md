@@ -19,3 +19,12 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-configuration.md
+  - Conditions:
+    - When implementing feature flags in the mobile app
+    - When creating new modules with repository and caching patterns
+    - When adding admin-only CRUD endpoints with authorization
+    - When building public unauthenticated API endpoints
+    - When working with heterogeneous JSON types in Swift (AnyCodable pattern)
+    - When implementing cache-first strategies with graceful fallback
