@@ -81,6 +81,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
     private let emailTokenRepository: TestEmailTokenRepository
     private let passwordTokenRepository: TestPasswordTokenRepository
     private let generatedRuleRepository: TestGeneratedRuleRepository
+    private let remoteConfigRepository: TestRemoteConfigRepository
     
     // MARK: - Mock Services
     private let fakeLLMService: FakeLLMService
@@ -107,6 +108,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         self.emailTokenRepository = TestEmailTokenRepository()
         self.passwordTokenRepository = TestPasswordTokenRepository()
         self.generatedRuleRepository = TestGeneratedRuleRepository()
+        self.remoteConfigRepository = TestRemoteConfigRepository()
         
         // Create fresh service instances
         self.fakeLLMService = FakeLLMService(app: app)
@@ -148,6 +150,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.emailTokenRepository = self.emailTokenRepository
         app.passwordTokenRepository = self.passwordTokenRepository
         app.generatedRuleRepository = self.generatedRuleRepository
+        app.remoteConfigRepository = self.remoteConfigRepository
 
         // Assign mock services directly to Application storage
         app.emailService = FakeEmailProvider()
@@ -217,7 +220,12 @@ final class IsolatedTestWorld: @unchecked Sendable {
     var generatedRules: TestGeneratedRuleRepository {
         generatedRuleRepository
     }
-    
+
+    /// Access to the isolated remote config repository.
+    var remoteConfigs: TestRemoteConfigRepository {
+        remoteConfigRepository
+    }
+
     // MARK: - Public Access to Mock Services
     
     /// Access to the isolated LLM service for configuring AI responses.
@@ -254,6 +262,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         await emailTokenRepository.reset()
         await passwordTokenRepository.reset()
         await generatedRuleRepository.reset()
+        await remoteConfigRepository.reset()
         
         // Reset services
         fakeLLMService.reset()
