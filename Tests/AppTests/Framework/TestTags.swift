@@ -66,6 +66,9 @@ extension Tag {
     /// Email service tests.
     @Tag static var email: Self
 
+    /// Remote configuration tests.
+    @Tag static var config: Self
+
     // MARK: Test Type Tags
 
     /// Integration tests - full application stack with HTTP.

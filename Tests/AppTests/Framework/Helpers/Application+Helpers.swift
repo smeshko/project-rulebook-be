@@ -49,4 +49,22 @@ extension Application {
         headers.add(name: "Authorization", value: "Bearer \(accessToken)")
         return try await test(method, path, headers: headers, afterResponse: afterResponse)
     }
+
+    @discardableResult
+    func test(
+        _ method: HTTPMethod,
+        _ path: String,
+        headers: HTTPHeaders = [:],
+        user: UserAccountModel,
+        beforeRequest: (inout TestingHTTPRequest) async throws -> () = { _ in },
+        afterResponse: (TestingHTTPResponse) async throws -> () = { _ in },
+        file: StaticString = #file,
+        line: UInt = #line
+    ) async throws -> TestingApplicationTester {
+        let payload = try TokenPayload(with: user)
+        let accessToken = try self.jwt.signers.sign(payload)
+        var headers = headers
+        headers.add(name: "Authorization", value: "Bearer \(accessToken)")
+        return try await test(method, path, headers: headers, beforeRequest: beforeRequest, afterResponse: afterResponse)
+    }
 }
