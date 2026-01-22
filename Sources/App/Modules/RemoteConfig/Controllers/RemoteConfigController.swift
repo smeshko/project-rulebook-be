@@ -33,9 +33,8 @@ struct RemoteConfigController {
         for config in configs {
             let parsedValue = parseValue(config.value, type: config.valueType)
 
-            // Determine category based on key prefix or valueType
-            // Feature flags are typically booleans, settings are other types
-            if config.valueType == "boolean" {
+            // Group by explicit category field
+            if config.category == "feature_flags" {
                 featureFlags[config.key] = parsedValue
             } else {
                 settings[config.key] = parsedValue
@@ -71,6 +70,12 @@ struct RemoteConfigController {
 
         let items = configs.compactMap { model -> RemoteConfig.ConfigItem? in
             guard let id = model.id, let createdAt = model.createdAt, let updatedAt = model.updatedAt else {
+                req.logger.warning("Remote config entry missing required metadata", metadata: [
+                    "key": .string(model.key),
+                    "has_id": .stringConvertible(model.id != nil),
+                    "has_created_at": .stringConvertible(model.createdAt != nil),
+                    "has_updated_at": .stringConvertible(model.updatedAt != nil)
+                ])
                 return nil
             }
             return RemoteConfig.ConfigItem(
@@ -120,7 +125,8 @@ struct RemoteConfigController {
         let model = RemoteConfigModel(
             key: createRequest.key,
             value: createRequest.value,
-            valueType: createRequest.valueType
+            valueType: createRequest.valueType,
+            category: createRequest.category
         )
         try await repository.create(model)
 

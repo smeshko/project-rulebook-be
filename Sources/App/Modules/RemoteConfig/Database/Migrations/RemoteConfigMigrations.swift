@@ -10,6 +10,7 @@ enum RemoteConfigMigrations {
                 .field(RemoteConfigModel.FieldKeys.v1.key, .string, .required)
                 .field(RemoteConfigModel.FieldKeys.v1.value, .string, .required)
                 .field(RemoteConfigModel.FieldKeys.v1.valueType, .string, .required)
+                .field(RemoteConfigModel.FieldKeys.v1.category, .string, .required, .sql(.default("settings")))
                 .field(RemoteConfigModel.FieldKeys.v1.createdAt, .datetime)
                 .field(RemoteConfigModel.FieldKeys.v1.updatedAt, .datetime)
                 .unique(on: RemoteConfigModel.FieldKeys.v1.key)

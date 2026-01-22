@@ -33,9 +33,9 @@ struct RemoteConfigTests {
     func getConfigWithEntries() async throws {
         await testWorld.resetAll()
 
-        // Create test config entries
-        let featureFlag = RemoteConfigModel(key: "enablePaywall", value: "true", valueType: "boolean")
-        let setting = RemoteConfigModel(key: "maxRetries", value: "3", valueType: "integer")
+        // Create test config entries with explicit categories
+        let featureFlag = RemoteConfigModel(key: "enablePaywall", value: "true", valueType: "boolean", category: "feature_flags")
+        let setting = RemoteConfigModel(key: "maxRetries", value: "3", valueType: "integer", category: "settings")
 
         try await testWorld.remoteConfigs.create(featureFlag)
         try await testWorld.remoteConfigs.create(setting)
@@ -389,6 +389,18 @@ struct RemoteConfigTests {
         await testWorld.resetAll()
 
         try await app.test(.GET, "\(configPath)/list") { response in
+            #expect(response.status == .unauthorized)
+        }
+    }
+
+    @Test("GET /api/v1/config/list fails for non-admin user", .tags(.p0Critical, .config, .security, .integration))
+    func listConfigsAsNonAdmin() async throws {
+        await testWorld.resetAll()
+
+        let nonAdmin = try UserAccountModel.mock(app: app)
+        try await app.repositories.users.create(nonAdmin)
+
+        try await app.test(.GET, "\(configPath)/list", user: nonAdmin) { response in
             #expect(response.status == .unauthorized)
         }
     }

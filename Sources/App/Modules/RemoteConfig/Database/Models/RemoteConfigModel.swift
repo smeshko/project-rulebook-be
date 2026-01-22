@@ -19,6 +19,9 @@ final class RemoteConfigModel: @unchecked Sendable, DatabaseModelInterface {
     @Field(key: FieldKeys.v1.valueType)
     var valueType: String
 
+    @Field(key: FieldKeys.v1.category)
+    var category: String
+
     @Timestamp(key: FieldKeys.v1.createdAt, on: .create)
     var createdAt: Date?
 
@@ -31,12 +34,14 @@ final class RemoteConfigModel: @unchecked Sendable, DatabaseModelInterface {
         id: UUID? = nil,
         key: String,
         value: String,
-        valueType: String
+        valueType: String,
+        category: String = "settings"
     ) {
         self.id = id
         self.key = key
         self.value = value
         self.valueType = valueType
+        self.category = category
     }
 }
 
@@ -48,6 +53,7 @@ extension RemoteConfigModel {
             static var key: FieldKey { "key" }
             static var value: FieldKey { "value" }
             static var valueType: FieldKey { "value_type" }
+            static var category: FieldKey { "category" }
             static var createdAt: FieldKey { "created_at" }
             static var updatedAt: FieldKey { "updated_at" }
         }
