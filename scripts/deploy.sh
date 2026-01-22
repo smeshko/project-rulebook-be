@@ -32,8 +32,8 @@ railway up
 echo "🏥 Checking health endpoint..."
 sleep 10  # Wait for deployment
 
-# Get the Railway public domain
-DOMAIN=$(railway variables get RAILWAY_PUBLIC_DOMAIN)
+# Get the Railway public domain (use || true to prevent set -e from exiting if variable is unset)
+DOMAIN=$(railway variables get RAILWAY_PUBLIC_DOMAIN 2>/dev/null || true)
 if [ -n "$DOMAIN" ]; then
     echo "📊 Testing health endpoint at https://$DOMAIN/health"
     curl -f "https://$DOMAIN/health" || echo "⚠️ Health check failed - deployment may still be starting"
