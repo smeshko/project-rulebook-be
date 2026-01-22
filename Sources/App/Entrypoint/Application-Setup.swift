@@ -87,6 +87,7 @@ extension Application {
       RulesGenerationModule(),
       CacheAdminModule(),
       WaitlistModule(),
+      RemoteConfigModule(),
     ]
 
     for module in modules {
