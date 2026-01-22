@@ -19,3 +19,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-config.md
+  - Conditions:
+    - When implementing feature flags or remote configuration
+    - When adding public endpoints that don't require authentication
+    - When adding admin-only endpoints to an existing module
+    - When implementing Redis caching with write-through invalidation
+    - When modifying the RemoteConfig module
