@@ -8,9 +8,6 @@ struct RemoteConfigModule: ModuleInterface {
         // Register migration
         app.migrations.add(RemoteConfigMigrations.v1())
 
-        // Register repository
-        app.remoteConfigRepository = DatabaseRemoteConfigRepository(database: app.db)
-
         // Boot routes
         try router.boot(routes: app.routes)
     }
