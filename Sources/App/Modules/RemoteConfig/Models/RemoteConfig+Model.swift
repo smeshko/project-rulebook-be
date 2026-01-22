@@ -61,6 +61,8 @@ enum RemoteConfig {
 
             static func validations(_ validations: inout Validations) {
                 validations.add("value", as: String.self, is: !.empty)
+                // Validate valueType if provided (optional field)
+                validations.add("valueType", as: String?.self, is: .nil || .in("boolean", "integer", "string"), required: false)
             }
         }
 

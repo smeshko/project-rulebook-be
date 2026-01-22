@@ -15,19 +15,19 @@ final class InMemoryTestCacheService: CacheService, @unchecked Sendable {
     }
     
     func set<T>(_ key: String, value: T, ttl: TimeInterval?) async throws where T: Codable {
-        queue.async(flags: .barrier) { [weak self] in
+        queue.sync(flags: .barrier) { [weak self] in
             self?.storage[key] = value
         }
     }
-    
+
     func delete(_ key: String) async throws {
-        queue.async(flags: .barrier) { [weak self] in
+        _ = queue.sync(flags: .barrier) { [weak self] in
             self?.storage.removeValue(forKey: key)
         }
     }
-    
+
     func flush() async throws {
-        queue.async(flags: .barrier) { [weak self] in
+        queue.sync(flags: .barrier) { [weak self] in
             self?.storage.removeAll()
         }
     }

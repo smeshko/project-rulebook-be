@@ -76,7 +76,16 @@ struct RemoteConfigController {
             valueType: valueType
         )
 
-        try await repository.create(model)
+        do {
+            try await repository.create(model)
+        } catch {
+            // Handle database unique constraint violations as 409 Conflict
+            let errorDescription = String(describing: error).lowercased()
+            if errorDescription.contains("unique") || errorDescription.contains("duplicate") {
+                throw Abort(.conflict, reason: "Configuration key '\(createRequest.key)' already exists")
+            }
+            throw error
+        }
 
         // Invalidate cache
         try await invalidateCache(req)
@@ -106,8 +115,10 @@ struct RemoteConfigController {
 
         // Determine value type (use existing if not provided)
         let valueType: ConfigValueType
-        if let newTypeString = updateRequest.valueType,
-           let newType = ConfigValueType(rawValue: newTypeString) {
+        if let newTypeString = updateRequest.valueType {
+            guard let newType = ConfigValueType(rawValue: newTypeString) else {
+                throw Abort(.badRequest, reason: "Invalid value type: \(newTypeString)")
+            }
             valueType = newType
         } else {
             valueType = model.valueType
@@ -174,6 +185,16 @@ struct RemoteConfigController {
                 case "featureFlags":
                     if entry.valueType == .boolean {
                         featureFlags[name] = entry.value.lowercased() == "true"
+                    } else {
+                        // Non-boolean featureFlags fall through to settings to avoid data loss
+                        switch entry.valueType {
+                        case .boolean:
+                            settings[name] = .bool(entry.value.lowercased() == "true")
+                        case .integer:
+                            settings[name] = .int(Int(entry.value) ?? 0)
+                        case .string:
+                            settings[name] = .string(entry.value)
+                        }
                     }
                 case "settings":
                     switch entry.valueType {

@@ -286,4 +286,77 @@ struct RemoteConfigAdminTests {
             }
         })
     }
+
+    // MARK: - Value Type Validation Tests
+
+    @Test("Create fails with invalid valueType", .tags(.p1Core, .integration))
+    func createFailsWithInvalidValueType() async throws {
+        await testWorld.resetAll()
+
+        let user = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(user)
+
+        let payload = try TokenPayload(with: user)
+        let accessToken = try app.jwt.signers.sign(payload)
+
+        // Use raw JSON to send invalid valueType that bypasses Codable validation
+        try await app.test(.POST, configPath, beforeRequest: { req in
+            req.headers.add(name: "Authorization", value: "Bearer \(accessToken)")
+            req.headers.contentType = .json
+            req.body = ByteBuffer(string: """
+                {"key": "test.key", "value": "123", "valueType": "invalid"}
+            """)
+        }, afterResponse: { res in
+            #expect(res.status == .badRequest)
+        })
+    }
+
+    @Test("Update fails with invalid valueType", .tags(.p1Core, .integration))
+    func updateFailsWithInvalidValueType() async throws {
+        await testWorld.resetAll()
+
+        let config = RemoteConfigModel.create(key: "settings.testKey", intValue: 42)
+        try await app.repositories.remoteConfig.create(config)
+
+        let user = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(user)
+
+        let payload = try TokenPayload(with: user)
+        let accessToken = try app.jwt.signers.sign(payload)
+
+        // Use raw JSON to send invalid valueType that bypasses Codable validation
+        try await app.test(.PATCH, "\(configPath)/settings.testKey", beforeRequest: { req in
+            req.headers.add(name: "Authorization", value: "Bearer \(accessToken)")
+            req.headers.contentType = .json
+            req.body = ByteBuffer(string: """
+                {"value": "100", "valueType": "invalid"}
+            """)
+        }, afterResponse: { res in
+            #expect(res.status == .badRequest)
+        })
+    }
+
+    @Test("Update without valueType preserves existing type", .tags(.p1Core, .integration))
+    func updateWithoutValueTypePreservesExistingType() async throws {
+        await testWorld.resetAll()
+
+        let config = RemoteConfigModel.create(key: "settings.preserveType", intValue: 42)
+        try await app.repositories.remoteConfig.create(config)
+
+        let user = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(user)
+
+        let updateRequest = RemoteConfig.Update.Request(
+            value: "100",
+            valueType: nil
+        )
+
+        try await app.test(.PATCH, "\(configPath)/settings.preserveType", user: user, content: updateRequest, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(RemoteConfig.Update.Response.self, res) { response in
+                #expect(response.value == "100")
+                #expect(response.valueType == "integer") // Type should be preserved
+            }
+        })
+    }
 }
