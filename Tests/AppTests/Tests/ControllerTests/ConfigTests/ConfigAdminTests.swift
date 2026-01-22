@@ -16,6 +16,27 @@ struct ConfigAdminTests {
 
     // MARK: - Authentication Tests
 
+    @Test("GET /api/v1/config/list requires authentication", .tags(.p0Critical, .auth, .integration))
+    func getListRequiresAuth() async throws {
+        await testWorld.resetAll()
+
+        try await app.test(.GET, "\(basePath)/list", afterResponse: { res in
+            #expect(res.status == .unauthorized)
+        })
+    }
+
+    @Test("GET /api/v1/config/list requires admin role", .tags(.p0Critical, .auth, .integration))
+    func getListRequiresAdmin() async throws {
+        await testWorld.resetAll()
+
+        let nonAdmin = try UserAccountModel.mock(app: app, isAdmin: false)
+        try await app.repositories.users.create(nonAdmin)
+
+        try await app.test(.GET, "\(basePath)/list", user: nonAdmin) { res in
+            #expect(res.status == .unauthorized)
+        }
+    }
+
     @Test("POST /api/v1/config requires authentication", .tags(.p0Critical, .auth, .integration))
     func postConfigRequiresAuth() async throws {
         await testWorld.resetAll()
@@ -329,6 +350,170 @@ struct ConfigAdminTests {
             #expect(res.status == .ok)
             expectContent(Config.Get.Response.self, res) { response in
                 #expect(response.settings.count == 2)
+            }
+        })
+    }
+
+    @Test("PATCH /api/v1/config/:id invalidates cache", .tags(.p1Core, .caching, .integration))
+    func patchConfigInvalidatesCache() async throws {
+        await testWorld.resetAll()
+
+        let config = ConfigEntryModel(
+            key: "cacheTest",
+            value: "original",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.configs.create(config)
+
+        // GET request to populate cache
+        try await app.test(.GET, basePath, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(Config.Get.Response.self, res) { response in
+                #expect(response.settings["cacheTest"] == .string("original"))
+            }
+        })
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let updateRequest = Config.Update.Request(value: "updated", valueType: nil, category: nil)
+
+        try await app.test(.PATCH, "\(basePath)/\(config.id!)", user: admin, content: updateRequest, afterResponse: { res in
+            #expect(res.status == .ok)
+        })
+
+        // GET request should now show updated value (cache was invalidated)
+        try await app.test(.GET, basePath, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(Config.Get.Response.self, res) { response in
+                #expect(response.settings["cacheTest"] == .string("updated"))
+            }
+        })
+    }
+
+    @Test("DELETE /api/v1/config/:id invalidates cache", .tags(.p1Core, .caching, .integration))
+    func deleteConfigInvalidatesCache() async throws {
+        await testWorld.resetAll()
+
+        let config = ConfigEntryModel(
+            key: "toDelete",
+            value: "value",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.configs.create(config)
+
+        // GET request to populate cache
+        try await app.test(.GET, basePath, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(Config.Get.Response.self, res) { response in
+                #expect(response.settings.count == 1)
+            }
+        })
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        try await app.test(.DELETE, "\(basePath)/\(config.id!)", user: admin) { res in
+            #expect(res.status == .noContent)
+        }
+
+        // GET request should now show empty (cache was invalidated)
+        try await app.test(.GET, basePath, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(Config.Get.Response.self, res) { response in
+                #expect(response.settings.isEmpty)
+            }
+        })
+    }
+
+    // MARK: - Value/Type Validation Tests
+
+    @Test("POST /api/v1/config rejects invalid value for boolean type", .tags(.p1Core, .integration))
+    func postConfigRejectsInvalidBooleanValue() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let invalidRequest = Config.Create.Request(
+            key: "invalidBool",
+            value: "notABoolean",
+            valueType: .boolean,
+            category: .featureFlag
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: invalidRequest, afterResponse: { res in
+            #expect(res.status == .badRequest)
+        })
+    }
+
+    @Test("POST /api/v1/config rejects invalid value for integer type", .tags(.p1Core, .integration))
+    func postConfigRejectsInvalidIntegerValue() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let invalidRequest = Config.Create.Request(
+            key: "invalidInt",
+            value: "notAnInteger",
+            valueType: .integer,
+            category: .setting
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: invalidRequest, afterResponse: { res in
+            #expect(res.status == .badRequest)
+        })
+    }
+
+    @Test("PATCH /api/v1/config/:id rejects incompatible type change", .tags(.p1Core, .integration))
+    func patchConfigRejectsIncompatibleTypeChange() async throws {
+        await testWorld.resetAll()
+
+        let config = ConfigEntryModel(
+            key: "stringValue",
+            value: "hello",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.configs.create(config)
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        // Try to change type to integer without changing value
+        let updateRequest = Config.Update.Request(value: nil, valueType: .integer, category: nil)
+
+        try await app.test(.PATCH, "\(basePath)/\(config.id!)", user: admin, content: updateRequest, afterResponse: { res in
+            #expect(res.status == .badRequest)
+        })
+    }
+
+    @Test("PATCH /api/v1/config/:id allows compatible type change with new value", .tags(.p1Core, .integration))
+    func patchConfigAllowsCompatibleTypeChange() async throws {
+        await testWorld.resetAll()
+
+        let config = ConfigEntryModel(
+            key: "typeChange",
+            value: "hello",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.configs.create(config)
+
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        // Change type to integer with a valid integer value
+        let updateRequest = Config.Update.Request(value: "42", valueType: .integer, category: nil)
+
+        try await app.test(.PATCH, "\(basePath)/\(config.id!)", user: admin, content: updateRequest, afterResponse: { res in
+            #expect(res.status == .ok)
+            expectContent(Config.Entry.Response.self, res) { response in
+                #expect(response.value == .integer(42))
+                #expect(response.valueType == .integer)
             }
         })
     }

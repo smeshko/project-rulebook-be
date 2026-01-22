@@ -79,6 +79,18 @@ enum ConfigValue: Content, Equatable {
         }
     }
 
+    static func validate(rawValue: String, type: ConfigValueType) -> Bool {
+        switch type {
+        case .boolean:
+            let lowercased = rawValue.lowercased()
+            return lowercased == "true" || lowercased == "false"
+        case .integer:
+            return Int(rawValue) != nil
+        case .string:
+            return true
+        }
+    }
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {

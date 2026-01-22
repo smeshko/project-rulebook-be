@@ -1,3 +1,4 @@
+import Fluent
 import Vapor
 
 struct ConfigController {
@@ -39,6 +40,11 @@ struct ConfigController {
         try Config.Create.Request.validate(content: req)
         let createRequest = try req.content.decode(Config.Create.Request.self)
 
+        // Validate value matches valueType
+        guard ConfigValue.validate(rawValue: createRequest.value, type: createRequest.valueType) else {
+            throw Abort(.badRequest, reason: "Value '\(createRequest.value)' is not valid for type '\(createRequest.valueType.rawValue)'")
+        }
+
         let repository = req.repositories.config
 
         // Check if key already exists
@@ -53,7 +59,11 @@ struct ConfigController {
             category: createRequest.category
         )
 
-        try await repository.create(entry)
+        do {
+            try await repository.create(entry)
+        } catch let error as DatabaseError where error.isConstraintFailure {
+            throw Abort(.conflict, reason: "Config key '\(createRequest.key)' already exists")
+        }
 
         // Invalidate cache after creation
         try await invalidateCache(req)
@@ -74,6 +84,15 @@ struct ConfigController {
 
         guard let entry = try await repository.find(id: id) else {
             throw Abort(.notFound, reason: "Config entry not found")
+        }
+
+        // Determine the effective value and type after update
+        let effectiveValue = updateRequest.value ?? entry.value
+        let effectiveType = updateRequest.valueType ?? entry.valueType
+
+        // Validate value matches type
+        guard ConfigValue.validate(rawValue: effectiveValue, type: effectiveType) else {
+            throw Abort(.badRequest, reason: "Value '\(effectiveValue)' is not valid for type '\(effectiveType.rawValue)'")
         }
 
         // Update fields if provided
