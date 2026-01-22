@@ -19,3 +19,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When troubleshooting mobile app integration issues
     - When planning breaking API changes
     - When writing integration tests for API endpoints
+
+- docs/features/remote-config.md
+  - Conditions:
+    - When implementing feature flags or remote configuration for the mobile app
+    - When adding new config entries to the remote config system
+    - When implementing Redis caching with database fallback
+    - When creating public endpoints with admin-only management routes
+    - When working with typed configuration values (boolean/integer/string)
