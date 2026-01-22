@@ -5,44 +5,53 @@ import Vapor
 ///
 /// This controller handles all remote config operations including fetching public config,
 /// and admin CRUD operations for config management with comprehensive logging.
+/// Implements cache-aside pattern with Redis caching for performance.
 struct RemoteConfigController {
+
+    // MARK: - Cache Configuration
+
+    /// Cache key for storing the full config response
+    private static let cacheKey = "remoteConfig:all"
+
+    /// Cache TTL in seconds (5 minutes)
+    private static let cacheTTL: TimeInterval = 300
 
     // MARK: - Public Config Endpoint
 
     /// GET /api/v1/config
     /// Returns all configuration values grouped by category.
     /// This endpoint does NOT require authentication.
+    /// Uses cache-aside pattern: check cache first, fallback to DB on miss.
     func getConfig(_ req: Request) async throws -> RemoteConfig.Get.Response {
         req.logger.info("Remote config request", metadata: [
             "endpoint": "getConfig",
             "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
         ])
 
-        let configs = try await req.repositories.remoteConfigs.findAll()
-
-        var featureFlags: [String: AnyCodableValue] = [:]
-        var settings: [String: AnyCodableValue] = [:]
-
-        for config in configs {
-            let value = parseConfigValue(config.value, type: config.valueType)
-
-            switch config.category {
-            case .featureFlags:
-                featureFlags[config.key] = value
-            case .settings:
-                settings[config.key] = value
-            }
+        // Cache-aside pattern: try cache first
+        if let cachedResponse = try await getCachedConfig(req) {
+            req.logger.info("Remote config served from cache", metadata: [
+                "cache_hit": "true"
+            ])
+            return cachedResponse
         }
 
-        req.logger.info("Remote config served", metadata: [
-            "feature_flags_count": .string("\(featureFlags.count)"),
-            "settings_count": .string("\(settings.count)")
+        // Cache miss: fetch from database
+        req.logger.info("Remote config cache miss, fetching from database", metadata: [
+            "cache_hit": "false"
         ])
 
-        return RemoteConfig.Get.Response(
-            featureFlags: featureFlags,
-            settings: settings
-        )
+        let response = try await fetchAndBuildResponse(req)
+
+        // Cache the response
+        try await cacheConfigResponse(req, response: response)
+
+        req.logger.info("Remote config served from database and cached", metadata: [
+            "feature_flags_count": .string("\(response.featureFlags.count)"),
+            "settings_count": .string("\(response.settings.count)")
+        ])
+
+        return response
     }
 
     // MARK: - Admin Create Config Endpoint
@@ -87,11 +96,15 @@ struct RemoteConfigController {
 
         try await req.repositories.remoteConfigs.create(config)
 
+        // Invalidate cache after mutation
+        try await invalidateCache(req)
+
         req.logger.info("Admin config created", metadata: [
             "key": .string(input.key),
             "value_type": .string(input.valueType),
             "category": .string(input.category),
-            "client_ip": .string(clientIP)
+            "client_ip": .string(clientIP),
+            "cache_invalidated": "true"
         ])
 
         return RemoteConfig.Create.Response(
@@ -138,10 +151,14 @@ struct RemoteConfigController {
 
         try await req.repositories.remoteConfigs.update(config)
 
+        // Invalidate cache after mutation
+        try await invalidateCache(req)
+
         req.logger.info("Admin config updated", metadata: [
             "key": .string(key),
             "new_value": .string(config.value),
-            "client_ip": .string(clientIP)
+            "client_ip": .string(clientIP),
+            "cache_invalidated": "true"
         ])
 
         return RemoteConfig.Update.Response(
@@ -178,15 +195,88 @@ struct RemoteConfigController {
 
         try await req.repositories.remoteConfigs.delete(key: key)
 
+        // Invalidate cache after mutation
+        try await invalidateCache(req)
+
         req.logger.info("Admin config deleted", metadata: [
             "key": .string(key),
-            "client_ip": .string(clientIP)
+            "client_ip": .string(clientIP),
+            "cache_invalidated": "true"
         ])
 
         return RemoteConfig.Delete.Response(
             key: key,
             deleted: true,
             timestamp: Date()
+        )
+    }
+
+    // MARK: - Cache Helper Methods
+
+    /// Attempts to retrieve the config response from cache.
+    private func getCachedConfig(_ req: Request) async throws -> RemoteConfig.Get.Response? {
+        do {
+            return try await req.services.cache.get(Self.cacheKey, as: RemoteConfig.Get.Response.self)
+        } catch {
+            req.logger.warning("Failed to get config from cache", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+            return nil
+        }
+    }
+
+    /// Caches the config response with TTL.
+    private func cacheConfigResponse(_ req: Request, response: RemoteConfig.Get.Response) async throws {
+        do {
+            try await req.services.cache.set(Self.cacheKey, value: response, ttl: Self.cacheTTL)
+            req.logger.debug("Config response cached", metadata: [
+                "cache_key": .string(Self.cacheKey),
+                "ttl_seconds": .string("\(Int(Self.cacheTTL))")
+            ])
+        } catch {
+            req.logger.warning("Failed to cache config response", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+            // Don't throw - caching failure shouldn't break the request
+        }
+    }
+
+    /// Invalidates the config cache after mutations.
+    private func invalidateCache(_ req: Request) async throws {
+        do {
+            try await req.services.cache.delete(Self.cacheKey)
+            req.logger.debug("Config cache invalidated", metadata: [
+                "cache_key": .string(Self.cacheKey)
+            ])
+        } catch {
+            req.logger.warning("Failed to invalidate config cache", metadata: [
+                "error": .string(error.localizedDescription)
+            ])
+            // Don't throw - cache invalidation failure shouldn't break the request
+        }
+    }
+
+    /// Fetches configs from database and builds the response.
+    private func fetchAndBuildResponse(_ req: Request) async throws -> RemoteConfig.Get.Response {
+        let configs = try await req.repositories.remoteConfigs.findAll()
+
+        var featureFlags: [String: AnyCodableValue] = [:]
+        var settings: [String: AnyCodableValue] = [:]
+
+        for config in configs {
+            let value = parseConfigValue(config.value, type: config.valueType)
+
+            switch config.category {
+            case .featureFlags:
+                featureFlags[config.key] = value
+            case .settings:
+                settings[config.key] = value
+            }
+        }
+
+        return RemoteConfig.Get.Response(
+            featureFlags: featureFlags,
+            settings: settings
         )
     }
 
