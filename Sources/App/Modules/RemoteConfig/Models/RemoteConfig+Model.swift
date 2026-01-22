@@ -48,7 +48,7 @@ enum RemoteConfig {
             let description: String?
 
             static func validations(_ validations: inout Validations) {
-                validations.add("key", as: String.self, is: !.empty)
+                validations.add("key", as: String.self, is: !.empty && .count(1...128) && .pattern("^[a-zA-Z][a-zA-Z0-9_]*$"))
                 validations.add("value", as: String.self, is: !.empty)
                 validations.add("valueType", as: String.self, is: .in("boolean", "integer", "string", "json"))
             }
