@@ -69,6 +69,11 @@ struct RemoteConfigController {
 
         let input = try req.content.decode(RemoteConfig.Create.Request.self)
 
+        // Validate key format (alphanumeric, underscore, hyphen; non-empty)
+        guard isValidConfigKey(input.key) else {
+            throw Abort(.badRequest, reason: "Invalid key. Keys must be non-empty and contain only letters, numbers, underscores, and hyphens")
+        }
+
         guard let valueType = ConfigValueType(rawValue: input.valueType) else {
             throw Abort(.badRequest, reason: "Invalid value_type. Must be: boolean, integer, or string")
         }
@@ -332,5 +337,13 @@ struct RemoteConfigController {
         default:
             return nil
         }
+    }
+
+    /// Validates that a config key is safe for URL path segments.
+    /// Allows only alphanumeric characters, underscores, and hyphens.
+    private func isValidConfigKey(_ key: String) -> Bool {
+        guard !key.isEmpty else { return false }
+        let allowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_-"))
+        return key.unicodeScalars.allSatisfy { allowedCharacters.contains($0) }
     }
 }

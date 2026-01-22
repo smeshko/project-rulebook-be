@@ -160,6 +160,23 @@ struct RemoteConfigAdminTests {
         })
     }
 
+    @Test("PATCH returns 401 when non-admin user", .tags(.p0Critical, .remoteConfig, .security, .integration))
+    func updateConfigNotAdmin() async throws {
+        await testWorld.resetAll()
+
+        let regularUser = try UserAccountModel.mock(app: app, email: "user@test.com", isAdmin: false)
+        try await app.repositories.users.create(regularUser)
+
+        let config = RemoteConfigModel(key: "updateMe", value: "true", valueType: .boolean, category: .featureFlags)
+        try await app.repositories.remoteConfigs.create(config)
+
+        let request = RemoteConfig.Update.Request(value: "false")
+
+        try await app.test(.PATCH, "\(basePath)/updateMe", user: regularUser, content: request, afterResponse: { response in
+            #expect(response.status == .unauthorized)
+        })
+    }
+
     // MARK: - DELETE Tests
 
     @Test("DELETE removes config when admin authenticated", .tags(.p0Critical, .remoteConfig, .integration))
@@ -214,6 +231,25 @@ struct RemoteConfigAdminTests {
         })
     }
 
+    @Test("DELETE returns 401 when non-admin user", .tags(.p0Critical, .remoteConfig, .security, .integration))
+    func deleteConfigNotAdmin() async throws {
+        await testWorld.resetAll()
+
+        let regularUser = try UserAccountModel.mock(app: app, email: "user@test.com", isAdmin: false)
+        try await app.repositories.users.create(regularUser)
+
+        let config = RemoteConfigModel(key: "deleteMe", value: "true", valueType: .boolean, category: .featureFlags)
+        try await app.repositories.remoteConfigs.create(config)
+
+        try await app.test(.DELETE, "\(basePath)/deleteMe", user: regularUser, afterResponse: { response in
+            #expect(response.status == .unauthorized)
+        })
+
+        // Verify config still exists
+        let existingConfig = try await app.repositories.remoteConfigs.find(key: "deleteMe")
+        #expect(existingConfig != nil)
+    }
+
     // MARK: - Input Validation Tests
 
     @Test("POST returns 400 for invalid value_type", .tags(.p1Core, .remoteConfig, .integration))
@@ -250,6 +286,38 @@ struct RemoteConfigAdminTests {
         )
 
         try await app.test(.POST, basePath, user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
+
+    @Test("POST returns 400 for invalid key format", .tags(.p1Core, .remoteConfig, .integration))
+    func createConfigInvalidKeyFormat() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        // Test empty key
+        let emptyKeyRequest = RemoteConfig.Create.Request(
+            key: "",
+            value: "true",
+            valueType: "boolean",
+            category: "feature_flags"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: emptyKeyRequest, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+
+        // Test key with URL-unsafe characters
+        let unsafeKeyRequest = RemoteConfig.Create.Request(
+            key: "key/with/slashes",
+            value: "true",
+            valueType: "boolean",
+            category: "feature_flags"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: unsafeKeyRequest, afterResponse: { response in
             #expect(response.status == .badRequest)
         })
     }
