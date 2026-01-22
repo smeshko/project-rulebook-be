@@ -14,10 +14,10 @@ final class ConfigEntryModel: @unchecked Sendable, DatabaseModelInterface {
     @Field(key: FieldKeys.v1.value)
     var value: String
 
-    @Enum(key: FieldKeys.v1.valueType)
+    @Field(key: FieldKeys.v1.valueType)
     var valueType: ConfigValueType
 
-    @Enum(key: FieldKeys.v1.category)
+    @Field(key: FieldKeys.v1.category)
     var category: ConfigCategory
 
     @Timestamp(key: FieldKeys.v1.createdAt, on: .create)
