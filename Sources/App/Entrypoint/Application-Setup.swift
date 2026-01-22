@@ -193,6 +193,7 @@ extension Application {
     passwordTokenRepository = DatabasePasswordTokenRepository(database: db)
     generatedRuleRepository = DatabaseGeneratedRuleRepository(database: db)
     waitlistRepository = DatabaseWaitlistRepository(database: db)
+    remoteConfigRepository = DatabaseRemoteConfigRepository(database: db)
 
     // Initialize foundation services (no dependencies)
     randomGeneratorService = RealRandomGeneratorService(app: self)
