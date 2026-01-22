@@ -57,7 +57,13 @@ enum RemoteConfigMigrations {
         }
 
         func revert(on db: Database) async throws {
-            try await RemoteConfigModel.query(on: db).delete()
+            // Only delete the seeded keys, not all config data
+            try await RemoteConfigModel.query(on: db)
+                .group(.or) { group in
+                    group.filter(\.$key == "enablePaywall")
+                    group.filter(\.$key == "maxRetries")
+                }
+                .delete()
         }
     }
 }

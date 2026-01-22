@@ -213,4 +213,101 @@ struct RemoteConfigAdminTests {
             #expect(response.status == .notFound)
         })
     }
+
+    // MARK: - Input Validation Tests
+
+    @Test("POST returns 400 for invalid value_type", .tags(.p1Core, .remoteConfig, .integration))
+    func createConfigInvalidValueType() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let request = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "true",
+            valueType: "invalid_type",
+            category: "feature_flags"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
+
+    @Test("POST returns 400 for invalid category", .tags(.p1Core, .remoteConfig, .integration))
+    func createConfigInvalidCategory() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let request = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "true",
+            valueType: "boolean",
+            category: "invalid_category"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
+
+    @Test("POST returns 400 for value/type mismatch - integer", .tags(.p1Core, .remoteConfig, .integration))
+    func createConfigValueTypeMismatchInteger() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let request = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "not_a_number",
+            valueType: "integer",
+            category: "settings"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
+
+    @Test("POST returns 400 for value/type mismatch - boolean", .tags(.p1Core, .remoteConfig, .integration))
+    func createConfigValueTypeMismatchBoolean() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        let request = RemoteConfig.Create.Request(
+            key: "testKey",
+            value: "maybe",
+            valueType: "boolean",
+            category: "feature_flags"
+        )
+
+        try await app.test(.POST, basePath, user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
+
+    @Test("PATCH returns 400 for value/type mismatch", .tags(.p1Core, .remoteConfig, .integration))
+    func updateConfigValueTypeMismatch() async throws {
+        await testWorld.resetAll()
+
+        let admin = try UserAccountModel.mock(app: app, email: "admin@test.com", isAdmin: true)
+        try await app.repositories.users.create(admin)
+
+        // Create a boolean config
+        let config = RemoteConfigModel(key: "boolKey", value: "true", valueType: .boolean, category: .featureFlags)
+        try await app.repositories.remoteConfigs.create(config)
+
+        // Try to update with invalid boolean value
+        let request = RemoteConfig.Update.Request(value: "not_a_boolean")
+
+        try await app.test(.PATCH, "\(basePath)/boolKey", user: admin, content: request, afterResponse: { response in
+            #expect(response.status == .badRequest)
+        })
+    }
 }
