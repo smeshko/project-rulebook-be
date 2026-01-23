@@ -149,3 +149,19 @@ Always be aware of:
 
 - `docs/architecture/technical-architecture.md` - Architecture, patterns, and rules
 - `docs/DOCUMENTATION_STANDARDS.md` - Documentation requirements
+
+---
+
+## Feature Documentation
+
+### Remote Config
+
+**Read when:** Implementing feature flags or remote configuration
+
+- `docs/features/remote-config.md` - Remote config implementation guide
+  - Conditions:
+    - When implementing feature flags or remote configuration
+    - When creating public endpoints for app configuration
+    - When adding admin-only CRUD endpoints with authentication
+    - When implementing Redis caching with PostgreSQL fallback
+    - When working with typed configuration values
