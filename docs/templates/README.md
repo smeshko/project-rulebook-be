@@ -120,3 +120,9 @@ Read [architecture/technical-architecture.md](../architecture/technical-architec
 | Model | `Sources/App/Modules/Auth/Database/Models/RefreshTokenModel.swift` |
 | Service | `Sources/App/Services/LLM/LLMService.swift` |
 | Error | `Sources/App/Entities/Errors/AuthenticationError.swift` |
+
+## Related Documentation
+
+- [Architecture](../architecture/README.md) - System design and ADRs
+- [Development](../development/README.md) - Setup and deployment guides
+- [Testing](../testing/README.md) - Testing infrastructure and patterns

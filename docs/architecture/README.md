@@ -42,3 +42,10 @@ For new developers:
 - **Property-Based DI**: Simple `req.services.*` and `req.repositories.*` access
 - **Controller-Centric**: Business logic in controllers, not separate use case layer
 - **Repository Pattern**: Database operations abstracted for testability
+
+## Related Documentation
+
+- [Development](../development/README.md) - Setup and deployment guides
+- [Testing](../testing/README.md) - Testing infrastructure and patterns
+- [Templates](../templates/README.md) - Component creation guides
+- [Reference](../reference/README.md) - API contracts and data models

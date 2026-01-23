@@ -78,3 +78,9 @@ docker-compose down -v && docker-compose up -d
 
 - **VS Code**: See [vscode-setup.md](vscode-setup.md)
 - **Xcode**: See [xcode-setup.md](xcode-setup.md)
+
+## Related Documentation
+
+- [Architecture](../architecture/README.md) - System design and ADRs
+- [Testing](../testing/README.md) - Testing infrastructure and patterns
+- [Templates](../templates/README.md) - Component creation guides

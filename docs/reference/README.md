@@ -51,3 +51,9 @@ The [external/](external/) directory contains documentation for external APIs an
 
 - OpenAI API documentation
 - Vapor testing documentation
+
+## Related Documentation
+
+- [Architecture](../architecture/README.md) - System design and ADRs
+- [Development](../development/README.md) - Setup and deployment guides
+- [Templates](../templates/README.md) - Component creation guides

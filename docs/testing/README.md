@@ -222,3 +222,9 @@ When adding new test scripts or collections:
 4. Ensure scripts are executable (`chmod +x`)
 5. Add appropriate error handling and logging
 6. Review and follow patterns in `standards-and-patterns.md`
+
+## Related Documentation
+
+- [Architecture](../architecture/README.md) - System design and ADRs
+- [Development](../development/README.md) - Setup and deployment guides
+- [Templates](../templates/README.md) - Component creation guides

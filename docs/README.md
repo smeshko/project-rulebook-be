@@ -17,19 +17,28 @@ Central hub for all project documentation.
 | Understand the architecture | [architecture/](architecture/) |
 | Set up development | [development/](development/) |
 | Run tests | [testing/](testing/) |
+| View API contracts | [reference/](reference/) |
+| Read product requirements | [product/](product/) |
 | Find specific docs | [CONDITIONAL_DOCS.md](CONDITIONAL_DOCS.md) |
 
 ## Documentation Structure
 
 ```text
 docs/
-├── templates/          # Component creation guides
-├── architecture/       # System design & ADRs
-├── development/        # Setup & deployment
-├── testing/            # Testing infrastructure
-├── reference/          # API contracts, data models, external docs
-├── product/            # Product requirements
-└── planning/           # Work planning & archives
+├── README.md               # This file - central hub
+├── DOCUMENTATION_STANDARDS.md  # Documentation rules
+├── CONDITIONAL_DOCS.md     # Task-based navigation
+├── architecture/           # System design & ADRs
+│   └── ADRs/               # Architecture Decision Records
+├── development/            # Setup & deployment
+├── product/                # Product requirements
+├── reference/              # API contracts, data models
+│   └── external/           # External API docs
+├── templates/              # Component creation guides
+├── testing/                # Testing infrastructure
+│   ├── scripts/            # Test automation
+│   └── collections/        # Postman collections
+└── planning/               # Work planning & archives
 ```
 
 ## For AI Agents
