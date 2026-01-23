@@ -29,6 +29,23 @@ enum RemoteConfig {
                 validations.add("key", as: String.self, is: !.empty && .count(1...100))
                 validations.add("value", as: String.self, is: !.empty)
             }
+
+            /// Validates that the value can be parsed according to the declared valueType.
+            func validateValueMatchesType() throws {
+                switch valueType {
+                case .boolean:
+                    let lowercased = value.lowercased()
+                    guard lowercased == "true" || lowercased == "false" || value == "1" || value == "0" else {
+                        throw Abort(.badRequest, reason: "Invalid boolean value '\(value)'. Expected 'true', 'false', '1', or '0'.")
+                    }
+                case .integer:
+                    guard Int(value) != nil else {
+                        throw Abort(.badRequest, reason: "Invalid integer value '\(value)'. Expected a valid integer.")
+                    }
+                case .string:
+                    break
+                }
+            }
         }
     }
 
@@ -41,7 +58,30 @@ enum RemoteConfig {
             let category: RemoteConfigCategory?
 
             static func validations(_ validations: inout Validations) {
-                // Optional fields - no validation required
+                // Optional fields - type validation done in validateValueMatchesType
+            }
+
+            /// Validates that if both value and valueType are provided, they are compatible.
+            /// If only valueType is provided, validation must be done against existing value in controller.
+            func validateValueMatchesType(existingValue: String? = nil) throws {
+                guard let type = valueType else { return }
+
+                let valueToCheck = value ?? existingValue
+                guard let valueToCheck else { return }
+
+                switch type {
+                case .boolean:
+                    let lowercased = valueToCheck.lowercased()
+                    guard lowercased == "true" || lowercased == "false" || valueToCheck == "1" || valueToCheck == "0" else {
+                        throw Abort(.badRequest, reason: "Invalid boolean value '\(valueToCheck)'. Expected 'true', 'false', '1', or '0'.")
+                    }
+                case .integer:
+                    guard Int(valueToCheck) != nil else {
+                        throw Abort(.badRequest, reason: "Invalid integer value '\(valueToCheck)'. Expected a valid integer.")
+                    }
+                case .string:
+                    break
+                }
             }
         }
     }

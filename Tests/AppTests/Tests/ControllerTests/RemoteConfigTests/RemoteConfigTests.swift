@@ -189,6 +189,121 @@ struct RemoteConfigTests {
         )
     }
 
+    @Test("POST config rejects invalid boolean value", .tags(.p1Core, .integration))
+    func createConfigRejectsInvalidBoolean() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "invalidBoolean",
+                value: "notABoolean",
+                valueType: .boolean,
+                category: .featureFlag
+            ),
+            afterResponse: { response in
+                #expect(response.status == .badRequest)
+            }
+        )
+    }
+
+    @Test("POST config rejects invalid integer value", .tags(.p1Core, .integration))
+    func createConfigRejectsInvalidInteger() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "invalidInteger",
+                value: "notAnInteger",
+                valueType: .integer,
+                category: .setting
+            ),
+            afterResponse: { response in
+                #expect(response.status == .badRequest)
+            }
+        )
+    }
+
+    @Test("POST config accepts valid boolean values", .tags(.p1Core, .integration))
+    func createConfigAcceptsValidBooleans() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        // Test "true"
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "boolTrue",
+                value: "true",
+                valueType: .boolean,
+                category: .featureFlag
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+            }
+        )
+
+        // Test "false"
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "boolFalse",
+                value: "false",
+                valueType: .boolean,
+                category: .featureFlag
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+            }
+        )
+
+        // Test "1"
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "boolOne",
+                value: "1",
+                valueType: .boolean,
+                category: .featureFlag
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+            }
+        )
+
+        // Test "0"
+        try await app.test(
+            .POST,
+            configPath,
+            user: admin,
+            content: RemoteConfig.Create.Request(
+                key: "boolZero",
+                value: "0",
+                valueType: .boolean,
+                category: .featureFlag
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+            }
+        )
+    }
+
     // MARK: - PATCH /api/v1/config/:key Tests
 
     @Test("PATCH config requires authentication", .tags(.p0Critical, .security, .integration))
@@ -285,6 +400,72 @@ struct RemoteConfigTests {
             ),
             afterResponse: { response in
                 #expect(response.status == .notFound)
+            }
+        )
+    }
+
+    @Test("PATCH config rejects incompatible valueType change", .tags(.p1Core, .integration))
+    func updateConfigRejectsIncompatibleTypeChange() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        // Create a string config
+        let existing = RemoteConfigModel(
+            key: "stringConfig",
+            value: "notAnInteger",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.remoteConfigs.create(existing)
+
+        // Try to change type to integer without changing value
+        try await app.test(
+            .PATCH,
+            "\(configPath)/stringConfig",
+            user: admin,
+            content: RemoteConfig.Update.Request(
+                value: nil,
+                valueType: .integer,
+                category: nil
+            ),
+            afterResponse: { response in
+                #expect(response.status == .badRequest)
+            }
+        )
+    }
+
+    @Test("PATCH config allows compatible valueType change with new value", .tags(.p1Core, .integration))
+    func updateConfigAllowsCompatibleTypeChange() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        // Create a string config
+        let existing = RemoteConfigModel(
+            key: "typeChangeConfig",
+            value: "oldValue",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.remoteConfigs.create(existing)
+
+        // Change type to integer with a valid integer value
+        try await app.test(
+            .PATCH,
+            "\(configPath)/typeChangeConfig",
+            user: admin,
+            content: RemoteConfig.Update.Request(
+                value: "42",
+                valueType: .integer,
+                category: nil
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+                expectContent(RemoteConfig.Item.Response.self, response) { item in
+                    #expect(item.value == "42")
+                    #expect(item.valueType == .integer)
+                }
             }
         )
     }
@@ -414,5 +595,81 @@ struct RemoteConfigTests {
         let cacheKey = RemoteConfigCacheService.cacheKey
         let cached = try await app.cacheService.get(cacheKey, as: RemoteConfig.Get.Response.self)
         #expect(cached == nil)
+    }
+
+    @Test("PATCH config invalidates cache", .tags(.p2Extended, .caching, .integration))
+    func updateConfigInvalidatesCache() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        // Create a config
+        let config = RemoteConfigModel(
+            key: "cacheTestKey",
+            value: "originalValue",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.remoteConfigs.create(config)
+
+        // Pre-populate cache by making a GET request
+        try await app.test(.GET, configPath) { _ in }
+
+        // Verify cache is populated
+        let cacheKey = RemoteConfigCacheService.cacheKey
+        let cachedBefore = try await app.cacheService.get(cacheKey, as: RemoteConfig.Get.Response.self)
+        #expect(cachedBefore != nil)
+
+        // Update the config
+        try await app.test(
+            .PATCH,
+            "\(configPath)/cacheTestKey",
+            user: admin,
+            content: RemoteConfig.Update.Request(
+                value: "updatedValue",
+                valueType: nil,
+                category: nil
+            ),
+            afterResponse: { response in
+                #expect(response.status == .ok)
+            }
+        )
+
+        // Verify cache was invalidated
+        let cachedAfter = try await app.cacheService.get(cacheKey, as: RemoteConfig.Get.Response.self)
+        #expect(cachedAfter == nil)
+    }
+
+    @Test("DELETE config invalidates cache", .tags(.p2Extended, .caching, .integration))
+    func deleteConfigInvalidatesCache() async throws {
+        await testWorld.resetAll()
+        let admin = try UserAccountModel.mock(app: app, isAdmin: true)
+        try await testWorld.users.create(admin)
+
+        // Create a config
+        let config = RemoteConfigModel(
+            key: "deleteTestKey",
+            value: "value",
+            valueType: .string,
+            category: .setting
+        )
+        try await testWorld.remoteConfigs.create(config)
+
+        // Pre-populate cache by making a GET request
+        try await app.test(.GET, configPath) { _ in }
+
+        // Verify cache is populated
+        let cacheKey = RemoteConfigCacheService.cacheKey
+        let cachedBefore = try await app.cacheService.get(cacheKey, as: RemoteConfig.Get.Response.self)
+        #expect(cachedBefore != nil)
+
+        // Delete the config
+        try await app.test(.DELETE, "\(configPath)/deleteTestKey", user: admin) { response in
+            #expect(response.status == .noContent)
+        }
+
+        // Verify cache was invalidated
+        let cachedAfter = try await app.cacheService.get(cacheKey, as: RemoteConfig.Get.Response.self)
+        #expect(cachedAfter == nil)
     }
 }

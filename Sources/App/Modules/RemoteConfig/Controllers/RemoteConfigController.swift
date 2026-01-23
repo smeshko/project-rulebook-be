@@ -47,6 +47,9 @@ struct RemoteConfigController {
         try RemoteConfig.Create.Request.validate(content: req)
         let input = try req.content.decode(RemoteConfig.Create.Request.self)
 
+        // Validate value matches declared type
+        try input.validateValueMatchesType()
+
         // Check for duplicate key
         if let _ = try await req.services.remoteConfig.find(key: input.key) {
             throw Abort(.badRequest, reason: "Configuration key '\(input.key)' already exists")
@@ -60,7 +63,15 @@ struct RemoteConfigController {
             category: input.category
         )
 
-        try await req.services.remoteConfig.create(model)
+        do {
+            try await req.services.remoteConfig.create(model)
+        } catch {
+            // Handle unique constraint violation (race condition or soft-deleted key conflict)
+            if "\(error)".contains("UNIQUE constraint") || "\(error)".contains("duplicate key") {
+                throw Abort(.conflict, reason: "Configuration key '\(input.key)' already exists")
+            }
+            throw error
+        }
 
         // Invalidate cache
         await req.remoteConfigCache.invalidateCache()
@@ -93,6 +104,11 @@ struct RemoteConfigController {
         }
 
         let input = try req.content.decode(RemoteConfig.Update.Request.self)
+
+        // Validate value/type compatibility
+        // If updating valueType, check against existing or new value
+        let effectiveValue = input.value ?? model.value
+        try input.validateValueMatchesType(existingValue: effectiveValue)
 
         // Apply updates
         if let value = input.value {
