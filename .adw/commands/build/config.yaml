@@ -10,6 +10,4 @@ timeout_seconds: 1800
 # post_hook: null  # Shell command after phase
 
 input_files:  # Variable → file mappings for templates
-  docs_index: _bmad-output/index.md
-  project_context: docs/architecture/technical-architecture.md
-  project_overview: _bmad-output/project_overview.md
+  docs_index: docs/README.md
