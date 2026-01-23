@@ -143,6 +143,21 @@ Find the right documentation based on what you're working on.
 
 ---
 
+## Feature Documentation
+
+### Remote Configuration
+
+**Read when:** Working with feature flags or app settings
+
+- `docs/features/remote-config.md` - Complete feature documentation
+  - When implementing caching for the remote config module
+  - When adding new admin endpoints to the remote config module
+  - When modifying the public config endpoint behavior
+  - When troubleshooting cache invalidation for remote config
+  - When extending value types or categories for remote configuration
+
+---
+
 ## Critical Documents
 
 Always be aware of:
