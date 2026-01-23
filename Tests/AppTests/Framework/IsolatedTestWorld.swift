@@ -81,11 +81,13 @@ final class IsolatedTestWorld: @unchecked Sendable {
     private let emailTokenRepository: TestEmailTokenRepository
     private let passwordTokenRepository: TestPasswordTokenRepository
     private let generatedRuleRepository: TestGeneratedRuleRepository
-    
+    private let remoteConfigRepository: TestRemoteConfigRepository
+
     // MARK: - Mock Services
     private let fakeLLMService: FakeLLMService
     private let mockAICacheService: MockAICacheService
     private let constantUUIDGenerator: ConstantUUIDGeneratorService
+    private let mockRemoteConfigCacheService: MockRemoteConfigCacheService
     
     // MARK: - Test Data Factory
     let dataFactory: TestDataFactory
@@ -107,11 +109,13 @@ final class IsolatedTestWorld: @unchecked Sendable {
         self.emailTokenRepository = TestEmailTokenRepository()
         self.passwordTokenRepository = TestPasswordTokenRepository()
         self.generatedRuleRepository = TestGeneratedRuleRepository()
-        
+        self.remoteConfigRepository = TestRemoteConfigRepository()
+
         // Create fresh service instances
         self.fakeLLMService = FakeLLMService(app: app)
         self.mockAICacheService = MockAICacheService(app: app)
         self.constantUUIDGenerator = ConstantUUIDGeneratorService(app: app)
+        self.mockRemoteConfigCacheService = MockRemoteConfigCacheService()
         
         // Initialize data factory
         self.dataFactory = TestDataFactory(app: app)
@@ -148,6 +152,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.emailTokenRepository = self.emailTokenRepository
         app.passwordTokenRepository = self.passwordTokenRepository
         app.generatedRuleRepository = self.generatedRuleRepository
+        app.remoteConfigRepository = self.remoteConfigRepository
 
         // Assign mock services directly to Application storage
         app.emailService = FakeEmailProvider()
@@ -156,6 +161,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.cacheService = InMemoryTestCacheService()
         app.randomGeneratorService = RiggedRandomGeneratorService(value: "test_random_value")
         app.uuidGeneratorService = self.constantUUIDGenerator
+        app.remoteConfigCacheService = self.mockRemoteConfigCacheService
 
         // Use production implementations for utility services (safe for testing)
         app.ipExtractorService = DefaultIPExtractorService(app: app)
@@ -217,7 +223,12 @@ final class IsolatedTestWorld: @unchecked Sendable {
     var generatedRules: TestGeneratedRuleRepository {
         generatedRuleRepository
     }
-    
+
+    /// Access to the isolated remote config repository.
+    var remoteConfigs: TestRemoteConfigRepository {
+        remoteConfigRepository
+    }
+
     // MARK: - Public Access to Mock Services
     
     /// Access to the isolated LLM service for configuring AI responses.
@@ -239,7 +250,12 @@ final class IsolatedTestWorld: @unchecked Sendable {
     var rateLimit: MockRateLimitService {
         app.mockRateLimit
     }
-    
+
+    /// Access to the isolated remote config cache service for testing cache scenarios.
+    var remoteConfigCache: MockRemoteConfigCacheService {
+        mockRemoteConfigCacheService
+    }
+
     // MARK: - Test Utilities
     
     /// Reset all repositories and services to their initial state.
@@ -254,11 +270,13 @@ final class IsolatedTestWorld: @unchecked Sendable {
         await emailTokenRepository.reset()
         await passwordTokenRepository.reset()
         await generatedRuleRepository.reset()
-        
+        await remoteConfigRepository.reset()
+
         // Reset services
         fakeLLMService.reset()
         mockAICacheService.reset()
         constantUUIDGenerator.reset()
+        mockRemoteConfigCacheService.reset()
         await rateLimit.resetAllRateLimits()
     }
     
