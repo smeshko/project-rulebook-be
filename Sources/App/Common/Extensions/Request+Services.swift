@@ -64,4 +64,8 @@ struct RequestServices: @unchecked Sendable {
     var aiResponseValidator: AIResponseValidationService {
         app.aiResponseValidatorService
     }
+
+    var remoteConfig: any RemoteConfigRepository {
+        app.remoteConfigRepository
+    }
 }
