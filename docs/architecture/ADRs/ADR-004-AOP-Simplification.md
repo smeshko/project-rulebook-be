@@ -1,3 +1,10 @@
+---
+title: "ADR-004: AOP System Simplification"
+description: "Architecture decision record for removing over-engineered AOP system"
+author: Claude
+date: 2026-01-23
+---
+
 # AOP System Simplification: Architectural Maturity Achievement
 
 **Date:** 2025-08-15  

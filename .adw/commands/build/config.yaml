@@ -4,11 +4,12 @@
 # Uncomment settings to customize this phase.
 
 enabled: true
-timeout_seconds: 1200
+timeout_seconds: 1800
 
 # pre_hook: null  # Shell command before phase
 # post_hook: null  # Shell command after phase
 
-# input_files:  # Variable → file mappings for templates
-#   prd: docs/prd.md
-#   architecture: docs/architecture.md
+input_files:  # Variable → file mappings for templates
+  docs_index: _bmad-output/index.md
+  project_context: docs/architecture/technical-architecture.md
+  project_overview: _bmad-output/project_overview.md

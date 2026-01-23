@@ -1,3 +1,10 @@
+---
+title: "ADR-002: Module Colocation and Simplification"
+description: "Architecture decision record for module colocation and architectural simplification"
+author: Claude
+date: 2026-01-23
+---
+
 # ADR-001: Module Colocation and Architectural Simplification
 
 **Date:** 2025-08-15  
@@ -63,16 +70,18 @@ Sources/App/
     ├── Auth/Controllers/
     └── RulesGeneration/Controllers/
 
-# After (Improved)
+# After (Current - Simplified)
 Sources/App/Modules/
 ├── Auth/
-│   ├── Controllers/
-│   ├── UseCases/SignUpUseCase.swift      # Colocated!
-│   └── Repositories/
+│   ├── Controllers/AuthController.swift    # Business logic here
+│   ├── Repositories/
+│   └── Database/Models/
 └── RulesGeneration/
-    ├── Controllers/
-    ├── UseCases/GenerateRulesUseCase.swift  # Colocated!
-    └── Repositories/
+    ├── Controller/RulesGenerationController.swift  # Business logic here
+    ├── Repositories/
+    └── Database/Models/
+
+# Note: Use cases were subsequently removed. Business logic now in controllers.
 ```
 
 ### 2. Abstraction Elimination
@@ -164,22 +173,15 @@ This decision ensures compliance with:
 ## Implementation Checklist
 
 ### ✅ Completed
-- [x] Use case relocation to modules
 - [x] Backward compatibility bridge removal
 - [x] Utility extension cleanup
 - [x] Middleware organization
-- [x] Performance test temporary disabling
 - [x] Documentation updates
 
-### 🔄 In Progress
-- [ ] Performance test re-implementation with baselines
-- [ ] Team training on new patterns
-- [ ] Code review guideline updates
-
-### 📋 Planned
-- [ ] Regular architecture review process
-- [ ] Module development templates
-- [ ] Complexity monitoring tools
+### ⚠️ Superseded
+- Use case layer was subsequently removed entirely (see ADR-003)
+- Business logic now lives directly in controllers (controller-centric architecture)
+- See `technical-architecture.md` for current patterns
 
 ## Validation Metrics
 
@@ -197,9 +199,9 @@ This decision ensures compliance with:
 
 ## Related Decisions
 
-- **ADR-002** (Planned): Performance Testing Strategy with Baselines
-- **ADR-003** (Planned): Service Registration Patterns and Guidelines
-- **ADR-004** (Planned): Module Development Standards and Templates
+- **ADR-001**: ServiceRegistry Implementation (superseded - replaced with property-based DI)
+- **ADR-003**: Clean Architecture Migration (superseded - simplified to controller-centric)
+- **ADR-004**: AOP Simplification (completed - replaced with native Vapor middleware)
 
 ## References
 

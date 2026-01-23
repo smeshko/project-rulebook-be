@@ -297,8 +297,8 @@ swift test --filter PerformanceTests
 - **Mock Testing**: Comprehensive in-memory service implementations
 
 ### Testing Documentation
-- [Testing Standards and Patterns](.claude/docs/testing/Testing-Standards-and-Patterns.md) - Comprehensive testing guide
-- [Phase 3 Completion Report](.claude/docs/tasks/PHASE-3-Testing-Infrastructure.md) - Detailed implementation summary
+- [Testing Standards and Patterns](docs/testing/standards-and-patterns.md) - Comprehensive testing guide
+- [Testing README](docs/testing/README.md) - Testing infrastructure overview
 
 ## 📊 Monitoring & Administration
 
@@ -401,15 +401,13 @@ A default admin user is automatically created:
 
 ## 📚 Documentation
 
-### Comprehensive Documentation
-- [Project Architecture Overview](.claude/docs/architecture/Project-Architecture-Overview.md) - Complete system architecture
-- [Testing Standards and Patterns](.claude/docs/testing/Testing-Standards-and-Patterns.md) - Enterprise testing guide
-- [Phase 3 Testing Infrastructure](.claude/docs/tasks/PHASE-3-Testing-Infrastructure.md) - Latest completion milestone
+All documentation is centralized in the `docs/` directory:
 
-### Development Resources  
-- [Task Planning](.claude/docs/tasks/) - Development roadmap and phase planning
-- [Architecture Documentation](.claude/docs/architecture/) - System design and patterns
-- [Testing Documentation](.claude/docs/testing/) - Testing standards and best practices
+- [Documentation Index](docs/README.md) - Central hub for all docs
+- [Architecture](docs/architecture/) - System architecture and ADRs
+- [Development](docs/development/) - Setup and deployment guides
+- [Testing](docs/testing/) - Testing infrastructure and patterns
+- [Templates](docs/templates/) - Component creation guides
 
 ## 🤝 Contributing
 
@@ -444,77 +442,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support & Troubleshooting
 
-### Common Issues
-
-#### Development Services Not Starting
-```bash
-# Check if Docker services are running
-docker-compose -f docker-compose.dev.yml ps
-
-# View service logs
-docker-compose -f docker-compose.dev.yml logs postgres
-docker-compose -f docker-compose.dev.yml logs redis
-
-# Restart services if needed
-docker-compose -f docker-compose.dev.yml restart
-```
-
-#### Database Connection Issues
-```bash
-# Test PostgreSQL connection
-docker exec -it project_rulebook_postgres_dev psql -U vapor -d project_rulebook_dev
-
-# Test Redis connection
-docker exec -it project_rulebook_redis_dev redis-cli ping
-```
-
-#### Authentication Problems
-```bash
-# Check JWT configuration
-echo $JWT_KEY | wc -c  # Should be 32+ characters
-
-# Verify admin user creation
-curl -X POST http://localhost:8080/api/auth/sign-in \
-  -H "Content-Type: application/json" \
-  -d '{"email":"root@localhost.com","password":"ChangeMe1"}'
-```
-
-#### API Rate Limiting
-```bash
-# Check rate limit headers in responses
-curl -I http://localhost:8080/api/rules-generation/rules-summary
-
-# Expected headers:
-# X-RateLimit-Limit: 10
-# X-RateLimit-Remaining: 9
-# X-RateLimit-Type: rules_generation
-```
-
-#### Cache Issues
-```bash
-# Check cache health
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-     http://localhost:8080/api/admin/cache/health
-
-# Clear cache if needed
-curl -X DELETE -H "Authorization: Bearer YOUR_TOKEN" \
-     http://localhost:8080/api/admin/cache
-```
-
-### Performance Optimization
-- Monitor cache hit rates (target >70% for cost savings)
-- Adjust TTL values based on usage patterns
-- Scale database connections for high load
-- Use CDN for static assets in production
-
-### Getting Help
-- Check the comprehensive documentation in `.claude/docs/`
-- Review test files for usage examples
-- Examine existing module implementations for patterns
-- Create issues for bugs or feature requests
+For common issues and their solutions, see [docs/development/troubleshooting.md](docs/development/troubleshooting.md).
 
 ---
 
-**Built with ❤️ using Vapor 4, Swift 5.9+, and OpenAI GPT-4**
-
-*Last updated: Phase 3 - Testing Infrastructure Complete*
+**Built with Vapor 4, Swift 6.0, and OpenAI**

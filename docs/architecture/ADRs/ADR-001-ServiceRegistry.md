@@ -1,3 +1,10 @@
+---
+title: "ADR-001: ServiceRegistry Implementation"
+description: "Architecture decision record for ServiceRegistry pattern (superseded)"
+author: Claude
+date: 2026-01-23
+---
+
 # Architecture Decision Record: ServiceRegistry Implementation
 
 > ⚠️ **SUPERSEDED** - December 2025
@@ -9,8 +16,8 @@
 > `req.services.*` and `req.repositories.*` accessor patterns. See `technical-architecture.md`
 > for the current architecture.
 >
-> **Reason for Removal**: The ServiceRegistry added ~9,900 lines of infrastructure complexity
-> that was reduced to ~200 lines of simple property accessors, achieving the same goals with
+> **Reason for Removal**: The ServiceRegistry added infrastructure complexity
+> that was reduced to simple property accessors, achieving the same goals with
 > significantly less overhead.
 
 ---
@@ -270,23 +277,22 @@ The health check infrastructure provides foundation for:
 
 ## References
 
-### Implementation Files
-- `/Sources/App/Common/ServiceRegistry/ServiceRegistry.swift`
-- `/Sources/App/Common/ServiceRegistry/ServiceContainer.swift`
-- `/Sources/App/Common/ServiceRegistry/ServiceLifecycle.swift`
-- `/Sources/App/Common/ServiceRegistry/ServiceProvider.swift`
-- `/Sources/App/Common/ServiceRegistry/ServiceRegistryIntegration.swift`
+> **Note**: The implementation files listed below were removed during the Architecture Simplification initiative.
+> The current architecture uses property-based DI defined in:
+> - `/Sources/App/Common/Extensions/Request+Services.swift`
+> - `/Sources/App/Common/Extensions/Application+Services.swift`
+> - `/Sources/App/Services/Repositories/Request+Repository.swift`
+> - `/Sources/App/Services/Repositories/Application+Repository.swift`
 
-### Testing Implementation
-- `/Tests/AppTests/ServiceRegistry/ServiceContainerTests.swift`
-- Complete test coverage with 6/6 tests passing
-
-### Documentation
-- `/docs/architecture/ServiceRegistry-Developer-Guide.md`
-- `/docs/testing/Testing-Standards-and-Patterns.md` (updated with ServiceRegistry patterns)
+### Original Implementation Files (REMOVED)
+- ~~`/Sources/App/Common/ServiceRegistry/ServiceRegistry.swift`~~
+- ~~`/Sources/App/Common/ServiceRegistry/ServiceContainer.swift`~~
+- ~~`/Sources/App/Common/ServiceRegistry/ServiceLifecycle.swift`~~
+- ~~`/Sources/App/Common/ServiceRegistry/ServiceProvider.swift`~~
+- ~~`/Sources/App/Common/ServiceRegistry/ServiceRegistryIntegration.swift`~~
 
 ---
 
-**Decision Record Completed**: August 2025  
-**Implementation Status**: ✅ **COMPLETED and PRODUCTION READY**  
-**Next Phase**: Ready for Phase 4.2 (Controller Architecture Refactoring)
+**Decision Record Completed**: August 2025
+**Superseded**: December 2025
+**Current Status**: Pattern removed - see `technical-architecture.md` for current approach

@@ -53,3 +53,4 @@ name,description,module,path
 "project-config","Create project configuration file for test, document, and ship workflows.","adw","_bmad/adw/workflows/project-config/workflow.md"
 "run-tests","Run all configured test commands from project-config.yaml, auto-fix failing tests.","adw","_bmad/adw/workflows/run-tests/workflow.md"
 "ship","Execute deployment pipeline from project-config.yaml: version bump, build, publish, and post-publish hooks.","adw","_bmad/adw/workflows/ship/workflow.md"
+"structure-documentation","Transform project documentation into standardized structure with autonomous or guided modes","bmm","_bmad/bmm/workflows/structure-documentation/workflow.md"

@@ -1,18 +1,25 @@
+---
+title: "Testing Documentation"
+description: "Testing infrastructure and documentation for project-rulebook-be"
+author: Claude
+date: 2026-01-23
+---
+
 # Testing Infrastructure
 
 This directory contains all testing-related assets for the Project Rulebook Vapor backend, including automated test scripts, API collections, logs, testing reports, and comprehensive testing documentation.
 
 ## Directory Structure
 
-```
+```text
 docs/testing/
 ├── scripts/          # Automated testing scripts
-├── logs/            # Test execution logs
-├── collections/     # API testing collections (Postman, etc.)
-├── reports/         # Test execution reports and metrics
-├── Testing-Organization-Summary.md    # Overview of testing organization
-├── Testing-Standards-and-Patterns.md  # Testing standards and best practices
-└── README.md        # This file
+├── logs/             # Test execution logs
+├── collections/      # API testing collections (Postman, etc.)
+├── reports/          # Test execution reports and metrics
+├── standards-and-patterns.md  # Testing standards and best practices
+├── performance.md    # Performance testing guide
+└── README.md         # This file
 ```
 
 ## Scripts
@@ -214,4 +221,4 @@ When adding new test scripts or collections:
 3. Update this README with usage instructions
 4. Ensure scripts are executable (`chmod +x`)
 5. Add appropriate error handling and logging
-6. Review and follow patterns in `Testing-Standards-and-Patterns.md`
+6. Review and follow patterns in `standards-and-patterns.md`

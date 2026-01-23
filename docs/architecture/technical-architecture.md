@@ -1,3 +1,10 @@
+---
+title: "Technical Architecture"
+description: "System architecture, patterns, and technical details for project-rulebook-be"
+author: Claude
+date: 2026-01-23
+---
+
 # Technical Architecture Documentation
 
 ## System Overview
@@ -20,7 +27,7 @@ Project Rulebook is a Vapor 4 Swift web application that leverages AI to analyze
 - **Caching**: Redis for AI response caching
 - **Authentication**: JWT with refresh tokens
 - **Template Engine**: SwiftHtml for server-side rendering
-- **External APIs**: OpenAI (Responses API), Brevo (email)
+- **External APIs**: Google Gemini (primary LLM), OpenAI (alternative), Brevo (email)
 
 ## Module Architecture
 
@@ -28,14 +35,16 @@ Project Rulebook is a Vapor 4 Swift web application that leverages AI to analyze
 
 Each module follows a complete vertical slice architecture:
 
-```
+```text
 Sources/App/Modules/[Module]/
 ├── [Module]Module.swift      # Registration & configuration
 ├── [Module]Router.swift      # Route definitions
 ├── Controllers/              # HTTP endpoints + business logic
 ├── Repositories/             # Data access abstraction
-├── Models/                   # Domain entities & DTOs
-└── Database/                 # Migrations & database models
+├── Models/                   # Request/Response DTOs
+└── Database/
+    ├── Models/               # Fluent database models
+    └── Migrations/           # Schema migrations
 ```
 
 ### Module Implementations
@@ -49,9 +58,9 @@ Sources/App/Modules/[Module]/
 - `UserAccountModel`: Database entity
 
 **Endpoints**:
-- `GET /api/v1/user/profile` - Get current user
-- `PATCH /api/v1/user/profile` - Update profile
-- `DELETE /api/v1/user/profile` - Delete account
+- `GET /api/v1/user/me` - Get current user
+- `PATCH /api/v1/user/update` - Update profile
+- `DELETE /api/v1/user/delete` - Delete account
 - `GET /api/v1/user/list` - List all users (admin)
 
 #### 2. AuthModule
@@ -71,10 +80,11 @@ Sources/App/Modules/[Module]/
 
 **Endpoints**:
 - `POST /api/v1/auth/sign-up` - Registration
-- `POST /api/v1/auth/sign-in` - Login
+- `POST /api/v1/auth/sign-in` - Login (Basic auth)
+- `POST /api/v1/auth/apple-auth` - Apple Sign In
 - `POST /api/v1/auth/refresh` - Token refresh
-- `POST /api/v1/auth/verify-email` - Email verification
 - `POST /api/v1/auth/reset-password` - Password reset
+- `POST /api/v1/auth/logout` - End session (protected)
 
 #### 3. FrontendModule
 **Purpose**: Server-side rendering with SwiftHtml
@@ -100,7 +110,7 @@ Sources/App/Modules/[Module]/
 - Intelligent caching system
 
 **Security Pipeline**:
-```
+```text
 Input → Sanitization → Injection Detection → AI Processing → Response Validation → Caching
 ```
 
@@ -208,12 +218,13 @@ func setupServices(_ app: Application) throws {
 
 ### Key Services
 
-1. **LLMService**: OpenAI integration using Responses API
+1. **LLMService**: AI text generation and image analysis (Google Gemini primary, OpenAI alternative)
 2. **AICacheService**: Intelligent response caching with Redis
 3. **EmailService**: Brevo transactional emails
 4. **AIInputValidatorService**: AI input validation and sanitization
 5. **PromptSanitizerService**: Prompt injection prevention
 6. **CacheKeyGeneratorService**: Content-based cache key generation
+7. **AIResponseValidationService**: AI response security validation
 
 ## Repository Pattern
 
@@ -232,12 +243,9 @@ protocol UserRepository: Repository {
 ### Repository Implementation
 
 ```swift
-final class UserDatabaseRepository: UserRepository {
+struct DatabaseUserRepository: UserRepository, DatabaseRepository {
+    typealias Model = UserAccountModel
     let database: Database
-
-    init(database: Database) {
-        self.database = database
-    }
 
     func find(email: String) async throws -> UserAccountModel? {
         try await UserAccountModel.query(on: database)
@@ -264,15 +272,19 @@ func getUser(_ req: Request) async throws -> UserDTO {
 
 ```swift
 final class UserAccountModel: Model, Content {
-    static let schema = "user_accounts"
+    static let schema = "users"
 
     @ID(key: .id) var id: UUID?
     @Field(key: "email") var email: String
-    @Field(key: "password_hash") var passwordHash: String
+    @OptionalField(key: "password") var password: String?  // Optional for Apple Sign-In
     @Field(key: "is_admin") var isAdmin: Bool
     @Field(key: "is_email_verified") var isEmailVerified: Bool
+    @OptionalField(key: "first_name") var firstName: String?
+    @OptionalField(key: "last_name") var lastName: String?
+    @OptionalField(key: "apple_user_identifier") var appleUserIdentifier: String?
     @Timestamp(key: "created_at", on: .create) var createdAt: Date?
     @Timestamp(key: "updated_at", on: .update) var updatedAt: Date?
+    @Timestamp(key: "deleted_at", on: .delete) var deletedAt: Date?  // Soft delete
 }
 ```
 
@@ -326,7 +338,7 @@ final class MockUserRepository: UserRepository {
 }
 
 // Register mock in tests via property injection
-testWorld.app.userRepository = MockUserRepository()
+testWorld.app.userRepository = mockUserRepository
 ```
 
 ### Testing Best Practices
@@ -339,22 +351,25 @@ testWorld.app.userRepository = MockUserRepository()
 
 ## External Integrations
 
-### OpenAI Integration
+### LLM Integration
 
-Uses the modern Responses API (`/v1/responses`), NOT deprecated Chat Completions:
+The application uses an abstracted `LLMService` protocol with Google Gemini as the primary implementation:
 
 ```swift
-struct OpenAIRequest {
-    let input: InputContent
-    let instructions: String
-    let temperature: Double
-    let maxOutputTokens: Int
+// LLMService protocol - provider-agnostic
+protocol LLMService {
+    func generate(input: String) async throws -> String
+    func analyzeImage(imageData: String, prompt: String) async throws -> String
 }
 
 // Usage in controller
-let response = try await req.services.llm.generateResponse(request)
-let text = response.extractText()
+let response = try await req.services.llm.generate(input: prompt)
+let imageAnalysis = try await req.services.llm.analyzeImage(imageData: base64Image, prompt: analysisPrompt)
 ```
+
+Available implementations:
+- `GoogleGeminiService` (default) - Uses Google's Gemini API
+- `OpenAIService` - Uses OpenAI's `/v1/responses` API
 
 ### Redis Caching
 
@@ -404,11 +419,13 @@ try req.services.aiResponseValidator.validate(response)
 Operation-specific rate limits:
 
 ```yaml
-Rate Limits:
-  - Image Analysis: 5/hour per IP
+Rate Limits (Production):
+  - Image Analysis: 3/hour per IP
   - Rules Generation: 10/hour per IP
-  - General API: 100/hour per IP
-  - Admin Endpoints: No limit (authenticated)
+  - API Operations: 50/hour per IP
+  - General Requests: 500/hour per IP
+  - Waitlist: 10/hour per IP
+  - Admin Operations: 10/5min (authenticated)
 ```
 
 ### Authentication & Authorization
@@ -452,7 +469,7 @@ Performance Targets:
 
 ```yaml
 Development:
-  Database: SQLite in-memory
+  Database: PostgreSQL (via Docker)
   Logging: Debug level
   Security: Relaxed for testing
 
@@ -491,6 +508,30 @@ docker-compose -f docker-compose.dev.yml down -v  # Reset
 - **Framework Alignment**: Work with Vapor conventions
 - **Three-Strike Rule**: Create abstractions on third occurrence
 
+### Naming Conventions
+
+| Area | Convention | Example |
+|------|------------|---------|
+| Database tables | snake_case, plural | `waitlist_entries` |
+| Database columns | snake_case | `created_at`, `user_id` |
+| API endpoints | kebab-case with `/v1/` prefix | `/api/v1/rules-generation/game-box-analysis` |
+| Swift types | PascalCase | `RulesGenerationController` |
+| Swift properties | camelCase | `guessedTitle`, `createdAt` |
+| Swift files | PascalCase matching type | `OpenAIService.swift` |
+| Protocols | PascalCase + suffix | `AICacheServiceInterface` |
+| Modules | PascalCase | `RulesGeneration/` |
+
+### Environment Variables
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `DATABASE_URL` | PostgreSQL connection | Prod only |
+| `REDIS_URL` | Redis connection | Prod only |
+| `OPENAI_API_KEY` | OpenAI API | Yes |
+| `GEMINI_API_KEY` | Google Gemini API | Yes |
+| `JWT_SECRET` | JWT signing | Yes |
+| `BREVO_API_KEY` | Email service | Optional |
+
 ## Architectural Guidelines
 
 ### Design Principles
@@ -511,11 +552,67 @@ docker-compose -f docker-compose.dev.yml down -v  # Reset
 
 ### Anti-Patterns to Avoid
 
-- Creating unnecessary abstraction layers
-- Using complex DI frameworks
-- Separating simple business logic into separate files
-- Creating abstractions before third use
-- Static service methods
+| Anti-Pattern | Why It's Wrong | Do Instead |
+|--------------|----------------|------------|
+| `DispatchQueue.global().async` | Breaks structured concurrency | Use `async/await` |
+| `try!` force unwrap | Crashes in production | Handle errors properly |
+| Importing module internals | Breaks encapsulation | Use public APIs only |
+| Raw `Abort()` throws | Inconsistent error format | Use `AppError` enum |
+| Inline SQL queries | SQL injection risk | Use Fluent query builder |
+| Hardcoded secrets | Security vulnerability | Use environment variables |
+| Synchronous blocking calls | Blocks event loop | Use async alternatives |
+| Creating new patterns | Inconsistency | Follow existing patterns |
+| Complex DI frameworks | Unnecessary complexity | Use property-based DI |
+| Abstractions before third use | Premature abstraction | Wait for third occurrence |
+
+## Quick Reference
+
+**Adding a new endpoint:**
+1. Add route in `{Module}Router.swift`
+2. Implement in `{Module}Controller.swift`
+3. Define request/response in `Models/`
+4. Add tests in `Tests/AppTests/`
+
+**Adding a new service:**
+1. Define protocol in `Services/{Area}/`
+2. Implement in same directory
+3. Register in `Application-Setup.swift`
+4. Access via `req.services.*`
+
+**Adding a new module:**
+1. Create directory structure per Module Structure Pattern above
+2. Register in `Application-Setup.swift`
+3. Add routes via module's router
+
+**Error handling pattern:**
+```swift
+// ALWAYS conform errors to AppError
+enum MyError: AppError {
+    case invalidInput(String)
+    case notFound
+
+    var status: HTTPResponseStatus {
+        switch self {
+        case .invalidInput: return .badRequest
+        case .notFound: return .notFound
+        }
+    }
+
+    var reason: String {
+        switch self {
+        case .invalidInput(let msg): return msg
+        case .notFound: return "Resource not found"
+        }
+    }
+
+    var identifier: String {
+        switch self {
+        case .invalidInput: return "invalid_input"
+        case .notFound: return "not_found"
+        }
+    }
+}
+```
 
 ## Future Considerations
 

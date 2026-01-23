@@ -10,5 +10,18 @@ timeout_seconds: 600
 # post_hook: null  # Shell command after phase
 
 # input_files:  # Variable → file mappings for templates
-#   prd: docs/prd.md
-#   architecture: docs/architecture.md
+#   docs_index: _bmad-output/index.md
+#   project_context: docs/project-context.md
+#   project_overview: _bmad-output/project_overview.md
+
+# Map source files to documentation directories for automatic updates
+# When files matching source_pattern change, the document phase looks for
+# corresponding docs in docs_dir (matched by filename stem: foo.py -> foo.md)
+# Example:
+doc_mappings:
+  - source_pattern: "Sources/App/Services/**/*.swift"
+    docs_dir: "docs/development"
+  - source_pattern: "src/adw/cli/**/*.py"
+    docs_dir: "docs/cli"
+  - source_pattern: "src/adw/models/**/*.py"
+    docs_dir: "docs/models"

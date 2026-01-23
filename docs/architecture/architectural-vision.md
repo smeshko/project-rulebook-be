@@ -1,9 +1,16 @@
+---
+title: "Architectural Vision & Principles"
+description: "Core design philosophy and principles for project-rulebook-be"
+author: Claude
+date: 2026-01-23
+---
+
 # Architectural Vision & Principles
 
-**Project:** Project Rulebook  
-**Document Type:** Consolidated Architectural Vision  
-**Version:** 2.0  
-**Date:** 2025-09-12  
+**Project:** Project Rulebook
+**Document Type:** Consolidated Architectural Vision
+**Version:** 2.0
+**Date:** 2025-09-12
 **Status:** Active  
 
 ## Architectural Vision & Principles
@@ -31,16 +38,16 @@ Our architectural evolution represents a philosophical shift from "impressive co
 
 ### 1. Contextual Cohesion
 
-Everything related to a feature lives together within its module boundary. A module represents a complete vertical slice of functionality—controllers, use cases, repositories, models, and services all coexist within their natural context.
+Everything related to a feature lives together within its module boundary. A module represents a complete vertical slice of functionality—controllers, repositories, models, and database migrations all coexist within their natural context.
 
-```
+```text
 Sources/App/Modules/[Module]/
-├── [Module]Module.swift    # Registration & configuration  
-├── Controllers/            # HTTP endpoints
-├── UseCases/              # Business logic (COLOCATED!)
-├── Repositories/          # Data access
-├── Models/                # Domain entities
-└── Services/              # External integrations
+├── [Module]Module.swift    # Registration & configuration
+├── [Module]Router.swift    # Route definitions
+├── Controllers/            # HTTP endpoints with business logic
+├── Repositories/           # Data access abstraction
+├── Models/                 # Domain entities & DTOs
+└── Database/               # Migrations & database models
 ```
 
 **Rationale:** When everything related lives together, developers can understand and modify features without hunting across artificial boundaries.
@@ -141,33 +148,21 @@ For any architectural decision, apply these tests in order:
 
 ## Architectural Evolution
 
-### Strategic Simplification Achievement
+### Current Architecture
 
-Our architectural evolution demonstrates the maturity to recognize and remove complexity while preserving functionality:
+Our architecture prioritizes simplicity and framework harmony over layered abstractions:
 
-**Quantitative Results:**
-- **~250+ lines removed** from AOP system alone
-- **80% complexity reduction** in middleware stack
-- **40% code duplication eliminated** through proper use case extraction
-- **Zero functionality lost** during simplification
+**Architecture Pattern: Controller-Centric Design**
+- **Controllers:** HTTP handling + business logic in one place
+- **Services:** External integrations (LLM, Email, Cache)
+- **Repositories:** Data access abstraction for testability
+- **No separate use case layer** - business logic stays in controllers
 
-**Qualitative Improvements:**
-- Framework harmony achieved through native patterns
-- Developer experience enhanced with predictable conventions
-- Maintainability improved through strategic deletion
-- Debugging simplified with linear execution flows
-
-### Clean Architecture Implementation
-
-Successfully implemented Clean Architecture principles while maintaining simplicity:
-
-**Layers:**
-1. **Controllers:** Pure HTTP handling, zero business logic
-2. **Use Cases:** Single-responsibility business operations
-3. **Domain Services:** Complex logic extraction when justified
-4. **Infrastructure:** Repository pattern for data access
-
-**Key Achievement:** 80% controller complexity reduction while maintaining 100% test coverage
+**Why Controller-Centric?**
+- Reduces indirection and cognitive overhead
+- Follows Vapor conventions naturally
+- Makes request flow easy to trace and debug
+- Keeps simple operations simple
 
 ### Continuous Refinement Process
 
@@ -180,34 +175,34 @@ Architecture evolves through:
 
 ## Practical Implementation Guidelines
 
-### Service Registration Pattern
+### Service Access Pattern
 ```swift
-// Preferred: Direct, simple service registration
-app.services.emailService.use { app in
-    BrevoEmailService(configuration: app.brevoConfig)
+// Access services via request extensions
+func handleRequest(_ req: Request) async throws -> Response {
+    let llm = req.services.llm
+    let user = try await req.repositories.users.find(id: userId)
+    // Business logic here in controller
 }
-
-// Avoid: Complex factories unless absolutely necessary
 ```
 
-### Use Case Pattern
+### Controller Pattern
 ```swift
-// Simple, focused use cases with single responsibility
-struct SignUpUseCase {
-    let userRepository: UserRepositoryInterface
-    let emailService: EmailServiceInterface
-    
-    func execute(email: String, password: String) async throws -> User {
-        // Clear, linear business logic
+// Controllers contain HTTP handling AND business logic
+struct AuthController {
+    func signUp(_ req: Request) async throws -> Auth.SignUp.Response {
+        // Validation, business logic, persistence all here
+        let user = try await req.repositories.users.create(newUser)
+        try await req.services.email.sendVerification(to: user.email)
+        return Auth.SignUp.Response(user: user, token: token)
     }
 }
 ```
 
 ### Module Organization
 - **Complete vertical slices** within module boundaries
-- **Colocated use cases** with their natural modules
-- **Clear interfaces** between modules
-- **Minimal coupling** through dependency injection
+- **Business logic in controllers** - no separate use case layer
+- **Clear interfaces** between modules via protocols
+- **Minimal coupling** through property-based DI
 
 ## Success Metrics
 

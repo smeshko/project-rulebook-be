@@ -3,7 +3,7 @@
 #
 # Uncomment settings to customize this phase.
 
-enabled: false
+enabled: true
 # timeout_seconds: 900  # Phase-specific timeout
 
 # pre_hook: null  # Shell command before phase
@@ -22,7 +22,8 @@ enabled: false
 # post_publish:  # Commands after publishing
 #   - git push --tags
 
-# pr:
-#   merge_on_success: false  # Auto-merge PR
-#   delete_branch_on_merge: true  # Delete branch
-#   merge_method: squash  # merge/squash/rebase
+pr:
+  merge_on_success: true  # Auto-merge PR
+  delete_branch_on_merge: true  # Delete branch
+  # merge_method: squash  # merge/squash/rebase
+  bypass_ci: true

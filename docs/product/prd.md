@@ -1,29 +1,8 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-workflowComplete: true
-inputDocuments:
-  - path: '../project-rulebook-ios/_bmad-output/project-planning-artifacts/prd.md'
-    type: 'ios-prd'
-    description: 'Complete iOS PRD (95% implemented) - reference platform'
-  - path: '../project-rulebook-android/_bmad-output/project-planning-artifacts/prd.md'
-    type: 'android-prd'
-    description: 'Android PRD - 1:1 feature port with native UX patterns'
-  - path: '../project-rulebook-android/_bmad-output/project-planning-artifacts/analysis/product-brief-project-rulebook-android-2025-12-02.md'
-    type: 'product-brief'
-    description: 'Product Brief with vision, users, metrics, MVP scope'
-  - path: '../project-rulebook-android/docs/ios/product-spec.md'
-    type: 'product-spec'
-    description: 'Complete technical product specification for mobile apps'
-documentCounts:
-  briefs: 1
-  research: 0
-  brainstorming: 0
-  projectDocs: 3
-workflowType: 'prd'
-workflowContext: 'backend-for-mobile-apps'
-project_name: 'project-rulebook-be'
-user_name: 'Ivo'
-date: '2025-12-25'
+title: "Product Requirements Document"
+description: "Product requirements for project-rulebook-be backend"
+author: Claude
+date: 2026-01-23
 ---
 
 # Product Requirements Document - project-rulebook-be

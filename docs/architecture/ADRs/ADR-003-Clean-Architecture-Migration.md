@@ -1,9 +1,16 @@
+---
+title: "ADR-003: Clean Architecture Migration"
+description: "Architecture decision record for Clean Architecture migration (superseded)"
+author: Claude
+date: 2026-01-23
+---
+
 # Clean Architecture Migration and Evolution Guide
 
 > ⚠️ **SUPERSEDED** - December 2025
 >
 > This ADR documents a Clean Architecture implementation that was later simplified during
-> the Architecture Simplification initiative (see `docs/planning/archive/architecture-simplification/`).
+> the Architecture Simplification initiative.
 >
 > **What Changed**:
 > - Use Cases layer was removed - business logic now lives in controllers
