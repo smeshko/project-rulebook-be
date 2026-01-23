@@ -1,3 +1,4 @@
+import Fluent
 import Vapor
 
 struct RemoteConfigController {
@@ -28,7 +29,12 @@ struct RemoteConfigController {
             category: createRequest.category
         )
 
-        try await repository.create(model)
+        do {
+            try await repository.create(model)
+        } catch let error as DatabaseError where error.isConstraintFailure {
+            // Handle race condition: concurrent creates may pass the check but fail at DB level
+            throw Abort(.conflict, reason: "Configuration key '\(createRequest.key)' already exists")
+        }
 
         // Invalidate cache after modification
         try await req.application.remoteConfigCacheService.invalidateCache()
@@ -57,6 +63,10 @@ struct RemoteConfigController {
         }
 
         if let valueType = updateRequest.valueType {
+            // If changing type without providing a new value, validate existing value against new type
+            if updateRequest.value == nil {
+                try validateValue(model.value, for: valueType)
+            }
             model.valueType = valueType
         }
 
