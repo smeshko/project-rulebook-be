@@ -9,15 +9,12 @@ timeout_seconds: 600
 # pre_hook: null  # Shell command before phase
 # post_hook: null  # Shell command after phase
 
-# input_files:  # Variable → file mappings for templates
-#   docs_index: _bmad-output/index.md
-#   project_context: docs/project-context.md
-#   project_overview: _bmad-output/project_overview.md
+input_files:  # Variable → file mappings for templates
+    docs_dir: "docs/README.md"
+    getting_started: "docs/development/getting_started.md"
 
 # Map source files to documentation directories for automatic updates
 # When files matching source_pattern change, the document phase looks for
 # corresponding docs in docs_dir (matched by filename stem: foo.py -> foo.md)
 # Example:
-doc_mappings:
-    docs_dir: "docs/README.md"
-    getting_started: "docs/getting_started.md"
+# doc_mappings:

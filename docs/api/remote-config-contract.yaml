@@ -1,0 +1,39 @@
+# Remote Config API Contract
+# Base URL: /api/v1
+
+endpoints:
+  # Public endpoint - no authentication required
+  get_config:
+    method: GET
+    path: api/v1/config
+    auth: none
+    response:
+      featureFlags: Record<string, boolean | number | string>
+      settings: Record<string, boolean | number | string>
+
+enums:
+  ValueType:
+    - boolean
+    - integer
+    - string
+
+  Category:
+    - featureFlag
+    - setting
+
+validation:
+  boolean:
+    accepts: ["true", "false", "1", "0"]  # case-insensitive for true/false
+  integer:
+    accepts: valid integer string (e.g., "123", "-45", "0")
+  string:
+    accepts: any string
+
+examples:
+  get_response:
+    featureFlags:
+      enablePaywall: true
+      maintenanceMode: false
+    settings:
+      maxRetries: 3
+      apiEndpoint: "https://api.example.com"

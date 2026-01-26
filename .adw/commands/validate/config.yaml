@@ -9,9 +9,9 @@ timeout_seconds: 1200
 # pre_hook: null  # Shell command before phase
 # post_hook: null  # Shell command after phase
 
-# input_files:  # Variable → file mappings for templates
-#   prd: docs/prd.md
-#   architecture: docs/architecture.md
+input_files:  # Variable → file mappings for templates
+    docs_dir: "docs/README.md"
+    getting_started: "docs/development/getting_started.md"
 
 # === Validate Phase Settings ===
 # enable_evidence: true  # Run evidence validator

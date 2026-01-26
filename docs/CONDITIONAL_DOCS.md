@@ -1,167 +1,157 @@
 ---
-title: "Conditional Documentation Guide"
-description: "Find relevant documentation based on your task"
+title: Conditional Documentation Guide
+description: Find documentation based on your current task
 author: Claude
 date: 2026-01-23
 ---
 
 # Conditional Documentation Guide
 
-Find the right documentation based on what you're working on.
+This guide helps you find relevant documentation based on what you're working on.
 
-## How to Use
+## Instructions
 
-1. Identify your task type below
-2. Read the listed documents before starting
-3. Only read documentation relevant to your task
+- Review the task you need to perform
+- Check the conditions below
+- Read the relevant documentation before proceeding
+- Only read documentation if conditions match your task
 
----
+## Documentation Map
 
-## Creating New Components
+- docs/architecture/README.md
+  - Conditions:
+    - When learning the codebase
+    - When understanding architecture overview
 
-### Creating a Service
+- docs/architecture/architectural-vision.md
+  - Conditions:
+    - When learning the codebase
+    - When understanding design principles
 
-**Read when:** Adding external API integration or shared functionality
+- docs/architecture/technical-architecture.md
+  - Conditions:
+    - When making architectural decisions
+    - When understanding service layer patterns
+    - When understanding module architecture
+    - When learning the codebase
 
-- `docs/templates/service-creation.md` - Step-by-step guide
-- `docs/templates/error-creation.md` - Custom error types
-- `docs/architecture/technical-architecture.md` - Service layer patterns
+- docs/architecture/ADRs/
+  - Conditions:
+    - When planning significant changes
+    - When reviewing past architectural decisions
 
-### Creating a Repository
+- docs/architecture/future-architecture-decisions.md
+  - Conditions:
+    - When planning significant changes
+    - When understanding planned architectural changes
 
-**Read when:** Adding database access for a new entity
+- docs/development/README.md
+  - Conditions:
+    - When setting up the development environment
+    - When debugging issues
+    - When onboarding to the project
 
-- `docs/templates/repository-creation.md` - Repository patterns
-- `docs/templates/model-creation.md` - Database model structure
-- `docs/templates/migration-creation.md` - Schema changes
+- docs/development/getting-started.md
+  - Conditions:
+    - When setting up the development environment for the first time
+    - When onboarding new team members
 
-### Creating a Controller
+- docs/development/deployment.md
+  - Conditions:
+    - When deploying to staging or production
 
-**Read when:** Adding new HTTP endpoints
+- docs/development/vscode-setup.md
+  - Conditions:
+    - When setting up VS Code for development
 
-- `docs/templates/controller-creation.md` - Controller patterns
-- `docs/templates/router-creation.md` - Route definitions
-- `docs/reference/api-contracts.md` - API contracts and versioning
+- docs/development/xcode-setup.md
+  - Conditions:
+    - When setting up Xcode for development
 
-### Creating a Module
+- docs/templates/service-creation.md
+  - Conditions:
+    - When adding external API integration
+    - When adding shared functionality
 
-**Read when:** Adding a new feature domain
+- docs/templates/error-creation.md
+  - Conditions:
+    - When creating custom error types
+    - When adding external API integration
 
-- `docs/templates/module-creation.md` - Module structure
-- `docs/architecture/technical-architecture.md` - Module architecture
-- All other templates (service, repository, controller, etc.)
+- docs/templates/repository-creation.md
+  - Conditions:
+    - When adding database access for a new entity
 
-### Creating Database Changes
+- docs/templates/model-creation.md
+  - Conditions:
+    - When adding database access for a new entity
+    - When adding or modifying database schema
 
-**Read when:** Adding or modifying database schema
+- docs/templates/migration-creation.md
+  - Conditions:
+    - When adding database access for a new entity
+    - When adding or modifying database schema
 
-- `docs/templates/migration-creation.md` - Migration patterns
-- `docs/templates/model-creation.md` - Model structure
-- `docs/reference/data-models.md` - Existing data models
+- docs/templates/controller-creation.md
+  - Conditions:
+    - When adding new HTTP endpoints
+    - When modifying existing routes
 
----
+- docs/templates/router-creation.md
+  - Conditions:
+    - When adding new HTTP endpoints
+    - When modifying existing routes
 
-## Working with Existing Code
+- docs/templates/module-creation.md
+  - Conditions:
+    - When adding a new feature domain
 
-### Modifying API Endpoints
+- docs/reference/api-contracts.md
+  - Conditions:
+    - When adding new HTTP endpoints
+    - When modifying existing routes
+    - When changing existing API behavior
 
-**Read when:** Changing existing routes or adding new ones
+- docs/reference/data-models.md
+  - Conditions:
+    - When adding or modifying database schema
+    - When understanding existing data structures
 
-- `docs/reference/api-contracts.md` - API contracts and versioning
-- `docs/templates/router-creation.md` - Route patterns
-- `docs/templates/controller-creation.md` - Controller patterns
+- docs/reference/source-tree.md
+  - Conditions:
+    - When learning the codebase
+    - When understanding project structure
 
-### Adding Tests
+- docs/testing/README.md
+  - Conditions:
+    - When writing new tests
+    - When debugging issues
+    - When running tests
 
-**Read when:** Writing new tests
+- docs/testing/standards-and-patterns.md
+  - Conditions:
+    - When writing new tests
+    - When understanding testing best practices
 
-- `docs/testing/README.md` - Testing infrastructure
-- `docs/testing/standards-and-patterns.md` - Testing best practices
-- `docs/testing/performance.md` - Performance testing
+- docs/testing/performance.md
+  - Conditions:
+    - When writing performance tests
+    - When optimizing application performance
 
-### Debugging Issues
+- docs/product/prd.md
+  - Conditions:
+    - When planning significant changes
+    - When understanding product requirements
 
-**Read when:** Troubleshooting problems
-
-- `docs/development/README.md` - Development environment
-- `docs/testing/README.md` - Running tests
-- Root `README.md` - Troubleshooting section
-
----
-
-## Architecture & Design
-
-### Understanding the System
-
-**Read when:** Learning the codebase
-
-- `docs/architecture/README.md` - Architecture index
-- `docs/architecture/architectural-vision.md` - Design principles
-- `docs/architecture/technical-architecture.md` - Technical details
-- `docs/reference/source-tree.md` - Project structure
-
-### Making Architectural Decisions
-
-**Read when:** Planning significant changes
-
-- `docs/architecture/ADRs/` - Past decisions
-- `docs/architecture/future-architecture-decisions.md` - Planned changes
-- `docs/product/prd.md` - Product requirements
-
----
-
-## Deployment & Operations
-
-### Deploying Changes
-
-**Read when:** Deploying to staging or production
-
-- `docs/development/deployment.md` - Deployment procedures
-
-### Setting Up Development
-
-**Read when:** Initial setup or environment issues
-
-- `docs/development/README.md` - Setup overview
-- `docs/development/getting-started.md` - Detailed setup
-- `docs/development/vscode-setup.md` or `docs/development/xcode-setup.md` - IDE setup
-
----
-
-## Quick Reference by File Type
-
-| When creating... | Read these templates |
-|-----------------|---------------------|
-| `*Module.swift` | module-creation.md |
-| `*Router.swift` | router-creation.md |
-| `*Controller.swift` | controller-creation.md |
-| `*Repository.swift` | repository-creation.md |
-| `*Model.swift` | model-creation.md |
-| `*Migrations.swift` | migration-creation.md |
-| `*Service.swift` | service-creation.md |
-| `*Error.swift` | error-creation.md |
-
----
-
-## Critical Documents
-
-Always be aware of:
-
-- `docs/architecture/technical-architecture.md` - Architecture, patterns, and rules
-- `docs/DOCUMENTATION_STANDARDS.md` - Documentation requirements
-
----
-
-## Feature Documentation
-
-### Remote Config
-
-**Read when:** Implementing feature flags or remote configuration
-
-- `docs/features/remote-config.md` - Remote config implementation guide
+- docs/features/remote-config.md
   - Conditions:
     - When implementing feature flags or remote configuration
     - When creating public endpoints for app configuration
     - When adding admin-only CRUD endpoints with authentication
     - When implementing Redis caching with PostgreSQL fallback
     - When working with typed configuration values
+
+- docs/DOCUMENTATION_STANDARDS.md
+  - Conditions:
+    - When writing or updating documentation
+    - When creating new documentation files
