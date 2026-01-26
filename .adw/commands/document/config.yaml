@@ -9,9 +9,9 @@ timeout_seconds: 600
 # pre_hook: null  # Shell command before phase
 # post_hook: null  # Shell command after phase
 
-input_files:  # Variable → file mappings for templates
-    docs_dir: "docs/README.md"
-    getting_started: "docs/development/getting_started.md"
+input_files:
+  docs: /docs/README.md
+  getting-started: /docs/development/getting-started.md
 
 # Map source files to documentation directories for automatic updates
 # When files matching source_pattern change, the document phase looks for
