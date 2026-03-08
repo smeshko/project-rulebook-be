@@ -266,3 +266,27 @@ public struct RedisConfig: Sendable {
     /// Useful for debugging and performance monitoring.
     public let enableLogging: Bool
 }
+
+/// Apple App Store configuration for In-App Purchase receipt validation.
+///
+/// Contains credentials and settings required to verify App Store signed
+/// transactions using Apple's App Store Server Library.
+struct AppleConfig: Sendable {
+    /// The issuer ID from App Store Connect (used for App Store Server API).
+    let issuerId: String
+
+    /// The key ID for the App Store Connect API key.
+    let keyId: String
+
+    /// The private key content (PEM format) for App Store Connect API authentication.
+    let privateKey: String
+
+    /// The bundle identifier of the iOS application.
+    let bundleId: String
+
+    /// The numeric App ID from App Store Connect.
+    let appAppleId: Int64
+
+    /// The App Store environment: "sandbox" or "production".
+    let environment: String
+}

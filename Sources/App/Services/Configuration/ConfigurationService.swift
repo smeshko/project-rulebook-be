@@ -80,13 +80,24 @@ protocol ConfigurationService: Sendable {
   ///
   /// Provides configuration for Redis-based caching which offers:
   /// - Persistent cache storage across server restarts
-  /// - Distributed caching for multi-instance deployments  
+  /// - Distributed caching for multi-instance deployments
   /// - Higher performance than in-memory caching for large datasets
   /// - Advanced features like atomic operations and pub/sub
   ///
   /// - Returns: Redis configuration with connection and pooling settings
   /// - Throws: ``ConfigurationError`` if Redis settings are invalid
   var redis: RedisConfig { get throws }
+
+  /// Apple App Store configuration for receipt validation.
+  ///
+  /// Contains credentials for:
+  /// - App Store Server API authentication
+  /// - Signed transaction (JWS) verification
+  /// - Bundle ID validation
+  ///
+  /// - Returns: Apple configuration with API credentials and app identifiers
+  /// - Throws: ``ConfigurationError`` if Apple settings are missing or invalid
+  var apple: AppleConfig { get throws }
 
   /// Validates all configuration settings for the current environment.
   ///

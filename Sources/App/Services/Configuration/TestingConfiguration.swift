@@ -84,6 +84,19 @@ struct TestingConfiguration: ConfigurationService {
     }
   }
 
+  var apple: AppleConfig {
+    get throws {
+      AppleConfig(
+        issuerId: "test_issuer_id",
+        keyId: "test_key_id",
+        privateKey: "test_private_key",
+        bundleId: "com.test.app",
+        appAppleId: 123456789,
+        environment: "sandbox"
+      )
+    }
+  }
+
   func validate() throws {
     // Minimal validation for tests - all values are hardcoded and valid
   }

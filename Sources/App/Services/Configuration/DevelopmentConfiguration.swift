@@ -90,6 +90,19 @@ struct DevelopmentConfiguration: ConfigurationService {
     }
   }
 
+  var apple: AppleConfig {
+    get throws {
+      AppleConfig(
+        issuerId: Environment.get("APPLE_ISSUER_ID") ?? "dev_issuer_id",
+        keyId: Environment.get("APPLE_KEY_ID") ?? "dev_key_id",
+        privateKey: Environment.get("APPLE_PRIVATE_KEY") ?? "dev_private_key",
+        bundleId: Environment.get("APP_BUNDLE_ID") ?? "com.dev.app",
+        appAppleId: Int64(Environment.get("APP_APPLE_ID") ?? "123456789") ?? 123456789,
+        environment: Environment.get("APPLE_ENVIRONMENT") ?? "sandbox"
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
 
