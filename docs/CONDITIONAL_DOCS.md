@@ -155,3 +155,10 @@ This guide helps you find relevant documentation based on what you're working on
   - Conditions:
     - When writing or updating documentation
     - When creating new documentation files
+
+- docs/features/receipts-module.md
+  - Conditions:
+    - When implementing in-app purchase verification for the Receipts module
+    - When adding transaction storage or receipt validation endpoints
+    - When enforcing idempotency for store transaction records
+    - When working with platform-specific enums (ios/android) in database models
