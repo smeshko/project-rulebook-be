@@ -31,6 +31,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var generatedRuleRepository: (any GeneratedRuleRepository)?
     var waitlistRepository: (any WaitlistRepository)?
     var remoteConfigRepository: (any RemoteConfigRepository)?
+    var receiptsRepository: (any ReceiptsRepository)?
 
     init() {}
 }
@@ -152,5 +153,10 @@ extension Application {
     var remoteConfigRepository: any RemoteConfigRepository {
         get { serviceStorage.remoteConfigRepository! }
         set { serviceStorage.remoteConfigRepository = newValue }
+    }
+
+    var receiptsRepository: any ReceiptsRepository {
+        get { serviceStorage.receiptsRepository! }
+        set { serviceStorage.receiptsRepository = newValue }
     }
 }
