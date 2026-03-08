@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/redis.git", from: "4.0.0"),
         .package(url: "https://github.com/binarybirds/swift-html", from: "1.7.0"),
         .package(url: "https://github.com/dankinsoid/VaporToOpenAPI.git", from: "4.8.1"),
+        .package(url: "https://github.com/apple/app-store-server-library-swift.git", "2.0.0"..<"3.0.0"),
     ],
     targets: [
         .executableTarget(
@@ -34,6 +35,7 @@ let package = Package(
                 .product(name: "JWT", package: "jwt"),
                 .product(name: "Redis", package: "redis"),
                 .product(name: "VaporToOpenAPI", package: "VaporToOpenAPI"),
+                .product(name: "AppStoreServerLibrary", package: "app-store-server-library-swift"),
             ]
         ),
         .testTarget(

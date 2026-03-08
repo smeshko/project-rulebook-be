@@ -209,6 +209,7 @@ extension Application {
     // Initialize external services
     emailService = BrevoClient(app: self)
     llmService = GoogleGeminiService(app: self)
+    appStoreValidationService = DefaultAppStoreValidationService(app: self)
 
     // Initialize Redis-based services
     let redisConfig = try configuration.redis

@@ -162,3 +162,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding transaction storage or receipt validation endpoints
     - When enforcing idempotency for store transaction records
     - When working with platform-specific enums (ios/android) in database models
+
+- docs/features/app-store-validation.md
+  - Conditions:
+    - When implementing App Store receipt or transaction validation in the Receipts module
+    - When configuring Apple App Store credentials or environment variables
+    - When adding new platform-specific purchase verification services
+    - When troubleshooting App Store JWS signature verification failures
+    - When upgrading the app-store-server-library-swift dependency

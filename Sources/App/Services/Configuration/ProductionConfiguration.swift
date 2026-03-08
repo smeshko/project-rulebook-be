@@ -258,6 +258,64 @@ struct ProductionConfiguration: ConfigurationService {
     }
   }
 
+  var apple: AppleConfig {
+    get throws {
+      guard let issuerId = Environment.get("APPLE_ISSUER_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APPLE_ISSUER_ID",
+          suggestion: "Set APPLE_ISSUER_ID environment variable from App Store Connect"
+        )
+      }
+
+      guard let keyId = Environment.get("APPLE_KEY_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APPLE_KEY_ID",
+          suggestion: "Set APPLE_KEY_ID environment variable from App Store Connect"
+        )
+      }
+
+      guard let privateKey = Environment.get("APPLE_PRIVATE_KEY") else {
+        throw ConfigurationError.missingRequired(
+          key: "APPLE_PRIVATE_KEY",
+          suggestion: "Set APPLE_PRIVATE_KEY environment variable with the .p8 key content"
+        )
+      }
+
+      guard let bundleId = Environment.get("APP_BUNDLE_ID") else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_BUNDLE_ID",
+          suggestion: "Set APP_BUNDLE_ID environment variable (e.g., com.yourcompany.app)"
+        )
+      }
+
+      guard let appAppleIdString = Environment.get("APP_APPLE_ID"),
+            let appAppleId = Int64(appAppleIdString) else {
+        throw ConfigurationError.missingRequired(
+          key: "APP_APPLE_ID",
+          suggestion: "Set APP_APPLE_ID environment variable with the numeric App ID from App Store Connect"
+        )
+      }
+
+      let environment = Environment.get("APPLE_ENVIRONMENT") ?? "production"
+      guard environment == "production" || environment == "sandbox" else {
+        throw ConfigurationError.invalidFormat(
+          key: "APPLE_ENVIRONMENT",
+          expected: "'production' or 'sandbox'",
+          got: environment
+        )
+      }
+
+      return AppleConfig(
+        issuerId: issuerId,
+        keyId: keyId,
+        privateKey: privateKey,
+        bundleId: bundleId,
+        appAppleId: appAppleId,
+        environment: environment
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
     let services = try services
@@ -265,6 +323,7 @@ struct ProductionConfiguration: ConfigurationService {
     let cache = try cache
     _ = try aws
     _ = try apns
+    _ = try apple
 
     // Database validation
     if db.port < 1 || db.port > 65535 {
