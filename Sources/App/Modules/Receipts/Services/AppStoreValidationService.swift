@@ -102,8 +102,17 @@ final class DefaultAppStoreValidationService: AppStoreValidationService, @unchec
 
         let rootCertificates = try loadAppleRootCertificates()
 
-        let environment: AppStoreServerLibrary.Environment =
-            config.environment.lowercased() == "production" ? .production : .sandbox
+        let environment: AppStoreServerLibrary.Environment
+        switch config.environment.lowercased() {
+        case "production":
+            environment = .production
+        case "sandbox":
+            environment = .sandbox
+        default:
+            throw AppStoreValidationError.configurationError(
+                "Invalid APPLE_ENVIRONMENT '\(config.environment)'. Must be 'production' or 'sandbox'."
+            )
+        }
 
         do {
             return try SignedDataVerifier(
@@ -133,7 +142,9 @@ final class DefaultAppStoreValidationService: AppStoreValidationService, @unchec
             throw AppStoreValidationError.verificationFailed("Missing bundleId in decoded payload")
         }
 
-        let purchaseDate = transaction.purchaseDate ?? Date()
+        guard let purchaseDate = transaction.purchaseDate else {
+            throw AppStoreValidationError.verificationFailed("Missing purchaseDate in decoded payload")
+        }
         let environment = transaction.environment?.rawValue ?? "Unknown"
 
         app.logger.info("App Store transaction verified successfully", metadata: [

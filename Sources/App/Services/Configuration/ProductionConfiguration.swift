@@ -314,6 +314,7 @@ struct ProductionConfiguration: ConfigurationService {
     let cache = try cache
     _ = try aws
     _ = try apns
+    _ = try apple
 
     // Database validation
     if db.port < 1 || db.port > 65535 {
