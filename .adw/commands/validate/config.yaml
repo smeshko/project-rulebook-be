@@ -10,8 +10,8 @@ timeout_seconds: 1200
 # post_hook: null  # Shell command after phase
 
 input_files:
-  docs: /docs/README.md
-  getting-started: /docs/development/getting-started.md
+  docs: docs/README.md
+  getting-started: docs/development/getting-started.md
 
 # === Validate Phase Settings ===
 # enable_evidence: true  # Run evidence validator

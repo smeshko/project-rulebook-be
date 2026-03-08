@@ -3,7 +3,7 @@
 #
 # Uncomment settings to customize this phase.
 
-enabled: true
+enabled: false
 # timeout_seconds: 900  # Phase-specific timeout
 
 # pre_hook: null  # Shell command before phase

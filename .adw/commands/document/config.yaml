@@ -10,8 +10,8 @@ timeout_seconds: 600
 # post_hook: null  # Shell command after phase
 
 input_files:
-  docs: /docs/README.md
-  getting-started: /docs/development/getting-started.md
+  docs: docs/README.md
+  getting-started: docs/development/getting-started.md
 
 # Map source files to documentation directories for automatic updates
 # When files matching source_pattern change, the document phase looks for
