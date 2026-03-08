@@ -4,25 +4,15 @@
 # Uncomment settings to customize this phase.
 
 enabled: true
-timeout_seconds: 1200
+timeout_seconds: 1200  # Phase-specific timeout
 
-# pre_hook: null  # Shell command before phase
-# post_hook: null  # Shell command after phase
+# input_files:  # Variable → file mappings for templates
+#   prd: docs/prd.md
+#   architecture: docs/architecture.md
 
-input_files:
-  docs: docs/README.md
-  getting-started: docs/development/getting-started.md
+# llm:
+#   model: null  # Options: opus, sonnet, haiku
+#   # Defaults: plan/validate→opus, build/ship→sonnet, document→haiku
 
 # === Validate Phase Settings ===
-# enable_evidence: true  # Run evidence validator
-enable_review: true
-enable_tests: true
-# test_command: null  # Custom test command (auto-detect)
-test_timeout_seconds: 600
-# review_prompt: null  # Path to custom review prompt
-# review_focus: ["security", "error_handling", "edge_cases"]  # Code review focus areas
-max_iterations: 3
-# max_fix_attempts_per_issue: 2  # Max attempts per issue
-# stall_threshold: 2  # Iterations before stall
-triage_mode: auto
-# auto_dismiss_info: true  # Auto-dismiss info-level issues
+# lint_command: null  # Command to run linter (e.g., ruff check .)
