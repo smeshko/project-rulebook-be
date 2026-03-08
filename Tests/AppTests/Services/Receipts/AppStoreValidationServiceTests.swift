@@ -66,7 +66,6 @@ struct AppStoreValidationServiceTests {
     @Test("Service rejects invalid JWS with appropriate error", .tags(.unit))
     func rejectInvalidJWS() async throws {
         let app = try await Application.make(.testing)
-        defer { Task { try await app.asyncShutdown() } }
         try app.initializeConfiguration()
 
         let service = DefaultAppStoreValidationService(app: app)
@@ -82,12 +81,13 @@ struct AppStoreValidationServiceTests {
                 Issue.record("Expected invalidSignature or invalidCertificateChain, got \(error)")
             }
         }
+
+        try await app.asyncShutdown()
     }
 
     @Test("Service rejects empty signed transaction", .tags(.unit))
     func rejectEmptyTransaction() async throws {
         let app = try await Application.make(.testing)
-        defer { Task { try await app.asyncShutdown() } }
         try app.initializeConfiguration()
 
         let service = DefaultAppStoreValidationService(app: app)
@@ -103,12 +103,13 @@ struct AppStoreValidationServiceTests {
                 Issue.record("Expected invalidSignature or invalidCertificateChain, got \(error)")
             }
         }
+
+        try await app.asyncShutdown()
     }
 
     @Test("Service rejects tampered JWS with three parts", .tags(.unit))
     func rejectTamperedJWS() async throws {
         let app = try await Application.make(.testing)
-        defer { Task { try await app.asyncShutdown() } }
         try app.initializeConfiguration()
 
         let service = DefaultAppStoreValidationService(app: app)
@@ -127,6 +128,8 @@ struct AppStoreValidationServiceTests {
                 Issue.record("Expected invalidSignature or invalidCertificateChain, got \(error)")
             }
         }
+
+        try await app.asyncShutdown()
     }
 
     // MARK: - Mock Service Tests (protocol testability)
