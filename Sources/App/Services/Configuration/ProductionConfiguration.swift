@@ -296,13 +296,22 @@ struct ProductionConfiguration: ConfigurationService {
         )
       }
 
+      let environment = Environment.get("APPLE_ENVIRONMENT") ?? "production"
+      guard environment == "production" || environment == "sandbox" else {
+        throw ConfigurationError.invalidFormat(
+          key: "APPLE_ENVIRONMENT",
+          expected: "'production' or 'sandbox'",
+          got: environment
+        )
+      }
+
       return AppleConfig(
         issuerId: issuerId,
         keyId: keyId,
         privateKey: privateKey,
         bundleId: bundleId,
         appAppleId: appAppleId,
-        environment: Environment.get("APPLE_ENVIRONMENT") ?? "production"
+        environment: environment
       )
     }
   }

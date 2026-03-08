@@ -145,7 +145,9 @@ final class DefaultAppStoreValidationService: AppStoreValidationService, @unchec
         guard let purchaseDate = transaction.purchaseDate else {
             throw AppStoreValidationError.verificationFailed("Missing purchaseDate in decoded payload")
         }
-        let environment = transaction.environment?.rawValue ?? "Unknown"
+        guard let environment = transaction.environment?.rawValue else {
+            throw AppStoreValidationError.verificationFailed("Missing environment in decoded payload")
+        }
 
         app.logger.info("App Store transaction verified successfully", metadata: [
             "transactionId": .string(transactionId),
@@ -169,7 +171,7 @@ final class DefaultAppStoreValidationService: AppStoreValidationService, @unchec
         case .INVALID_CERTIFICATE:
             return .invalidCertificateChain
         case .VERIFICATION_FAILURE:
-            return .invalidSignature
+            return .verificationFailed("Signature verification failed")
         case .INVALID_APP_IDENTIFIER:
             return .bundleIdMismatch
         case .INVALID_ENVIRONMENT:
