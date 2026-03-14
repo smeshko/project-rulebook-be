@@ -27,7 +27,7 @@ struct ReceiptsController {
                     let body = Receipts.Validate.Response(
                         success: false,
                         status: "invalid",
-                        error: "Product ID mismatch: receipt is for '\(result.productId)'"
+                        error: "Product ID does not match the validated receipt"
                     )
                     return try await body.encodeResponse(status: .forbidden, for: req)
                 }
@@ -55,7 +55,7 @@ struct ReceiptsController {
                     let body = Receipts.Validate.Response(
                         success: false,
                         status: "invalid",
-                        error: "Product ID mismatch: receipt is for '\(result.productId)'"
+                        error: "Product ID does not match the validated receipt"
                     )
                     return try await body.encodeResponse(status: .forbidden, for: req)
                 }

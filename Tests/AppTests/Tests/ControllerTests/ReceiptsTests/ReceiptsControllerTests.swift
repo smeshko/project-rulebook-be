@@ -263,7 +263,7 @@ struct ReceiptsControllerTests {
             expectContent(Receipts.Validate.Response.self, response) { body in
                 #expect(body.success == false)
                 #expect(body.status == "invalid")
-                #expect(body.error?.contains("mismatch") == true)
+                #expect(body.error?.contains("does not match") == true)
             }
         }
     }
@@ -289,7 +289,7 @@ struct ReceiptsControllerTests {
             expectContent(Receipts.Validate.Response.self, response) { body in
                 #expect(body.success == false)
                 #expect(body.status == "invalid")
-                #expect(body.error?.contains("mismatch") == true)
+                #expect(body.error?.contains("does not match") == true)
             }
         }
     }
