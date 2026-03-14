@@ -290,3 +290,18 @@ struct AppleConfig: Sendable {
     /// The App Store environment: "sandbox" or "production".
     let environment: String
 }
+
+/// Google Play Store configuration for In-App Purchase receipt validation.
+///
+/// Contains credentials and settings required to verify Play Store purchases
+/// using Google Play Developer API with service account OAuth2 authentication.
+struct GooglePlayConfig: Sendable {
+    /// The service account email address from Google Cloud Console.
+    let serviceAccountEmail: String
+
+    /// The private key content (PEM format) from the service account JSON key file.
+    let privateKey: String
+
+    /// The Android application package name (e.g., "com.yourcompany.app").
+    let packageName: String
+}

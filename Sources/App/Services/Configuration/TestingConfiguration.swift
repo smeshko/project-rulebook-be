@@ -97,6 +97,16 @@ struct TestingConfiguration: ConfigurationService {
     }
   }
 
+  var google: GooglePlayConfig {
+    get throws {
+      GooglePlayConfig(
+        serviceAccountEmail: "test@test-project.iam.gserviceaccount.com",
+        privateKey: "test_private_key",
+        packageName: "com.test.app"
+      )
+    }
+  }
+
   func validate() throws {
     // Minimal validation for tests - all values are hardcoded and valid
   }

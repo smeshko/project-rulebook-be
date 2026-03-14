@@ -103,6 +103,16 @@ struct DevelopmentConfiguration: ConfigurationService {
     }
   }
 
+  var google: GooglePlayConfig {
+    get throws {
+      GooglePlayConfig(
+        serviceAccountEmail: Environment.get("GOOGLE_SERVICE_ACCOUNT_EMAIL") ?? "dev@dev-project.iam.gserviceaccount.com",
+        privateKey: Environment.get("GOOGLE_PRIVATE_KEY") ?? "dev_private_key",
+        packageName: Environment.get("GOOGLE_PACKAGE_NAME") ?? "com.dev.app"
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
 

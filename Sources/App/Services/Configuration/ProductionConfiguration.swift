@@ -316,6 +316,37 @@ struct ProductionConfiguration: ConfigurationService {
     }
   }
 
+  var google: GooglePlayConfig {
+    get throws {
+      guard let serviceAccountEmail = Environment.get("GOOGLE_SERVICE_ACCOUNT_EMAIL") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_SERVICE_ACCOUNT_EMAIL",
+          suggestion: "Set GOOGLE_SERVICE_ACCOUNT_EMAIL environment variable from Google Cloud service account"
+        )
+      }
+
+      guard let privateKey = Environment.get("GOOGLE_PRIVATE_KEY") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_PRIVATE_KEY",
+          suggestion: "Set GOOGLE_PRIVATE_KEY environment variable with the PEM private key from service account JSON"
+        )
+      }
+
+      guard let packageName = Environment.get("GOOGLE_PACKAGE_NAME") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_PACKAGE_NAME",
+          suggestion: "Set GOOGLE_PACKAGE_NAME environment variable (e.g., com.yourcompany.app)"
+        )
+      }
+
+      return GooglePlayConfig(
+        serviceAccountEmail: serviceAccountEmail,
+        privateKey: privateKey,
+        packageName: packageName
+      )
+    }
+  }
+
   func validate() throws {
     let db = try database
     let services = try services
@@ -324,6 +355,7 @@ struct ProductionConfiguration: ConfigurationService {
     _ = try aws
     _ = try apns
     _ = try apple
+    _ = try google
 
     // Database validation
     if db.port < 1 || db.port > 65535 {
