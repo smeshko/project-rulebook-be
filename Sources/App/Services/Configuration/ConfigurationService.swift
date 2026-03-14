@@ -99,6 +99,17 @@ protocol ConfigurationService: Sendable {
   /// - Throws: ``ConfigurationError`` if Apple settings are missing or invalid
   var apple: AppleConfig { get throws }
 
+  /// Google Play Store configuration for receipt validation.
+  ///
+  /// Contains credentials for:
+  /// - Google Play Developer API authentication via service account
+  /// - OAuth2 JWT token generation
+  /// - Purchase verification
+  ///
+  /// - Returns: Google Play configuration with service account credentials
+  /// - Throws: ``ConfigurationError`` if Google Play settings are missing or invalid
+  var google: GooglePlayConfig { get throws }
+
   /// Validates all configuration settings for the current environment.
   ///
   /// Performs comprehensive validation of:
