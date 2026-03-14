@@ -73,7 +73,7 @@ if let existing = try await req.repositories.receipts.find(transactionId: storeT
 1. The module is registered in `Application-Setup.swift` and boots automatically
 2. The repository is available via `req.repositories.receipts` in any controller
 3. Use `find(transactionId:)` before creating records to enforce idempotency
-4. Controller endpoints will be added in Story 2.4 (Receipt Verification Endpoint)
+4. The validation endpoint is available at `POST /api/v1/receipts/validate` (see `docs/features/receipt-validation-endpoint.md`)
 
 ## Configuration
 
@@ -86,7 +86,7 @@ These values are enforced at the application level (future Story 2.4), not in th
 
 ## Notes
 
-- The controller, router, and model extension files are intentional stubs — endpoint logic will be implemented in Story 2.4
-- The `Receipts` entity namespace at `Entities/Receipts/Receipts.swift` is a placeholder for future DTOs
+- The validation endpoint is implemented in Story 2.4 — see `docs/features/receipt-validation-endpoint.md`
+- The `Receipts` entity namespace at `Entities/Receipts/Receipts.swift` contains `Validate.Request` and `Validate.Response` DTOs
 - Migration supports both SQLite (tests) and PostgreSQL (production)
 - The unique constraint on `transactionId` provides database-level protection against duplicate processing

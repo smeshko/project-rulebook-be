@@ -178,3 +178,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new platform-specific purchase verification services for Android
     - When troubleshooting Google OAuth2 service account authentication issues
     - When working with Google Play Developer API token exchange flow
+
+- docs/features/receipt-validation-endpoint.md
+  - Conditions:
+    - When implementing or modifying the receipt validation endpoint in the Receipts module
+    - When adding new in-app purchase product IDs or credit tiers
+    - When modifying platform-specific validation branching logic (iOS/Android)
+    - When working with custom HTTP status codes in Vapor controller responses
+    - When troubleshooting receipt validation error responses (400/403)
