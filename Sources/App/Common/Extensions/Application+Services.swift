@@ -22,6 +22,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var aiResponseValidatorService: AIResponseValidationService?
     var remoteConfigCacheService: RemoteConfigCacheService?
     var appStoreValidationService: AppStoreValidationService?
+    var playStoreValidationService: PlayStoreValidationService?
 
     // MARK: - Repositories
 
@@ -122,6 +123,11 @@ extension Application {
     var appStoreValidationService: AppStoreValidationService {
         get { serviceStorage.appStoreValidationService! }
         set { serviceStorage.appStoreValidationService = newValue }
+    }
+
+    var playStoreValidationService: PlayStoreValidationService {
+        get { serviceStorage.playStoreValidationService! }
+        set { serviceStorage.playStoreValidationService = newValue }
     }
 
     // MARK: - Repositories
