@@ -170,3 +170,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new platform-specific purchase verification services
     - When troubleshooting App Store JWS signature verification failures
     - When upgrading the app-store-server-library-swift dependency
+
+- docs/features/play-store-validation.md
+  - Conditions:
+    - When implementing Play Store purchase verification in the Receipts module
+    - When configuring Google Play service account credentials or environment variables
+    - When adding new platform-specific purchase verification services for Android
+    - When troubleshooting Google OAuth2 service account authentication issues
+    - When working with Google Play Developer API token exchange flow
