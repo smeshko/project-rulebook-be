@@ -220,7 +220,13 @@ final class DefaultPlayStoreValidationService: PlayStoreValidationService, @unch
         )
 
         // Sign JWT with RS256 using the service account private key
-        let privateKeyData = config.privateKey.data(using: .utf8) ?? Data()
+        // Normalize escaped newlines from environment variables (\\n → \n)
+        let normalizedKey = config.privateKey.replacingOccurrences(of: "\\n", with: "\n")
+        guard let privateKeyData = normalizedKey.data(using: .utf8), !privateKeyData.isEmpty else {
+            throw PlayStoreValidationError.configurationError(
+                "Google service account private key is empty or contains invalid characters"
+            )
+        }
         let signers = JWTSigners()
         do {
             try signers.use(.rs256(key: .private(pem: privateKeyData)))
@@ -260,7 +266,7 @@ final class DefaultPlayStoreValidationService: PlayStoreValidationService, @unch
         // Cache the token with a 5-minute safety margin
         tokenLock.withLock {
             cachedToken = tokenResponse.accessToken
-            tokenExpiry = Date().addingTimeInterval(Double(tokenResponse.expiresIn - 300))
+            tokenExpiry = Date().addingTimeInterval(Double(max(0, tokenResponse.expiresIn - 300)))
         }
 
         return tokenResponse.accessToken
@@ -273,7 +279,11 @@ final class DefaultPlayStoreValidationService: PlayStoreValidationService, @unch
         purchaseToken: String,
         accessToken: String
     ) async throws -> PlayStoreValidationResult {
-        let url = "\(Self.playAPIBase)/\(packageName)/purchases/products/\(productId)/tokens/\(purchaseToken)"
+        guard let encodedProductId = productId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let encodedToken = purchaseToken.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else {
+            throw PlayStoreValidationError.invalidToken
+        }
+        let url = "\(Self.playAPIBase)/\(packageName)/purchases/products/\(encodedProductId)/tokens/\(encodedToken)"
 
         let response = try await app.client.get(URI(string: url)) { req in
             req.headers.bearerAuthorization = BearerAuthorization(token: accessToken)
@@ -307,7 +317,10 @@ final class DefaultPlayStoreValidationService: PlayStoreValidationService, @unch
         let purchase = try response.content.decode(GooglePlayPurchaseResponse.self)
 
         // Validate purchase state (0 = Purchased)
-        if let purchaseState = purchase.purchaseState, purchaseState != 0 {
+        guard let purchaseState = purchase.purchaseState else {
+            throw PlayStoreValidationError.verificationFailed("Missing purchaseState in purchase response")
+        }
+        guard purchaseState == 0 else {
             throw PlayStoreValidationError.verificationFailed(
                 "Purchase is not in a valid state (state: \(purchaseState))"
             )
