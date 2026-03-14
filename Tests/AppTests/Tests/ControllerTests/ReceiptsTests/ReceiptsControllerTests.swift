@@ -238,6 +238,62 @@ struct ReceiptsControllerTests {
         }
     }
 
+    // MARK: - Product ID Mismatch Tests
+
+    @Test("iOS product ID mismatch returns 403", .tags(.p0Critical, .integration))
+    func iosProductIdMismatchReturns403() async throws {
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "ios_txn_mismatch",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "valid-signed-transaction",
+            productId: "credits_10"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+                #expect(body.error?.contains("mismatch") == true)
+            }
+        }
+    }
+
+    @Test("Android product ID mismatch returns 403", .tags(.p0Critical, .integration))
+    func androidProductIdMismatchReturns403() async throws {
+        mockPlayStore.resultToReturn = PlayStoreValidationResult(
+            transactionId: "GPA.mismatch",
+            productId: "credits_1",
+            purchaseDate: Date()
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "valid-token",
+            productId: "credits_10"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+                #expect(body.error?.contains("mismatch") == true)
+            }
+        }
+    }
+
     // MARK: - Transaction Storage Tests
 
     @Test("Successful validation stores transaction in database", .tags(.p1Core, .integration))

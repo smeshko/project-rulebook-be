@@ -23,6 +23,14 @@ struct ReceiptsController {
             platform = .ios
             do {
                 let result = try await req.services.appStoreValidation.verify(signedTransaction: receiptData)
+                guard result.productId == validateRequest.productId else {
+                    let body = Receipts.Validate.Response(
+                        success: false,
+                        status: "invalid",
+                        error: "Product ID mismatch: receipt is for '\(result.productId)'"
+                    )
+                    return try await body.encodeResponse(status: .forbidden, for: req)
+                }
                 transactionId = result.transactionId
             } catch let validationError as AppStoreValidationError {
                 let body = Receipts.Validate.Response(
@@ -43,6 +51,14 @@ struct ReceiptsController {
                     productId: validateRequest.productId,
                     purchaseToken: purchaseToken
                 )
+                guard result.productId == validateRequest.productId else {
+                    let body = Receipts.Validate.Response(
+                        success: false,
+                        status: "invalid",
+                        error: "Product ID mismatch: receipt is for '\(result.productId)'"
+                    )
+                    return try await body.encodeResponse(status: .forbidden, for: req)
+                }
                 transactionId = result.transactionId
             } catch let validationError as PlayStoreValidationError {
                 let body = Receipts.Validate.Response(
