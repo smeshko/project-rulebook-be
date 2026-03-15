@@ -6,6 +6,7 @@ struct ReceiptsModule: ModuleInterface {
 
     func boot(_ app: Application) throws {
         app.migrations.add(ReceiptsMigrations.v1())
+        app.migrations.add(ReceiptsMigrations.v2())
 
         try router.boot(routes: app.routes)
     }

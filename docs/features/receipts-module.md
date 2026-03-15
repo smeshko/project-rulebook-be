@@ -9,8 +9,8 @@ The Receipts module provides the foundation for storing validated in-app purchas
 
 ## What Was Built
 
-- `TransactionModel` database model with platform enum, product ID, and credit amount fields
-- PostgreSQL migration with `transaction_platform` enum type and unique constraint on `transactionId`
+- `TransactionModel` database model with platform enum, product ID, credit amount, and `receiptHash` fields
+- PostgreSQL migrations: v1 (table creation with `transaction_platform` enum and unique constraint) and v2 (adds `receiptHash` column)
 - `ReceiptsRepository` protocol and `DatabaseReceiptsRepository` implementation with idempotency query
 - Module, router, and controller stubs for future endpoint implementation (Story 2.4)
 - Entity namespace (`Receipts`) for future request/response DTOs
@@ -44,7 +44,7 @@ The Receipts module provides the foundation for storing validated in-app purchas
       // ...
   ```
 
-- **Versioned Field Keys**: Field keys are namespaced under `FieldKeys.v1` to support future schema evolution without conflicts.
+- **Versioned Field Keys**: Field keys are namespaced under `FieldKeys.v1` and `FieldKeys.v2` to support schema evolution without conflicts. The v2 namespace adds `receiptHash`.
 
 ### Code Examples
 
@@ -54,7 +54,8 @@ let transaction = TransactionModel(
     transactionId: "1000000123456789",
     platform: .ios,
     productId: "com.app.credits.10",
-    creditAmount: 10
+    creditAmount: 10,
+    receiptHash: SHA256.hash(receiptPayload)
 )
 try await req.repositories.receipts.create(transaction)
 ```

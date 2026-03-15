@@ -186,3 +186,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When modifying platform-specific validation branching logic (iOS/Android)
     - When working with custom HTTP status codes in Vapor controller responses
     - When troubleshooting receipt validation error responses (400/403)
+
+- docs/features/receipt-hash-app-identity.md
+  - Conditions:
+    - When implementing receipt hash-based rate limiting or deduplication in the Receipts module
+    - When adding app identity validation for new store platforms
+    - When troubleshooting `invalid_app_identity` 403 errors from the receipt validation endpoint
+    - When modifying bundle ID or package name environment variable configuration

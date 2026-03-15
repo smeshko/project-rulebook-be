@@ -75,7 +75,8 @@ struct ReceiptsControllerTests {
         let requestBody = Receipts.Validate.Request(
             platform: "android",
             purchaseToken: "valid-purchase-token",
-            productId: "credits_3"
+            productId: "credits_3",
+            packageName: "com.test.app"
         )
 
         try await app.test(.POST, validatePath, beforeRequest: { req in
@@ -103,7 +104,8 @@ struct ReceiptsControllerTests {
             transactionId: "dup_txn_001",
             platform: .ios,
             productId: "credits_1",
-            creditAmount: 1
+            creditAmount: 1,
+            receiptHash: "abc123"
         )
         try await existing.create(on: app.db)
 
@@ -164,7 +166,8 @@ struct ReceiptsControllerTests {
         let requestBody = Receipts.Validate.Request(
             platform: "android",
             purchaseToken: "bad-token",
-            productId: "credits_1"
+            productId: "credits_1",
+            packageName: "com.test.app"
         )
 
         try await app.test(.POST, validatePath, beforeRequest: { req in
@@ -279,7 +282,8 @@ struct ReceiptsControllerTests {
         let requestBody = Receipts.Validate.Request(
             platform: "android",
             purchaseToken: "valid-token",
-            productId: "credits_10"
+            productId: "credits_10",
+            packageName: "com.test.app"
         )
 
         try await app.test(.POST, validatePath, beforeRequest: { req in
@@ -337,5 +341,175 @@ struct ReceiptsControllerTests {
         #expect(Receipts.creditAmount(for: "credits_3") == 3)
         #expect(Receipts.creditAmount(for: "credits_10") == 10)
         #expect(Receipts.creditAmount(for: "unknown") == nil)
+    }
+
+    // MARK: - Android Package Name Validation Tests
+
+    @Test("Android packageName mismatch returns 403 with invalid_app_identity", .tags(.p0Critical, .integration))
+    func androidPackageNameMismatchReturns403() async throws {
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "valid-token",
+            productId: "credits_1",
+            packageName: "com.wrong.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+                #expect(body.error == "invalid_app_identity")
+            }
+        }
+
+        // Verify Play Store API was NOT called
+        #expect(mockPlayStore.verifyCallCount == 0)
+    }
+
+    @Test("Android missing packageName returns 403 with invalid_app_identity", .tags(.p0Critical, .integration))
+    func androidMissingPackageNameReturns403() async throws {
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "valid-token",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+                #expect(body.error == "invalid_app_identity")
+            }
+        }
+
+        #expect(mockPlayStore.verifyCallCount == 0)
+    }
+
+    // MARK: - iOS Bundle ID Validation Tests
+
+    @Test("iOS bundleId mismatch returns 403 with invalid_app_identity", .tags(.p0Critical, .integration))
+    func iosBundleIdMismatchReturns403() async throws {
+        mockAppStore.errorToThrow = .bundleIdMismatch
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "signed-data-wrong-bundle",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+                #expect(body.error == "invalid_app_identity")
+            }
+        }
+    }
+
+    // MARK: - Receipt Hash Tests
+
+    @Test("Receipt hash is stored on successful transaction", .tags(.p1Core, .integration))
+    func receiptHashIsStoredOnSuccess() async throws {
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "hash_txn_001",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "test-receipt-payload",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .ok)
+        }
+
+        let stored = try await TransactionModel.query(on: app.db)
+            .filter(\.$transactionId == "hash_txn_001")
+            .first()
+
+        #expect(stored != nil)
+        // SHA-256 produces a 64-character hex string
+        #expect(stored?.receiptHash.count == 64)
+        // Verify it's a valid hex string
+        #expect(stored?.receiptHash.allSatisfy { $0.isHexDigit } == true)
+    }
+
+    @Test("Receipt hash is deterministic for same input", .tags(.unit, .integration))
+    func receiptHashIsDeterministic() async throws {
+        // Precomputed SHA-256 of "test-receipt-payload" (independent of production code)
+        let expectedHash = "e73d976e53ac919d727661b37e45bd96c0b3596f3db3d6aa956905c6fd3b15ee"
+
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "det_txn_001",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "test-receipt-payload",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .ok)
+        }
+
+        let stored = try await TransactionModel.query(on: app.db)
+            .filter(\.$transactionId == "det_txn_001")
+            .first()
+
+        #expect(stored?.receiptHash == expectedHash)
+    }
+
+    @Test("Android receipt hash uses purchaseToken", .tags(.p1Core, .integration))
+    func androidReceiptHashUsesPurchaseToken() async throws {
+        // Precomputed SHA-256 of "android-purchase-token-123" (independent of production code)
+        let expectedHash = "e34f78e8707f1f9b52c09dc160360dd85ae05c4da58844a7de290c529feeb61c"
+
+        mockPlayStore.resultToReturn = PlayStoreValidationResult(
+            transactionId: "GPA.hash-test",
+            productId: "credits_1",
+            purchaseDate: Date()
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "android-purchase-token-123",
+            productId: "credits_1",
+            packageName: "com.test.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .ok)
+        }
+
+        let stored = try await TransactionModel.query(on: app.db)
+            .filter(\.$transactionId == "GPA.hash-test")
+            .first()
+
+        #expect(stored?.receiptHash == expectedHash)
     }
 }

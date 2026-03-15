@@ -23,6 +23,9 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
     @Timestamp(key: FieldKeys.v1.createdAt, on: .create)
     var createdAt: Date?
 
+    @Field(key: FieldKeys.v2.receiptHash)
+    var receiptHash: String
+
     init() {}
 
     init(
@@ -30,13 +33,15 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
         transactionId: String,
         platform: TransactionPlatform,
         productId: String,
-        creditAmount: Int
+        creditAmount: Int,
+        receiptHash: String
     ) {
         self.id = id
         self.transactionId = transactionId
         self.platform = platform
         self.productId = productId
         self.creditAmount = creditAmount
+        self.receiptHash = receiptHash
     }
 }
 
@@ -48,6 +53,9 @@ extension TransactionModel {
             static var productId: FieldKey { "product_id" }
             static var creditAmount: FieldKey { "credit_amount" }
             static var createdAt: FieldKey { "created_at" }
+        }
+        struct v2 {
+            static var receiptHash: FieldKey { "receipt_hash" }
         }
     }
 }
