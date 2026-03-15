@@ -10,17 +10,20 @@ public extension Receipts {
             public let receiptData: String?
             public let purchaseToken: String?
             public let productId: String
+            public let packageName: String?
 
             public init(
                 platform: String,
                 receiptData: String? = nil,
                 purchaseToken: String? = nil,
-                productId: String
+                productId: String,
+                packageName: String? = nil
             ) {
                 self.platform = platform
                 self.receiptData = receiptData
                 self.purchaseToken = purchaseToken
                 self.productId = productId
+                self.packageName = packageName
             }
         }
 
