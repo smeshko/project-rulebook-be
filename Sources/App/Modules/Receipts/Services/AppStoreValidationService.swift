@@ -142,6 +142,12 @@ final class DefaultAppStoreValidationService: AppStoreValidationService, @unchec
             throw AppStoreValidationError.verificationFailed("Missing bundleId in decoded payload")
         }
 
+        // Defense-in-depth: explicitly verify bundleId matches configured value
+        let config = try app.configuration.apple
+        guard bundleId == config.bundleId else {
+            throw AppStoreValidationError.bundleIdMismatch
+        }
+
         guard let purchaseDate = transaction.purchaseDate else {
             throw AppStoreValidationError.verificationFailed("Missing purchaseDate in decoded payload")
         }

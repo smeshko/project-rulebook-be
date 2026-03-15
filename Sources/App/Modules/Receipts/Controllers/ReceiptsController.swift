@@ -1,3 +1,4 @@
+import Crypto
 import Fluent
 import Vapor
 
@@ -14,6 +15,7 @@ struct ReceiptsController {
         // Determine platform and validate
         let transactionId: String
         let platform: TransactionPlatform
+        let receiptHash: String
 
         switch validateRequest.platform.lowercased() {
         case "ios":
@@ -21,6 +23,7 @@ struct ReceiptsController {
                 throw Abort(.badRequest, reason: "receiptData is required for iOS platform")
             }
             platform = .ios
+            receiptHash = computeReceiptHash(receiptData)
             do {
                 let result = try await req.services.appStoreValidation.verify(signedTransaction: receiptData)
                 guard result.productId == validateRequest.productId else {
@@ -33,10 +36,16 @@ struct ReceiptsController {
                 }
                 transactionId = result.transactionId
             } catch let validationError as AppStoreValidationError {
+                let errorString: String
+                if case .bundleIdMismatch = validationError {
+                    errorString = "invalid_app_identity"
+                } else {
+                    errorString = "\(validationError)"
+                }
                 let body = Receipts.Validate.Response(
                     success: false,
                     status: "invalid",
-                    error: "\(validationError)"
+                    error: errorString
                 )
                 return try await body.encodeResponse(status: .forbidden, for: req)
             }
@@ -46,6 +55,19 @@ struct ReceiptsController {
                 throw Abort(.badRequest, reason: "purchaseToken is required for Android platform")
             }
             platform = .android
+            receiptHash = computeReceiptHash(purchaseToken)
+
+            // Validate packageName matches configured app package name
+            let googleConfig = try req.application.configuration.google
+            guard validateRequest.packageName == googleConfig.packageName else {
+                let body = Receipts.Validate.Response(
+                    success: false,
+                    status: "invalid",
+                    error: "invalid_app_identity"
+                )
+                return try await body.encodeResponse(status: .forbidden, for: req)
+            }
+
             do {
                 let result = try await req.services.playStoreValidation.verify(
                     productId: validateRequest.productId,
@@ -88,7 +110,8 @@ struct ReceiptsController {
             transactionId: transactionId,
             platform: platform,
             productId: validateRequest.productId,
-            creditAmount: creditAmount
+            creditAmount: creditAmount,
+            receiptHash: receiptHash
         )
         try await req.repositories.receipts.create(transaction)
 
@@ -98,5 +121,11 @@ struct ReceiptsController {
             transactionId: transactionId
         )
         return try await body.encodeResponse(status: .ok, for: req)
+    }
+
+    // MARK: - Private
+
+    private func computeReceiptHash(_ payload: String) -> String {
+        SHA256.hash(payload)
     }
 }
