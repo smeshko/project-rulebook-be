@@ -83,5 +83,5 @@ mock.resultToReturn = AppStoreValidationResult(
 
 - Uses `app-store-server-library-swift` v2.x (not v4.0.0) due to jwt-kit 4.x compatibility — the project uses jwt v4.x, and library v4.0.0 requires jwt-kit 5.x
 - The `MockAppStoreValidationService` in the test file is designed for reuse in Story 2.4 controller tests
-- Bundle ID and environment validation are handled internally by `SignedDataVerifier` — no need for manual checks
+- Bundle ID validation is handled by `SignedDataVerifier` and additionally by an explicit defense-in-depth check in `extractResult(from:)` that throws `AppStoreValidationError.bundleIdMismatch` if the decoded `bundleId` doesn't match `AppleConfig.bundleId`. Environment validation is handled by `SignedDataVerifier`
 - The service is initialized eagerly at app startup; configuration errors surface immediately

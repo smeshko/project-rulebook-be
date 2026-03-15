@@ -9,8 +9,8 @@ A unified `POST /api/v1/receipts/validate` endpoint that validates in-app purcha
 
 ## What Was Built
 
-- `Receipts.Validate.Request` and `Receipts.Validate.Response` DTOs with `Content` conformance
-- `ReceiptsController.validate` action with platform branching, error handling, and transaction storage
+- `Receipts.Validate.Request` (with `packageName` for Android) and `Receipts.Validate.Response` DTOs with `Content` conformance
+- `ReceiptsController.validate` action with platform branching, app identity validation, receipt hash computation, error handling, and transaction storage
 - `POST /api/v1/receipts/validate` route with OpenAPI documentation
 - Static product-to-credits mapping (`credits_1` → 1, `credits_3` → 3, `credits_10` → 10)
 - Product ID cross-validation against store receipt responses
@@ -35,6 +35,10 @@ A unified `POST /api/v1/receipts/validate` endpoint that validates in-app purcha
 
 - **Product ID Cross-Validation**: After store validation succeeds, the controller verifies that the `productId` returned by the store matches the `productId` in the request. A mismatch returns 403 with a generic error to prevent product spoofing.
 
+- **App Identity Validation**: Before calling store APIs, the controller validates app identity. For Android, `packageName` in the request must match the configured `GooglePlayConfig.packageName`. For iOS, `bundleId` is validated inside `AppStoreValidationService` after JWS decoding. Both platforms return 403 with `"invalid_app_identity"` on mismatch.
+
+- **Receipt Hash Computation**: A SHA-256 hash of the receipt payload (`receiptData` for iOS, `purchaseToken` for Android) is computed via `SHA256.hash(_:)` and stored as `receiptHash` on the `TransactionModel`. This enables receipt-based rate limiting and traceability.
+
 ### Code Examples
 
 **Calling the validation endpoint:**
@@ -52,7 +56,8 @@ POST /api/v1/receipts/validate
 {
   "platform": "android",
   "purchaseToken": "<purchase-token>",
-  "productId": "credits_3"
+  "productId": "credits_3",
+  "packageName": "com.yourapp.package"
 }
 ```
 
@@ -66,6 +71,9 @@ POST /api/v1/receipts/validate
 
 // Invalid receipt (403)
 { "success": false, "status": "invalid", "error": "invalidSignature" }
+
+// Invalid app identity (403)
+{ "success": false, "status": "invalid", "error": "invalid_app_identity" }
 ```
 
 **Adding a new product tier:**
