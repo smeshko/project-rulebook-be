@@ -34,7 +34,7 @@ enum ReceiptsMigrations {
 
         func prepare(on db: Database) async throws {
             try await db.schema(TransactionModel.schema)
-                .field(TransactionModel.FieldKeys.v2.receiptHash, .string, .required)
+                .field(TransactionModel.FieldKeys.v2.receiptHash, .string, .required, .sql(.default("")))
                 .update()
         }
 

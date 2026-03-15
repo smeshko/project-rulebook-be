@@ -1,5 +1,4 @@
 @testable import App
-import Crypto
 import Fluent
 import Testing
 import VaporTesting
@@ -453,8 +452,8 @@ struct ReceiptsControllerTests {
 
     @Test("Receipt hash is deterministic for same input", .tags(.unit, .integration))
     func receiptHashIsDeterministic() async throws {
-        // Compute expected hash using the same SHA256 utility
-        let expectedHash = SHA256.hash("test-receipt-payload")
+        // Precomputed SHA-256 of "test-receipt-payload" (independent of production code)
+        let expectedHash = "e73d976e53ac919d727661b37e45bd96c0b3596f3db3d6aa956905c6fd3b15ee"
 
         mockAppStore.resultToReturn = AppStoreValidationResult(
             transactionId: "det_txn_001",
@@ -485,7 +484,8 @@ struct ReceiptsControllerTests {
 
     @Test("Android receipt hash uses purchaseToken", .tags(.p1Core, .integration))
     func androidReceiptHashUsesPurchaseToken() async throws {
-        let expectedHash = SHA256.hash("android-purchase-token-123")
+        // Precomputed SHA-256 of "android-purchase-token-123" (independent of production code)
+        let expectedHash = "e34f78e8707f1f9b52c09dc160360dd85ae05c4da58844a7de290c529feeb61c"
 
         mockPlayStore.resultToReturn = PlayStoreValidationResult(
             transactionId: "GPA.hash-test",
