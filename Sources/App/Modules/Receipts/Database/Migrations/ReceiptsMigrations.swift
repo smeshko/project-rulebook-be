@@ -29,4 +29,19 @@ enum ReceiptsMigrations {
             try await db.enum("transaction_platform").delete()
         }
     }
+
+    struct v2: AsyncMigration {
+
+        func prepare(on db: Database) async throws {
+            try await db.schema(TransactionModel.schema)
+                .field(TransactionModel.FieldKeys.v2.receiptHash, .string, .required)
+                .update()
+        }
+
+        func revert(on db: Database) async throws {
+            try await db.schema(TransactionModel.schema)
+                .deleteField(TransactionModel.FieldKeys.v2.receiptHash)
+                .update()
+        }
+    }
 }
