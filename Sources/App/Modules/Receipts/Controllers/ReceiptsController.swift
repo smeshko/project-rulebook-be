@@ -4,6 +4,9 @@ import Vapor
 
 struct ReceiptsController {
 
+    private static let receiptHashRateLimit = 10
+    private static let receiptHashRateWindow: TimeInterval = 3600
+
     func validate(_ req: Request) async throws -> Response {
         let validateRequest = try req.content.decode(Receipts.Validate.Request.self)
 
@@ -94,6 +97,30 @@ struct ReceiptsController {
         default:
             throw Abort(.badRequest, reason: "Unsupported platform '\(validateRequest.platform)'")
         }
+
+        // Receipt-hash-based rate limiting (secondary check, 10 req/hr per unique hash)
+        let hashOperationKey = "receipt_hash_\(receiptHash)"
+        let hashCutoffTime = Date().addingTimeInterval(-Self.receiptHashRateWindow)
+        let hashRequestCount = await RateLimitStorage.shared.getCount(for: hashOperationKey, since: hashCutoffTime)
+
+        if hashRequestCount >= Self.receiptHashRateLimit {
+            let retryAfterSeconds: Int
+            if let oldestTimestamp = await RateLimitStorage.shared.getOldestTimestamp(for: hashOperationKey, since: hashCutoffTime) {
+                let expiresAt = oldestTimestamp.addingTimeInterval(Self.receiptHashRateWindow)
+                retryAfterSeconds = max(1, Int(expiresAt.timeIntervalSince(Date()).rounded(.up)))
+            } else {
+                retryAfterSeconds = Int(Self.receiptHashRateWindow)
+            }
+
+            let responseBody = RateLimitErrorResponse(error: "rate_limited", retryAfter: retryAfterSeconds)
+            let response = Response(status: .tooManyRequests)
+            response.headers.add(name: "Content-Type", value: "application/json")
+            response.headers.add(name: "Retry-After", value: "\(retryAfterSeconds)")
+            response.body = try .init(data: JSONEncoder().encode(responseBody))
+            return response
+        }
+
+        await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: Date())
 
         // Check for duplicate transaction
         if let existing = try await req.repositories.receipts.find(transactionId: transactionId) {
