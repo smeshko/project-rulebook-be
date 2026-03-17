@@ -92,6 +92,16 @@ enum RateLimitType: String, CaseIterable {
     ///
     /// **Typical Limits**: 10 requests per hour
     case waitlist = "waitlist"
+
+    /// Receipt validation operations for in-app purchase verification.
+    ///
+    /// **Restrictive Category**
+    ///
+    /// Applied to receipt validation endpoints to throttle abuse and
+    /// brute-force attempts against the purchase verification system.
+    ///
+    /// **Typical Limits**: 30 requests per hour per IP
+    case receipt = "receipt"
 }
 
 /// Container for rate limit information specific to an operation type.
