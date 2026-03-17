@@ -207,8 +207,8 @@ struct RateLimitMiddleware: AsyncMiddleware {
         if path.hasPrefix("/api/waitlist") {
             return RateLimitInfo(
                 type: .waitlist,
-                maxRequests: 10,  // 10 requests per hour
-                windowSeconds: 3600  // 1 hour window
+                maxRequests: configuration.waitlistLimit,
+                windowSeconds: configuration.waitlistWindow
             )
         }
 

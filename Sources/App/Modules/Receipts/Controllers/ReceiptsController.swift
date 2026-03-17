@@ -101,6 +101,7 @@ struct ReceiptsController {
         // Receipt-hash-based rate limiting (secondary check, 10 req/hr per unique hash)
         let hashOperationKey = "receipt_hash_\(receiptHash)"
         let hashCutoffTime = Date().addingTimeInterval(-Self.receiptHashRateWindow)
+        await RateLimitStorage.shared.cleanup(olderThan: hashCutoffTime)
         let hashRequestCount = await RateLimitStorage.shared.getCount(for: hashOperationKey, since: hashCutoffTime)
 
         if hashRequestCount >= Self.receiptHashRateLimit {
