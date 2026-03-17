@@ -15,10 +15,10 @@ struct ReceiptsController {
             throw Abort(.badRequest, reason: "Unknown product ID '\(validateRequest.productId)'")
         }
 
-        // Determine platform and validate
-        let transactionId: String
+        // Extract platform-specific payload and compute receipt hash before external validation
         let platform: TransactionPlatform
         let receiptHash: String
+        let receiptPayload: String
 
         switch validateRequest.platform.lowercased() {
         case "ios":
@@ -26,9 +26,54 @@ struct ReceiptsController {
                 throw Abort(.badRequest, reason: "receiptData is required for iOS platform")
             }
             platform = .ios
+            receiptPayload = receiptData
             receiptHash = computeReceiptHash(receiptData)
+
+        case "android":
+            guard let purchaseToken = validateRequest.purchaseToken, !purchaseToken.isEmpty else {
+                throw Abort(.badRequest, reason: "purchaseToken is required for Android platform")
+            }
+            platform = .android
+            receiptPayload = purchaseToken
+            receiptHash = computeReceiptHash(purchaseToken)
+
+        default:
+            throw Abort(.badRequest, reason: "Unsupported platform '\(validateRequest.platform)'")
+        }
+
+        // Receipt-hash-based rate limiting (secondary check, 10 req/hr per unique hash)
+        // Must happen BEFORE expensive external validation calls
+        let hashOperationKey = "receipt_hash_\(receiptHash)"
+        let hashCutoffTime = Date().addingTimeInterval(-Self.receiptHashRateWindow)
+        await RateLimitStorage.shared.cleanup(olderThan: hashCutoffTime)
+        let hashRequestCount = await RateLimitStorage.shared.getCount(for: hashOperationKey, since: hashCutoffTime)
+
+        if hashRequestCount >= Self.receiptHashRateLimit {
+            let retryAfterSeconds: Int
+            if let oldestTimestamp = await RateLimitStorage.shared.getOldestTimestamp(for: hashOperationKey, since: hashCutoffTime) {
+                let expiresAt = oldestTimestamp.addingTimeInterval(Self.receiptHashRateWindow)
+                retryAfterSeconds = max(1, Int(expiresAt.timeIntervalSince(Date()).rounded(.up)))
+            } else {
+                retryAfterSeconds = Int(Self.receiptHashRateWindow)
+            }
+
+            let responseBody = RateLimitErrorResponse(error: "rate_limited", retryAfter: retryAfterSeconds)
+            let response = Response(status: .tooManyRequests)
+            response.headers.add(name: "Content-Type", value: "application/json")
+            response.headers.add(name: "Retry-After", value: "\(retryAfterSeconds)")
+            response.body = try .init(data: JSONEncoder().encode(responseBody))
+            return response
+        }
+
+        await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: Date())
+
+        // Perform platform-specific external validation
+        let transactionId: String
+
+        switch platform {
+        case .ios:
             do {
-                let result = try await req.services.appStoreValidation.verify(signedTransaction: receiptData)
+                let result = try await req.services.appStoreValidation.verify(signedTransaction: receiptPayload)
                 guard result.productId == validateRequest.productId else {
                     let body = Receipts.Validate.Response(
                         success: false,
@@ -53,13 +98,7 @@ struct ReceiptsController {
                 return try await body.encodeResponse(status: .forbidden, for: req)
             }
 
-        case "android":
-            guard let purchaseToken = validateRequest.purchaseToken, !purchaseToken.isEmpty else {
-                throw Abort(.badRequest, reason: "purchaseToken is required for Android platform")
-            }
-            platform = .android
-            receiptHash = computeReceiptHash(purchaseToken)
-
+        case .android:
             // Validate packageName matches configured app package name
             let googleConfig = try req.application.configuration.google
             guard validateRequest.packageName == googleConfig.packageName else {
@@ -74,7 +113,7 @@ struct ReceiptsController {
             do {
                 let result = try await req.services.playStoreValidation.verify(
                     productId: validateRequest.productId,
-                    purchaseToken: purchaseToken
+                    purchaseToken: receiptPayload
                 )
                 guard result.productId == validateRequest.productId else {
                     let body = Receipts.Validate.Response(
@@ -93,35 +132,7 @@ struct ReceiptsController {
                 )
                 return try await body.encodeResponse(status: .forbidden, for: req)
             }
-
-        default:
-            throw Abort(.badRequest, reason: "Unsupported platform '\(validateRequest.platform)'")
         }
-
-        // Receipt-hash-based rate limiting (secondary check, 10 req/hr per unique hash)
-        let hashOperationKey = "receipt_hash_\(receiptHash)"
-        let hashCutoffTime = Date().addingTimeInterval(-Self.receiptHashRateWindow)
-        await RateLimitStorage.shared.cleanup(olderThan: hashCutoffTime)
-        let hashRequestCount = await RateLimitStorage.shared.getCount(for: hashOperationKey, since: hashCutoffTime)
-
-        if hashRequestCount >= Self.receiptHashRateLimit {
-            let retryAfterSeconds: Int
-            if let oldestTimestamp = await RateLimitStorage.shared.getOldestTimestamp(for: hashOperationKey, since: hashCutoffTime) {
-                let expiresAt = oldestTimestamp.addingTimeInterval(Self.receiptHashRateWindow)
-                retryAfterSeconds = max(1, Int(expiresAt.timeIntervalSince(Date()).rounded(.up)))
-            } else {
-                retryAfterSeconds = Int(Self.receiptHashRateWindow)
-            }
-
-            let responseBody = RateLimitErrorResponse(error: "rate_limited", retryAfter: retryAfterSeconds)
-            let response = Response(status: .tooManyRequests)
-            response.headers.add(name: "Content-Type", value: "application/json")
-            response.headers.add(name: "Retry-After", value: "\(retryAfterSeconds)")
-            response.body = try .init(data: JSONEncoder().encode(responseBody))
-            return response
-        }
-
-        await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: Date())
 
         // Check for duplicate transaction
         if let existing = try await req.repositories.receipts.find(transactionId: transactionId) {
