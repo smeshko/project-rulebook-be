@@ -100,7 +100,13 @@ struct RateLimitMiddleware: AsyncMiddleware {
         let currentCount = await storage.getCount(for: operationKey, since: cutoffTime)
         
         if currentCount >= rateLimitInfo.maxRequests {
-            let retryAfterSeconds = rateLimitInfo.windowSeconds
+            let retryAfterSeconds: Int
+            if let oldestTimestamp = await storage.getOldestTimestamp(for: operationKey, since: cutoffTime) {
+                let expiresAt = oldestTimestamp.addingTimeInterval(Double(rateLimitInfo.windowSeconds))
+                retryAfterSeconds = max(1, Int(expiresAt.timeIntervalSince(currentTime).rounded(.up)))
+            } else {
+                retryAfterSeconds = rateLimitInfo.windowSeconds
+            }
             let responseBody = RateLimitErrorResponse(error: "rate_limited", retryAfter: retryAfterSeconds)
             let response = Response(status: .tooManyRequests)
             response.headers.add(name: "Content-Type", value: "application/json")

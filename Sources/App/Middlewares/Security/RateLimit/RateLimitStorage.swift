@@ -15,6 +15,10 @@ actor RateLimitStorage {
         return requests[operationKey]?.filter { $0 >= cutoffTime }.count ?? 0
     }
     
+    func getOldestTimestamp(for operationKey: String, since cutoffTime: Date) -> Date? {
+        return requests[operationKey]?.filter { $0 >= cutoffTime }.min()
+    }
+
     func cleanup(olderThan cutoffTime: Date) {
         for key in requests.keys {
             requests[key] = requests[key]?.filter { $0 >= cutoffTime }
