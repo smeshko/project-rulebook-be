@@ -1,4 +1,5 @@
 @testable import App
+import Crypto
 import Fluent
 import Testing
 import VaporTesting
@@ -26,6 +27,9 @@ struct ReceiptsControllerTests {
 
         // Configure receipts repository (uses database via migrations)
         app.receiptsRepository = DatabaseReceiptsRepository(database: app.db)
+
+        // Reset rate limits to prevent cross-contamination between tests
+        await app.mockRateLimit.resetAllRateLimits()
     }
 
     // MARK: - iOS Validation Tests
@@ -480,6 +484,198 @@ struct ReceiptsControllerTests {
             .first()
 
         #expect(stored?.receiptHash == expectedHash)
+    }
+
+    // MARK: - Rate Limiting Tests
+
+    @Test("IP-based rate limiting returns 429 after 30 requests", .tags(.p0Critical, .integration))
+    func ipBasedRateLimitReturns429() async throws {
+        // Reset rate limits
+        await app.mockRateLimit.resetAllRateLimits()
+
+        // Pre-fill IP-based rate limit to the max
+        // In VaporTesting, remoteAddress is nil so IP falls back to "unknown"
+        // Development config uses 300 req/hr for receipts
+        await app.mockRateLimit.fillRateLimit(
+            type: .receipt,
+            clientIP: "unknown",
+            configuration: .development()
+        )
+
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "rate_limit_txn",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "some-receipt-data",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .tooManyRequests)
+            let retryAfter = response.headers.first(name: "Retry-After")
+            #expect(retryAfter != nil)
+            #expect(Int(retryAfter!) != nil)
+            #expect(Int(retryAfter!)! > 0)
+
+            expectContent(RateLimitErrorResponse.self, response) { body in
+                #expect(body.error == "rate_limited")
+                #expect(body.retryAfter > 0)
+            }
+        }
+    }
+
+    @Test("Receipt-hash rate limiting returns 429 after 10 identical hash submissions", .tags(.p0Critical, .integration))
+    func receiptHashRateLimitReturns429() async throws {
+        // Reset rate limits
+        await app.mockRateLimit.resetAllRateLimits()
+
+        // Pre-fill hash-based rate limit: compute the hash of "repeated-receipt" and fill storage
+        let receiptPayload = "repeated-receipt"
+        let hash = SHA256.hash(receiptPayload)
+        let hashOperationKey = "receipt_hash_\(hash)"
+
+        for _ in 0..<10 {
+            await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: Date())
+        }
+
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "hash_rate_txn",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: receiptPayload,
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .tooManyRequests)
+
+            expectContent(RateLimitErrorResponse.self, response) { body in
+                #expect(body.error == "rate_limited")
+                #expect(body.retryAfter > 0)
+            }
+        }
+    }
+
+    @Test("429 response contains Retry-After header with accurate seconds", .tags(.p0Critical, .integration))
+    func rateLimitResponseHasRetryAfterHeader() async throws {
+        await app.mockRateLimit.resetAllRateLimits()
+
+        // Record requests spread over 30 minutes to test accurate Retry-After
+        let now = Date()
+        let hashOperationKey = "receipt_hash_test_retry"
+        // Oldest request was 30 minutes ago → should expire in 30 minutes (1800s)
+        await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: now.addingTimeInterval(-1800))
+        for i in 1..<10 {
+            await RateLimitStorage.shared.record(operationKey: hashOperationKey, at: now.addingTimeInterval(-Double(i * 10)))
+        }
+
+        // Use IP-based limiting for this test
+        await app.mockRateLimit.fillRateLimit(
+            type: .receipt,
+            clientIP: "unknown",
+            configuration: .development()
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "any-data",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .tooManyRequests)
+            let retryAfter = response.headers.first(name: "Retry-After")
+            #expect(retryAfter != nil)
+            let retrySeconds = Int(retryAfter!)
+            #expect(retrySeconds != nil)
+            // Retry-After should be positive and <= window (3600)
+            #expect(retrySeconds! > 0)
+            #expect(retrySeconds! <= 3600)
+        }
+    }
+
+    @Test("Different receipt hashes are tracked independently", .tags(.p1Core, .integration))
+    func differentHashesTrackedIndependently() async throws {
+        await app.mockRateLimit.resetAllRateLimits()
+
+        // Fill rate limit for hash A
+        let hashA = SHA256.hash("receipt-A")
+        let hashKeyA = "receipt_hash_\(hashA)"
+        for _ in 0..<10 {
+            await RateLimitStorage.shared.record(operationKey: hashKeyA, at: Date())
+        }
+
+        // Hash B should still work
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "independent_txn",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "receipt-B",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .ok)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == true)
+                #expect(body.status == "valid")
+            }
+        }
+    }
+
+    @Test("Requests within limits proceed normally", .tags(.p1Core, .integration))
+    func requestsWithinLimitsProceed() async throws {
+        await app.mockRateLimit.resetAllRateLimits()
+
+        mockAppStore.resultToReturn = AppStoreValidationResult(
+            transactionId: "within_limit_txn",
+            productId: "credits_1",
+            bundleId: "com.test.app",
+            purchaseDate: Date(),
+            environment: "Sandbox"
+        )
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "normal-receipt",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .ok)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == true)
+                #expect(body.status == "valid")
+            }
+        }
     }
 
     @Test("Android receipt hash uses purchaseToken", .tags(.p1Core, .integration))

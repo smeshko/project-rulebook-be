@@ -100,11 +100,21 @@ struct RateLimitMiddleware: AsyncMiddleware {
         let currentCount = await storage.getCount(for: operationKey, since: cutoffTime)
         
         if currentCount >= rateLimitInfo.maxRequests {
+            let retryAfterSeconds: Int
+            if let oldestTimestamp = await storage.getOldestTimestamp(for: operationKey, since: cutoffTime) {
+                let expiresAt = oldestTimestamp.addingTimeInterval(Double(rateLimitInfo.windowSeconds))
+                retryAfterSeconds = max(1, Int(expiresAt.timeIntervalSince(currentTime).rounded(.up)))
+            } else {
+                retryAfterSeconds = rateLimitInfo.windowSeconds
+            }
+            let responseBody = RateLimitErrorResponse(error: "rate_limited", retryAfter: retryAfterSeconds)
             let response = Response(status: .tooManyRequests)
-            response.headers.add(name: "Retry-After", value: "\(rateLimitInfo.windowSeconds)")
+            response.headers.add(name: "Content-Type", value: "application/json")
+            response.headers.add(name: "Retry-After", value: "\(retryAfterSeconds)")
             response.headers.add(name: "X-RateLimit-Limit", value: "\(rateLimitInfo.maxRequests)")
             response.headers.add(name: "X-RateLimit-Remaining", value: "0")
             response.headers.add(name: "X-RateLimit-Type", value: rateLimitInfo.type.rawValue)
+            response.body = try .init(data: JSONEncoder().encode(responseBody))
             
             // Enhanced logging for rate limit violations
             request.logger.warning("Rate limit exceeded", metadata: [
@@ -184,12 +194,21 @@ struct RateLimitMiddleware: AsyncMiddleware {
             )
         }
         
+        // Receipt validation endpoints - must be before general /api/ catch-all
+        if path.contains("/api/v1/receipts/validate") {
+            return RateLimitInfo(
+                type: .receipt,
+                maxRequests: configuration.receiptLimit,
+                windowSeconds: configuration.receiptWindow
+            )
+        }
+
         // Waitlist endpoints - must be before general /api/ catch-all
         if path.hasPrefix("/api/waitlist") {
             return RateLimitInfo(
                 type: .waitlist,
-                maxRequests: 10,  // 10 requests per hour
-                windowSeconds: 3600  // 1 hour window
+                maxRequests: configuration.waitlistLimit,
+                windowSeconds: configuration.waitlistWindow
             )
         }
 
@@ -218,4 +237,10 @@ struct RateLimitMiddleware: AsyncMiddleware {
             windowSeconds: configuration.generalWindow
         )
     }
+}
+
+/// JSON response body returned when a request is rate limited (HTTP 429).
+struct RateLimitErrorResponse: Codable {
+    let error: String
+    let retryAfter: Int
 }

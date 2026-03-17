@@ -193,3 +193,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding app identity validation for new store platforms
     - When troubleshooting `invalid_app_identity` 403 errors from the receipt validation endpoint
     - When modifying bundle ID or package name environment variable configuration
+
+- docs/features/receipt-rate-limiting.md
+  - Conditions:
+    - When implementing rate limiting for the receipt validation endpoint
+    - When adding content-aware (request-body-based) rate limiting to any controller
+    - When extending RateLimitConfiguration with new operation types
+    - When troubleshooting 429 responses from the receipt validation endpoint
+    - When modifying rate limit thresholds for receipt validation

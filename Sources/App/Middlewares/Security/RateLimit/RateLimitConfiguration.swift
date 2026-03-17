@@ -130,6 +130,20 @@ struct RateLimitConfiguration {
     /// Time window for waitlist rate limiting in seconds.
     let waitlistWindow: Int
 
+    // MARK: - Receipt Validation Limits
+
+    /// Maximum number of receipt validation requests allowed within the time window per IP.
+    ///
+    /// Receipt validation operations protect against abuse and brute-force attempts
+    /// against the in-app purchase verification system.
+    ///
+    /// **Production**: 30 requests/hour
+    /// **Development**: 300 requests/hour
+    let receiptLimit: Int
+
+    /// Time window for receipt validation rate limiting in seconds.
+    let receiptWindow: Int
+
     /// Default rate limiting configuration suitable for most deployments.
     ///
     /// Provides balanced limits that protect against abuse while supporting
@@ -163,7 +177,11 @@ struct RateLimitConfiguration {
 
         // Waitlist operations: Moderate protection
         waitlistLimit: 10,
-        waitlistWindow: 3600 // 1 hour
+        waitlistWindow: 3600, // 1 hour
+
+        // Receipt validation: Restrictive
+        receiptLimit: 30,
+        receiptWindow: 3600 // 1 hour
     )
     
     /// Production rate limiting configuration optimized for cost control and security.
@@ -199,10 +217,12 @@ struct RateLimitConfiguration {
             generalLimit: 500,
             generalWindow: 3600,
             waitlistLimit: 10,
-            waitlistWindow: 3600
+            waitlistWindow: 3600,
+            receiptLimit: 30,
+            receiptWindow: 3600
         )
     }
-    
+
     /// Development rate limiting configuration with relaxed limits for testing.
     ///
     /// Provides generous limits suitable for development and testing environments
@@ -236,7 +256,9 @@ struct RateLimitConfiguration {
             generalLimit: 10000,
             generalWindow: 3600,
             waitlistLimit: 100,
-            waitlistWindow: 3600
+            waitlistWindow: 3600,
+            receiptLimit: 300,
+            receiptWindow: 3600
         )
     }
 }
