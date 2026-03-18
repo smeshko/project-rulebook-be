@@ -211,6 +211,7 @@ extension Application {
     llmService = GoogleGeminiService(app: self)
     appStoreValidationService = DefaultAppStoreValidationService(app: self)
     playStoreValidationService = DefaultPlayStoreValidationService(app: self)
+    appleNotificationService = DefaultAppleNotificationService(app: self)
 
     // Initialize Redis-based services
     let redisConfig = try configuration.redis

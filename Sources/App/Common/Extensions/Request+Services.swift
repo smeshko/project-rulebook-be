@@ -72,4 +72,8 @@ struct RequestServices: @unchecked Sendable {
     var playStoreValidation: PlayStoreValidationService {
         app.playStoreValidationService
     }
+
+    var appleNotification: AppleNotificationService {
+        app.appleNotificationService
+    }
 }
