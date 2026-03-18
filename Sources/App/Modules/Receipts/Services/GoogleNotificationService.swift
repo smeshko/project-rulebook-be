@@ -28,15 +28,6 @@ enum GoogleNotificationType: Sendable, Equatable {
         }
     }
 
-    /// Whether this notification type represents a voided/refunded purchase.
-    var isVoided: Bool {
-        switch self {
-        case .oneTimeProductCanceled, .oneTimeProductRefunded:
-            return true
-        default:
-            return false
-        }
-    }
 }
 
 // MARK: - Notification Result
@@ -223,6 +214,17 @@ final class DefaultGoogleNotificationService: GoogleNotificationService, @unchec
         } catch {
             throw GoogleNotificationError.voidedPurchaseVerificationFailed(
                 "Voided Purchases API request failed: \(error)"
+            )
+        }
+
+        if response.status == .unauthorized {
+            // Invalidate cached token on 401 (matching PlayStoreValidationService pattern)
+            tokenLock.withLock {
+                cachedToken = nil
+                tokenExpiry = nil
+            }
+            throw GoogleNotificationError.voidedPurchaseVerificationFailed(
+                "Voided Purchases API authentication failed — token may have expired"
             )
         }
 
