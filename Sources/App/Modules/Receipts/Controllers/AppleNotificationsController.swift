@@ -21,25 +21,37 @@ struct AppleNotificationsController {
                     req.logger.warning("REFUND notification missing originalTransactionId")
                     return .ok
                 }
-                try await req.repositories.receipts.markRefunded(
+                let refundUpdated = try await req.repositories.receipts.markRefunded(
                     transactionId: originalTransactionId,
                     refundedAt: Date()
                 )
-                req.logger.info("Processed REFUND notification", metadata: [
-                    "originalTransactionId": .string(originalTransactionId)
-                ])
+                if refundUpdated {
+                    req.logger.info("Processed REFUND notification", metadata: [
+                        "originalTransactionId": .string(originalTransactionId)
+                    ])
+                } else {
+                    req.logger.warning("REFUND notification for unknown transaction", metadata: [
+                        "originalTransactionId": .string(originalTransactionId)
+                    ])
+                }
 
             case .revoke:
                 guard let originalTransactionId = result.originalTransactionId else {
                     req.logger.warning("REVOKE notification missing originalTransactionId")
                     return .ok
                 }
-                try await req.repositories.receipts.markRevoked(
+                let revokeUpdated = try await req.repositories.receipts.markRevoked(
                     transactionId: originalTransactionId
                 )
-                req.logger.info("Processed REVOKE notification", metadata: [
-                    "originalTransactionId": .string(originalTransactionId)
-                ])
+                if revokeUpdated {
+                    req.logger.info("Processed REVOKE notification", metadata: [
+                        "originalTransactionId": .string(originalTransactionId)
+                    ])
+                } else {
+                    req.logger.warning("REVOKE notification for unknown transaction", metadata: [
+                        "originalTransactionId": .string(originalTransactionId)
+                    ])
+                }
 
             default:
                 req.logger.info("Received Apple notification", metadata: [

@@ -26,7 +26,7 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
     @Field(key: FieldKeys.v2.receiptHash)
     var receiptHash: String
 
-    @Enum(key: FieldKeys.v3.status)
+    @Field(key: FieldKeys.v3.status)
     var status: TransactionStatus
 
     @OptionalField(key: FieldKeys.v3.refundedAt)

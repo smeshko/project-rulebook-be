@@ -6,8 +6,10 @@ protocol ReceiptsRepository: Repository {
     func find(transactionId: String) async throws -> TransactionModel?
     func create(_ model: TransactionModel) async throws
     func all() async throws -> [TransactionModel]
-    func markRefunded(transactionId: String, refundedAt: Date) async throws
-    func markRevoked(transactionId: String) async throws
+    @discardableResult
+    func markRefunded(transactionId: String, refundedAt: Date) async throws -> Bool
+    @discardableResult
+    func markRevoked(transactionId: String) async throws -> Bool
 }
 
 struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
@@ -36,21 +38,25 @@ struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
         try await model.create(on: database)
     }
 
-    func markRefunded(transactionId: String, refundedAt: Date) async throws {
+    @discardableResult
+    func markRefunded(transactionId: String, refundedAt: Date) async throws -> Bool {
         guard let transaction = try await find(transactionId: transactionId) else {
-            return
+            return false
         }
         transaction.status = .refunded
         transaction.refundedAt = refundedAt
         try await transaction.save(on: database)
+        return true
     }
 
-    func markRevoked(transactionId: String) async throws {
+    @discardableResult
+    func markRevoked(transactionId: String) async throws -> Bool {
         guard let transaction = try await find(transactionId: transactionId) else {
-            return
+            return false
         }
         transaction.status = .revoked
         try await transaction.save(on: database)
+        return true
     }
 }
 
