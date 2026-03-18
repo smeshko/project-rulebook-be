@@ -69,6 +69,9 @@ extension Tag {
     /// Remote configuration tests.
     @Tag static var remoteConfig: Self
 
+    /// Receipts and in-app purchase related tests.
+    @Tag static var receipts: Self
+
     // MARK: Test Type Tags
 
     /// Integration tests - full application stack with HTTP.

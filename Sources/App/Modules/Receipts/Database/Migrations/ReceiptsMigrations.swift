@@ -48,27 +48,23 @@ enum ReceiptsMigrations {
     struct v3: AsyncMigration {
 
         func prepare(on db: Database) async throws {
-            try await db.enum("transaction_status")
-                .case("valid")
-                .case("refunded")
-                .case("revoked")
-                .create()
-
-            let statusEnum = try await db.enum("transaction_status").read()
+            try await db.schema(TransactionModel.schema)
+                .field(TransactionModel.FieldKeys.v3.status, .string, .required, .sql(.default("valid")))
+                .update()
 
             try await db.schema(TransactionModel.schema)
-                .field(TransactionModel.FieldKeys.v3.status, statusEnum, .required, .sql(.default("valid")))
                 .field(TransactionModel.FieldKeys.v3.refundedAt, .datetime)
                 .update()
         }
 
         func revert(on db: Database) async throws {
             try await db.schema(TransactionModel.schema)
-                .deleteField(TransactionModel.FieldKeys.v3.status)
                 .deleteField(TransactionModel.FieldKeys.v3.refundedAt)
                 .update()
 
-            try await db.enum("transaction_status").delete()
+            try await db.schema(TransactionModel.schema)
+                .deleteField(TransactionModel.FieldKeys.v3.status)
+                .update()
         }
     }
 }
