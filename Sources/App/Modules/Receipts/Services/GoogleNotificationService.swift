@@ -27,7 +27,6 @@ enum GoogleNotificationType: Sendable, Equatable {
         default: self = .unknown(rawValue)
         }
     }
-
 }
 
 // MARK: - Notification Result
