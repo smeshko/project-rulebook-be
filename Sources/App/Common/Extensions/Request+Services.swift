@@ -76,4 +76,8 @@ struct RequestServices: @unchecked Sendable {
     var appleNotification: AppleNotificationService {
         app.appleNotificationService
     }
+
+    var googleNotification: GoogleNotificationService {
+        app.googleNotificationService
+    }
 }

@@ -24,6 +24,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var appStoreValidationService: AppStoreValidationService?
     var playStoreValidationService: PlayStoreValidationService?
     var appleNotificationService: AppleNotificationService?
+    var googleNotificationService: GoogleNotificationService?
 
     // MARK: - Repositories
 
@@ -134,6 +135,11 @@ extension Application {
     var appleNotificationService: AppleNotificationService {
         get { serviceStorage.appleNotificationService! }
         set { serviceStorage.appleNotificationService = newValue }
+    }
+
+    var googleNotificationService: GoogleNotificationService {
+        get { serviceStorage.googleNotificationService! }
+        set { serviceStorage.googleNotificationService = newValue }
     }
 
     // MARK: - Repositories

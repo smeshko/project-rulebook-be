@@ -212,6 +212,7 @@ extension Application {
     appStoreValidationService = DefaultAppStoreValidationService(app: self)
     playStoreValidationService = DefaultPlayStoreValidationService(app: self)
     appleNotificationService = DefaultAppleNotificationService(app: self)
+    googleNotificationService = DefaultGoogleNotificationService(app: self)
 
     // Initialize Redis-based services
     let redisConfig = try configuration.redis

@@ -5,6 +5,7 @@ struct ReceiptsRouter: RouteCollection {
 
     let controller = ReceiptsController()
     let appleNotificationsController = AppleNotificationsController()
+    let googleNotificationsController = GoogleNotificationsController()
 
     func boot(routes: RoutesBuilder) throws {
         let api = routes
@@ -33,6 +34,14 @@ struct ReceiptsRouter: RouteCollection {
             .openAPI(
                 description: "Receive Apple App Store Server Notifications V2. Always returns 200.",
                 body: .type(AppleNotificationsController.AppleNotificationPayload.self)
+            )
+
+        // Google Play RTDN webhook (no auth middleware — verification via token query param)
+        notifications
+            .post("google", use: googleNotificationsController.handleNotification)
+            .openAPI(
+                description: "Receive Google Play Real-Time Developer Notifications via Pub/Sub. Returns 200 on success, 403 on invalid token.",
+                body: .type(PubSubPushMessage.self)
             )
     }
 }
