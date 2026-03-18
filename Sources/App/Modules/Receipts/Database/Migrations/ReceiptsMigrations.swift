@@ -44,4 +44,27 @@ enum ReceiptsMigrations {
                 .update()
         }
     }
+
+    struct v3: AsyncMigration {
+
+        func prepare(on db: Database) async throws {
+            try await db.schema(TransactionModel.schema)
+                .field(TransactionModel.FieldKeys.v3.status, .string, .required, .sql(.default("valid")))
+                .update()
+
+            try await db.schema(TransactionModel.schema)
+                .field(TransactionModel.FieldKeys.v3.refundedAt, .datetime)
+                .update()
+        }
+
+        func revert(on db: Database) async throws {
+            try await db.schema(TransactionModel.schema)
+                .deleteField(TransactionModel.FieldKeys.v3.refundedAt)
+                .update()
+
+            try await db.schema(TransactionModel.schema)
+                .deleteField(TransactionModel.FieldKeys.v3.status)
+                .update()
+        }
+    }
 }

@@ -26,6 +26,12 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
     @Field(key: FieldKeys.v2.receiptHash)
     var receiptHash: String
 
+    @Field(key: FieldKeys.v3.status)
+    var status: TransactionStatus
+
+    @OptionalField(key: FieldKeys.v3.refundedAt)
+    var refundedAt: Date?
+
     init() {}
 
     init(
@@ -34,7 +40,9 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
         platform: TransactionPlatform,
         productId: String,
         creditAmount: Int,
-        receiptHash: String
+        receiptHash: String,
+        status: TransactionStatus = .valid,
+        refundedAt: Date? = nil
     ) {
         self.id = id
         self.transactionId = transactionId
@@ -42,6 +50,8 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
         self.productId = productId
         self.creditAmount = creditAmount
         self.receiptHash = receiptHash
+        self.status = status
+        self.refundedAt = refundedAt
     }
 }
 
@@ -57,10 +67,20 @@ extension TransactionModel {
         struct v2 {
             static var receiptHash: FieldKey { "receipt_hash" }
         }
+        struct v3 {
+            static var status: FieldKey { "status" }
+            static var refundedAt: FieldKey { "refunded_at" }
+        }
     }
 }
 
 public enum TransactionPlatform: String, Codable, CaseIterable, Sendable {
     case ios
     case android
+}
+
+public enum TransactionStatus: String, Codable, CaseIterable, Sendable {
+    case valid
+    case refunded
+    case revoked
 }

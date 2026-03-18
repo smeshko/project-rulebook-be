@@ -1,18 +1,19 @@
-## [Unreleased] - 2026-03-17
+## [Unreleased] - 2026-03-18
 
 ### Added
-- Add receipt case to RateLimitType and RateLimitConfiguration
-- Add receipt path detection and JSON 429 response body
-- Compute accurate Retry-After from oldest request timestamp
-- Add receipt-hash-based rate limiting in controller
-- Update MockRateLimitService for receipt type
+- Register Apple notification webhook route
+- Create AppleNotificationsController
+- Create AppleNotificationService for JWS verification
+- Add markRefunded and markRevoked repository methods
+- Create database migration v3 for transaction status
+- Add TransactionStatus enum and new fields to TransactionModel
 
 ### Fixed
-- Cycle 1: Fix dictionary mutation, waitlist config, hash cleanup
-- Cycle 2: Move hash rate check before external validation
+- Handle unknown Apple notification types gracefully
+- Fix @Enum/string mismatch and silent missing-transaction handling
 
 ### Other
-- Add receipt rate limiting tests
+- Add AppleNotificationsController integration tests
 
 ### Documentation
-- Add receipt rate limiting feature documentation
+- Add Apple Server Notifications V2 feature documentation

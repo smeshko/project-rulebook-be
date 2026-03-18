@@ -201,3 +201,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When extending RateLimitConfiguration with new operation types
     - When troubleshooting 429 responses from the receipt validation endpoint
     - When modifying rate limit thresholds for receipt validation
+
+- docs/features/apple-server-notifications.md
+  - Conditions:
+    - When implementing or modifying Apple App Store Server Notifications V2 webhook processing
+    - When handling transaction lifecycle events (refunds, revocations) in the Receipts module
+    - When adding new Apple notification types to the webhook handler
+    - When troubleshooting JWS signature verification for Apple server-to-server notifications
+    - When implementing webhook endpoints that must always return HTTP 200
