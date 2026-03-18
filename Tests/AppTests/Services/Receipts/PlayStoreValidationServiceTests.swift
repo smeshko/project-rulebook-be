@@ -182,12 +182,14 @@ struct PlayStoreValidationServiceTests {
         let config = GooglePlayConfig(
             serviceAccountEmail: "test@project.iam.gserviceaccount.com",
             privateKey: "-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----",
-            packageName: "com.example.app"
+            packageName: "com.example.app",
+            pubsubVerificationToken: "test_verification_token"
         )
 
         #expect(config.serviceAccountEmail == "test@project.iam.gserviceaccount.com")
         #expect(config.privateKey.contains("RSA PRIVATE KEY"))
         #expect(config.packageName == "com.example.app")
+        #expect(config.pubsubVerificationToken == "test_verification_token")
     }
 
     @Test("Testing configuration provides Google Play config", .tags(.unit))

@@ -304,4 +304,10 @@ struct GooglePlayConfig: Sendable {
 
     /// The Android application package name (e.g., "com.yourcompany.app").
     let packageName: String
+
+    /// The verification token for Google Cloud Pub/Sub push subscription authentication.
+    ///
+    /// This token is configured in the Pub/Sub push subscription URL as a query parameter
+    /// and verified on incoming RTDN notifications to authenticate the sender.
+    let pubsubVerificationToken: String
 }

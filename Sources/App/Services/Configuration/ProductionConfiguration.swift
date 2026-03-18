@@ -339,10 +339,18 @@ struct ProductionConfiguration: ConfigurationService {
         )
       }
 
+      guard let pubsubVerificationToken = Environment.get("GOOGLE_PUBSUB_VERIFICATION_TOKEN") else {
+        throw ConfigurationError.missingRequired(
+          key: "GOOGLE_PUBSUB_VERIFICATION_TOKEN",
+          suggestion: "Set GOOGLE_PUBSUB_VERIFICATION_TOKEN environment variable with the Pub/Sub push subscription secret token"
+        )
+      }
+
       return GooglePlayConfig(
         serviceAccountEmail: serviceAccountEmail,
         privateKey: privateKey,
-        packageName: packageName
+        packageName: packageName,
+        pubsubVerificationToken: pubsubVerificationToken
       )
     }
   }
