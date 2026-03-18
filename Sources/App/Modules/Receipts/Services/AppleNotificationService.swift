@@ -5,7 +5,7 @@ import Vapor
 // MARK: - Notification Result
 
 struct AppleNotificationResult: Sendable {
-    let notificationType: NotificationTypeV2
+    let notificationType: NotificationTypeV2?
     let rawNotificationType: String?
     let subtype: String?
     let originalTransactionId: String?
@@ -95,9 +95,7 @@ final class DefaultAppleNotificationService: AppleNotificationService, @unchecke
         from payload: ResponseBodyV2DecodedPayload,
         verifier: SignedDataVerifier
     ) async throws -> AppleNotificationResult {
-        guard let notificationType = payload.notificationType else {
-            throw AppleNotificationError.verificationFailed("Missing notificationType in payload")
-        }
+        let notificationType = payload.notificationType
 
         var originalTransactionId: String?
 
