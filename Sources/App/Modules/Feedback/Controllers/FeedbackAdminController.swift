@@ -14,9 +14,9 @@ struct FeedbackAdminController {
             statusFilter = parsed
         }
 
-        // Parse pagination
-        let page = req.query[Int.self, at: "page"] ?? 1
-        let limit = req.query[Int.self, at: "limit"] ?? 20
+        // Parse and clamp pagination to match repository's safe bounds
+        let page = max(1, req.query[Int.self, at: "page"] ?? 1)
+        let limit = max(1, min(req.query[Int.self, at: "limit"] ?? 20, 100))
 
         let result = try await req.repositories.feedback.findPaginated(
             status: statusFilter,
