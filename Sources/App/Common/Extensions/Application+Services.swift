@@ -25,6 +25,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var playStoreValidationService: PlayStoreValidationService?
     var appleNotificationService: AppleNotificationService?
     var googleNotificationService: GoogleNotificationService?
+    var pendingValidationJob: PendingValidationJob?
 
     // MARK: - Repositories
 
@@ -140,6 +141,13 @@ extension Application {
     var googleNotificationService: GoogleNotificationService {
         get { serviceStorage.googleNotificationService! }
         set { serviceStorage.googleNotificationService = newValue }
+    }
+
+    // MARK: - Background Jobs
+
+    var pendingValidationJob: PendingValidationJob? {
+        get { serviceStorage.pendingValidationJob }
+        set { serviceStorage.pendingValidationJob = newValue }
     }
 
     // MARK: - Repositories

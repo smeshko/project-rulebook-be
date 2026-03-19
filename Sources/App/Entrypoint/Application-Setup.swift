@@ -237,8 +237,9 @@ extension Application {
   func setupBackgroundJobs() {
     guard environment != .testing else { return }
 
-    let pendingValidationJob = PendingValidationJob(app: self)
-    pendingValidationJob.start()
+    let job = PendingValidationJob(app: self)
+    self.pendingValidationJob = job
+    job.start()
 
     logger.info("Background jobs started: PendingValidationJob")
   }

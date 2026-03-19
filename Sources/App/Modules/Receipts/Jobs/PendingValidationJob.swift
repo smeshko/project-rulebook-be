@@ -96,16 +96,15 @@ final class PendingValidationJob: @unchecked Sendable {
                 result = (validationResult.transactionId, validationResult.productId == transaction.productId)
             }
 
+            let originalId = transaction.transactionId
+
             // Check for duplicate with the real transaction ID
             if let existing = try await repository.find(transactionId: result.transactionId),
                existing.id != transactionId {
-                // Another transaction with the real ID already exists — mark this one as valid
-                try await repository.updateStatus(
-                    id: transactionId,
-                    status: .valid,
-                    retryCount: nil,
-                    lastRetryAt: nil
-                )
+                // Another transaction with the real ID already exists — clean up this pending record
+                transaction.status = .valid
+                transaction.receiptData = nil
+                try await transaction.save(on: app.db)
             } else {
                 // Update with real transaction ID and final status
                 let finalStatus: TransactionStatus = result.isValid ? .valid : .validationFailed
@@ -117,13 +116,51 @@ final class PendingValidationJob: @unchecked Sendable {
             }
 
             app.logger.info("PendingValidationJob: Successfully validated pending transaction", metadata: [
-                "originalId": .string(transaction.transactionId),
+                "originalId": .string(originalId),
                 "realTransactionId": .string(result.transactionId),
                 "status": .string(result.isValid ? "valid" : "invalid")
             ])
 
+        } catch let validationError as AppStoreValidationError where Self.isDefinitiveAppStoreError(validationError) {
+            // Definitive validation failure — no point retrying
+            do {
+                try await repository.updateStatus(
+                    id: transactionId,
+                    status: .validationFailed,
+                    retryCount: transaction.retryCount,
+                    lastRetryAt: Date()
+                )
+                app.logger.critical("Pending validation definitively failed", metadata: [
+                    "transactionId": .string(transaction.transactionId),
+                    "platform": .string(transaction.platform.rawValue),
+                    "error": .string(String(describing: validationError))
+                ])
+            } catch {
+                app.logger.error("PendingValidationJob: Failed to mark as validation_failed", metadata: [
+                    "error": .string(String(describing: error))
+                ])
+            }
+        } catch let validationError as PlayStoreValidationError where Self.isDefinitivePlayStoreError(validationError) {
+            // Definitive validation failure — no point retrying
+            do {
+                try await repository.updateStatus(
+                    id: transactionId,
+                    status: .validationFailed,
+                    retryCount: transaction.retryCount,
+                    lastRetryAt: Date()
+                )
+                app.logger.critical("Pending validation definitively failed", metadata: [
+                    "transactionId": .string(transaction.transactionId),
+                    "platform": .string(transaction.platform.rawValue),
+                    "error": .string(String(describing: validationError))
+                ])
+            } catch {
+                app.logger.error("PendingValidationJob: Failed to mark as validation_failed", metadata: [
+                    "error": .string(String(describing: error))
+                ])
+            }
         } catch {
-            // Retry failed — increment retry count
+            // Transient error — increment retry count
             let newRetryCount = transaction.retryCount + 1
 
             if newRetryCount >= Self.maxRetries {
@@ -183,5 +220,27 @@ final class PendingValidationJob: @unchecked Sendable {
         let elapsed = Date().timeIntervalSince(lastRetryAt)
 
         return elapsed >= requiredInterval
+    }
+
+    /// Returns true for App Store errors that indicate a definitively invalid receipt (not transient).
+    private static func isDefinitiveAppStoreError(_ error: AppStoreValidationError) -> Bool {
+        switch error {
+        case .invalidSignature, .invalidCertificateChain, .bundleIdMismatch, .verificationFailed:
+            return true
+        case .configurationError:
+            return true
+        }
+    }
+
+    /// Returns true for Play Store errors that indicate a definitively invalid receipt (not transient).
+    private static func isDefinitivePlayStoreError(_ error: PlayStoreValidationError) -> Bool {
+        switch error {
+        case .invalidToken, .purchaseNotFound, .verificationFailed:
+            return true
+        case .configurationError:
+            return true
+        case .apiError(let code, _):
+            return code < 500
+        }
     }
 }
