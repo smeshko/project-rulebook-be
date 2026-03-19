@@ -48,7 +48,7 @@ struct OpenAIServiceTests {
         
         mockClient.mockResponse = MockHTTPResponse.success(expectedResponse)
         
-        let service = OpenAIService(app: app)
+        let service = OpenAIService(app: app, logger: app.logger)
         
         // Act
         let result = try await service.generate(input: "Generate rules")

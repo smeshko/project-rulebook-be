@@ -8,7 +8,7 @@ extension Application.Service.Provider where ServiceType == LLMService {
   /// LLM operations including text generation and image analysis.
   static var openAI: Self {
     .init {
-      $0.services.llm.use { OpenAIService(app: $0) }
+      $0.services.llm.use { OpenAIService(app: $0, logger: $0.logger) }
     }
   }
 }
@@ -38,6 +38,7 @@ extension Application.Service.Provider where ServiceType == LLMService {
 struct OpenAIService: LLMService {
   /// The Vapor application instance for accessing configuration and logging.
   let app: Application
+  let logger: Logger
   
   /// Maximum number of retry attempts for failed requests.
   ///
@@ -71,7 +72,7 @@ struct OpenAIService: LLMService {
         "Authorization": "Bearer \(services.openAIKey)",
       ]
     } catch {
-      app.logger.error("Failed to get OpenAI configuration: \(error)")
+      logger.error("Failed to get OpenAI configuration: \(error)")
       return [
         "Content-Type": "application/json",
         "Authorization": "Bearer \(Environment.openAIKey)",
@@ -191,18 +192,18 @@ struct OpenAIService: LLMService {
       // Check response status before processing
       switch response.status {
       case .tooManyRequests:
-        app.logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
+        logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
         throw OpenAIError.rateLimitExceeded(retryAfter: extractRetryAfter(from: response))
       case .unauthorized:
-        app.logger.error("OpenAI authentication failed")
+        logger.error("OpenAI authentication failed")
         throw OpenAIError.authenticationFailed
       case let status where status.code >= 500:
-        app.logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
+        logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
         throw OpenAIError.serverError(Int(status.code))
       case .ok:
         return try await processResponse(response)
       default:
-        app.logger.error(
+        logger.error(
           "OpenAI unexpected status (attempt \(attempt)/\(maxRetries)): \(response.status)")
         throw OpenAIError.requestFailed(
           NSError(
@@ -214,7 +215,7 @@ struct OpenAIService: LLMService {
       throw error
 
     } catch {
-      app.logger.error("OpenAI request failed (attempt \(attempt)/\(maxRetries)): \(error)")
+      logger.error("OpenAI request failed (attempt \(attempt)/\(maxRetries)): \(error)")
       throw OpenAIError.requestFailed(error)
     }
   }
@@ -251,18 +252,18 @@ struct OpenAIService: LLMService {
       // Check response status before processing
       switch response.status {
       case .tooManyRequests:
-        app.logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
+        logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
         throw OpenAIError.rateLimitExceeded(retryAfter: extractRetryAfter(from: response))
       case .unauthorized:
-        app.logger.error("OpenAI authentication failed")
+        logger.error("OpenAI authentication failed")
         throw OpenAIError.authenticationFailed
       case let status where status.code >= 500:
-        app.logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
+        logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
         throw OpenAIError.serverError(Int(status.code))
       case .ok:
         return try await processResponse(response)
       default:
-        app.logger.error(
+        logger.error(
           "OpenAI unexpected status (attempt \(attempt)/\(maxRetries)): \(response.status)")
         throw OpenAIError.requestFailed(
           NSError(
@@ -274,7 +275,7 @@ struct OpenAIService: LLMService {
       throw error
 
     } catch {
-      app.logger.error(
+      logger.error(
         "OpenAI image analysis request failed (attempt \(attempt)/\(maxRetries)): \(error)")
       throw OpenAIError.requestFailed(error)
     }
@@ -317,7 +318,7 @@ struct OpenAIService: LLMService {
       return content
 
     } catch let decodingError as DecodingError {
-      app.logger.error("Failed to decode OpenAI response: \(decodingError)")
+      logger.error("Failed to decode OpenAI response: \(decodingError)")
       throw OpenAIError.invalidResponse(decodingError)
     }
   }
@@ -367,7 +368,7 @@ struct OpenAIService: LLMService {
         }
 
         let delay = calculateBackoffDelay(attempt: attempt, error: openAIError)
-        app.logger.info("Retrying OpenAI request in \(delay)s (attempt \(attempt)/\(maxAttempts))")
+        logger.info("Retrying OpenAI request in \(delay)s (attempt \(attempt)/\(maxAttempts))")
 
         try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
@@ -410,7 +411,7 @@ struct OpenAIService: LLMService {
   /// - Parameter request: The current HTTP request context
   /// - Returns: An OpenAI service instance configured for the request
   func `for`(_ request: Request) -> LLMService {
-    Self(app: request.application)
+    Self(app: request.application, logger: request.logger)
   }
 }
 

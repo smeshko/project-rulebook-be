@@ -27,7 +27,7 @@ struct GoogleGeminiServiceTests {
         )
         mockClient.mockResponse = .success(expected)
 
-        let service = GoogleGeminiService(app: app)
+        let service = GoogleGeminiService(app: app, logger: app.logger)
         let result = try await service.generate(input: "Generate rules")
 
         #expect(result == "Test game rules")

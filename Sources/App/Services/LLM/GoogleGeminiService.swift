@@ -6,7 +6,7 @@ extension Application.Service.Provider where ServiceType == LLMService {
     /// Registers Google Gemini as the LLM service provider.
     static var googleGemini: Self {
         .init { app in
-            app.services.llm.use { GoogleGeminiService(app: $0) }
+            app.services.llm.use { GoogleGeminiService(app: $0, logger: $0.logger) }
         }
     }
 }
@@ -36,6 +36,7 @@ extension Application.Service.Provider where ServiceType == LLMService {
 /// - Handles authentication, rate limit, and server errors
 struct GoogleGeminiService: LLMService {
     let app: Application
+    let logger: Logger
 
     private let maxRetries: Int = 3
     private let baseDelay: TimeInterval = 1.0
@@ -48,7 +49,7 @@ struct GoogleGeminiService: LLMService {
                 "Content-Type": "application/json",
             ]
         } catch {
-            app.logger.error("Failed to get Gemini configuration: \(error)")
+            logger.error("Failed to get Gemini configuration: \(error)")
             // Best-effort fallback
             let apiKey = Environment.get("GEMINI_API_KEY") ?? ""
             return [
@@ -82,7 +83,7 @@ struct GoogleGeminiService: LLMService {
             } catch let error as GeminiError {
                 throw error
             } catch {
-                app.logger.error(
+                logger.error(
                     "Gemini request failed (attempt \(attempt)/\(maxRetries)): \(error)")
                 throw GeminiError.requestFailed(error)
             }
@@ -123,7 +124,7 @@ struct GoogleGeminiService: LLMService {
     }
 
     func `for`(_ request: Request) -> LLMService {
-        Self(app: request.application)
+        Self(app: request.application, logger: request.logger)
     }
 
     // MARK: - Private helpers
@@ -165,7 +166,7 @@ struct GoogleGeminiService: LLMService {
             }
             return text
         } catch let decoding as DecodingError {
-            app.logger.error("Failed to decode Gemini response: \(decoding)")
+            logger.error("Failed to decode Gemini response: \(decoding)")
             throw GeminiError.invalidResponse(decoding)
         }
     }
