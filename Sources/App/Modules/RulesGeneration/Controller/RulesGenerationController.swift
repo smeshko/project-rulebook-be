@@ -17,7 +17,7 @@ struct RulesGenerationController {
     /// - Returns: ``GameboxRecognition.Response`` with game identification results
     func analyzeBoxPhoto(_ req: Request) async throws -> GameboxRecognition.Response {
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
-        let requestID = UUID().uuidString
+        let requestID = req.correlationID
 
         // Collect raw binary image data from request body
         let imageData: Data
@@ -109,7 +109,7 @@ struct RulesGenerationController {
     /// - Returns: ``RulesSummary.Response`` with comprehensive rules explanation
     func generateRulesSummary(_ req: Request) async throws -> RulesSummary.Response {
         let clientIP = req.services.ipExtractor.extractClientIP(from: req)
-        let requestID = UUID().uuidString
+        let requestID = req.correlationID
         let timestamp = Date()
 
         let input: RulesSummary.Request
