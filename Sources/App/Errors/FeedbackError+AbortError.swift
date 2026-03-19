@@ -19,6 +19,10 @@ extension FeedbackError: AbortError {
             return .badRequest
         case .gameTitleTooLong:
             return .badRequest
+        case .feedbackNotFound:
+            return .notFound
+        case .invalidFeedbackStatus:
+            return .badRequest
         }
     }
 }
