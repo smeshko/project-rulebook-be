@@ -5,7 +5,7 @@
 
 ## Overview
 
-The Feedback module provides collecting and managing user feedback on generated game rules. It includes the `FeedbackModel` database entity with typed enums for feedback classification and status tracking, a repository with paginated queries, a public POST endpoint for submitting feedback with validation and rate limiting, and full test infrastructure.
+The Feedback module provides collecting and managing user feedback on generated game rules. It includes the `FeedbackModel` database entity with typed enums for feedback classification and status tracking, a repository with paginated queries, a public POST endpoint for submitting feedback with validation and rate limiting, admin endpoints for listing and managing feedback status, and full test infrastructure.
 
 ## What Was Built
 
@@ -15,7 +15,11 @@ The Feedback module provides collecting and managing user feedback on generated 
 - `Feedback` DTO namespace with `Submit`, `Detail`, and `List` request/response types
 - `FeedbackModule`, `FeedbackRouter`, and `FeedbackController` following module pattern
 - `POST /api/v1/feedback` submission endpoint with input validation and trimming
-- `FeedbackError` enum with `AbortError` mapping for structured validation errors
+- `GET /api/v1/admin/feedback` admin list endpoint with status filtering and pagination
+- `PATCH /api/v1/admin/feedback/:feedbackId` admin status update endpoint
+- `FeedbackAdminController` and `FeedbackAdminRouter` with `EnsureAdminUserMiddleware`
+- `Feedback.UpdateStatus` DTO namespace with `Request` and `Response` types
+- `FeedbackError` enum with `AbortError` mapping for structured validation errors (including `feedbackNotFound` and `invalidFeedbackStatus`)
 - Rate limiting: 5 requests/hour (production), 50 requests/hour (development)
 - OpenAPI documentation on the route with request/response types and error status codes
 - `TestFeedbackRepository` actor and `FeedbackModel+Mock` for testing
@@ -31,8 +35,10 @@ The Feedback module provides collecting and managing user feedback on generated 
 - `Sources/App/Entities/Feedback/Feedback.swift`: Public DTO types for API contract
 - `Sources/App/Modules/Feedback/Models/Feedback+Model.swift`: Vapor `Content` conformance and model-to-DTO mapping
 - `Sources/App/Modules/Feedback/Controllers/FeedbackController.swift`: Submit endpoint with validation logic
+- `Sources/App/Modules/Feedback/Controllers/FeedbackAdminController.swift`: Admin list and status update endpoints
+- `Sources/App/Modules/Feedback/FeedbackAdminRouter.swift`: Admin route definitions with `EnsureAdminUserMiddleware` and OpenAPI docs
 - `Sources/App/Entities/Errors/FeedbackError.swift`: Validation error enum with identifiers and reasons
-- `Sources/App/Errors/FeedbackError+AbortError.swift`: HTTP status mapping (all validation errors → 400)
+- `Sources/App/Errors/FeedbackError+AbortError.swift`: HTTP status mapping (validation errors → 400, not found → 404)
 
 ### Key Patterns
 
@@ -42,6 +48,8 @@ The Feedback module provides collecting and managing user feedback on generated 
 - **Foreign Key with `.setNull`**: The `rulesSummaryId` foreign key uses `.setNull` on delete so feedback survives if the referenced rule summary is removed.
 - **Input Trimming and Normalization**: Controller trims whitespace from `gameTitle`, `description`, and `userContact` before validation. Empty/whitespace-only `userContact` is normalized to `nil`.
 - **Structured Validation Errors**: `FeedbackError` conforms to `IdentifiableError` with `identifier` (snake_case key) and `reason` (human message), plus `AbortError` for HTTP status mapping.
+- **Admin Controller Pattern**: `FeedbackAdminController` follows the `CacheAdminController` pattern — a separate controller and router with `EnsureAdminUserMiddleware` for admin-only routes. Status updates validate against `FeedbackStatus` raw values and return 400 for invalid values or 404 for missing feedback.
+- **Pagination Clamping in Controller**: The admin list endpoint clamps `page` and `limit` in the controller (`max(1, ...)`, `max(1, min(..., 100))`) to match the repository's safe bounds, preventing out-of-range values before they reach the database layer.
 
 ### Code Examples
 
@@ -83,10 +91,12 @@ try await repository.create(feedback)
 ## How to Use
 
 1. **Submit feedback via API**: `POST /api/v1/feedback` with JSON body containing `rulesSummaryId`, `gameTitle`, `feedbackType`, `description`, and optional `userContact`
-2. Access the repository via `req.repositories.feedback` in controllers or `app.repositories.feedback` at the application level
-3. Create feedback programmatically by constructing a `FeedbackModel` and calling `repository.create(_:)`
-4. Query by status with `findByStatus(_:)` or paginate with `findPaginated(status:page:limit:)`
-5. Map models to DTOs using `Feedback.Detail.Response(from: model)`
+2. **List feedback as admin**: `GET /api/v1/admin/feedback?status=pending&page=1&limit=20` (requires admin JWT)
+3. **Update feedback status as admin**: `PATCH /api/v1/admin/feedback/{id}` with `{ "status": "reviewed" }` (requires admin JWT)
+4. Access the repository via `req.repositories.feedback` in controllers or `app.repositories.feedback` at the application level
+5. Create feedback programmatically by constructing a `FeedbackModel` and calling `repository.create(_:)`
+6. Query by status with `findByStatus(_:)` or paginate with `findPaginated(status:page:limit:)`
+7. Map models to DTOs using `Feedback.Detail.Response(from: model)`
 
 ## Configuration
 
@@ -114,4 +124,5 @@ The module registers automatically via `setupModules()` and `setupServices()` in
 
 - `rulesSummaryId` is `Optional<UUID>` with `.setNull` on delete, allowing feedback to persist independently
 - The `TestFeedbackRepository` is an `actor` providing thread-safe in-memory storage for unit tests
-- Admin list/status endpoints are planned for Story 3.3
+- Admin endpoints require `EnsureAdminUserMiddleware` — non-admin users receive 401 Unauthorized
+- Valid feedback statuses: `pending`, `reviewed`, `resolved` — any other value returns 400 Bad Request
