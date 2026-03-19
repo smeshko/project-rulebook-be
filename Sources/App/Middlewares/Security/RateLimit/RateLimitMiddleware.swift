@@ -212,6 +212,15 @@ struct RateLimitMiddleware: AsyncMiddleware {
             )
         }
 
+        // Feedback submission endpoints - must be before general /api/ catch-all
+        if path.contains("/api/v1/feedback") {
+            return RateLimitInfo(
+                type: .feedback,
+                maxRequests: configuration.feedbackLimit,
+                windowSeconds: configuration.feedbackWindow
+            )
+        }
+
         // Admin endpoints
         if path.contains("/api/admin/") {
             return RateLimitInfo(

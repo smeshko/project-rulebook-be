@@ -102,6 +102,16 @@ enum RateLimitType: String, CaseIterable {
     ///
     /// **Typical Limits**: 30 requests per hour per IP
     case receipt = "receipt"
+
+    /// Feedback submission operations for user-reported rule issues.
+    ///
+    /// **Restrictive Category**
+    ///
+    /// Applied to feedback submission endpoints to prevent spam
+    /// and abuse of the feedback system.
+    ///
+    /// **Typical Limits**: 5 requests per hour per IP
+    case feedback = "feedback"
 }
 
 /// Container for rate limit information specific to an operation type.
