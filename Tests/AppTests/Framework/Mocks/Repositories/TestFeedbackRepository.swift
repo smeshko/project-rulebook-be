@@ -33,14 +33,16 @@ actor TestFeedbackRepository: FeedbackRepository, TestRepository {
     }
 
     func findPaginated(status: FeedbackStatus?, page: Int, limit: Int) async throws -> (items: [FeedbackModel], total: Int) {
+        let safePage = max(1, page)
+        let safeLimit = max(1, min(limit, 100))
         var filtered = feedbacks
         if let status {
             filtered = filtered.filter { $0.status == status }
         }
         let total = filtered.count
         let sorted = filtered.sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
-        let offset = (page - 1) * limit
-        let items = Array(sorted.dropFirst(offset).prefix(limit))
+        let offset = (safePage - 1) * safeLimit
+        let items = Array(sorted.dropFirst(offset).prefix(safeLimit))
         return (items: items, total: total)
     }
 
