@@ -223,12 +223,17 @@ struct AppStoreValidationServiceTests {
 final class MockAppStoreValidationService: AppStoreValidationService, @unchecked Sendable {
     var resultToReturn: AppStoreValidationResult?
     var errorToThrow: AppStoreValidationError?
+    var genericErrorToThrow: (any Error)?
     var verifyCallCount = 0
     var lastSignedTransaction: String?
 
     func verify(signedTransaction: String) async throws -> AppStoreValidationResult {
         verifyCallCount += 1
         lastSignedTransaction = signedTransaction
+
+        if let error = genericErrorToThrow {
+            throw error
+        }
 
         if let error = errorToThrow {
             throw error
@@ -244,6 +249,7 @@ final class MockAppStoreValidationService: AppStoreValidationService, @unchecked
     func reset() {
         resultToReturn = nil
         errorToThrow = nil
+        genericErrorToThrow = nil
         verifyCallCount = 0
         lastSignedTransaction = nil
     }

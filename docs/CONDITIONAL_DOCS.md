@@ -217,3 +217,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new Google Play notification types to the RTDN webhook handler
     - When configuring Google Cloud Pub/Sub push subscription verification for the Receipts module
     - When implementing webhook endpoints that verify via query parameter token authentication
+
+- docs/features/store-api-graceful-degradation.md
+  - Conditions:
+    - When implementing graceful degradation for upstream API outages in the Receipts module
+    - When adding background retry jobs with exponential backoff
+    - When handling pending validation states for receipt transactions
+    - When classifying transient vs. definitive validation errors for iOS/Android stores

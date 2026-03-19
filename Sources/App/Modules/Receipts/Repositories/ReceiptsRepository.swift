@@ -10,6 +10,10 @@ protocol ReceiptsRepository: Repository {
     func markRefunded(transactionId: String, refundedAt: Date) async throws -> Bool
     @discardableResult
     func markRevoked(transactionId: String) async throws -> Bool
+    func findPendingValidations() async throws -> [TransactionModel]
+    func findByReceiptHash(receiptHash: String) async throws -> TransactionModel?
+    func findPendingByReceiptHash(receiptHash: String) async throws -> TransactionModel?
+    func updateStatus(id: UUID, status: TransactionStatus, retryCount: Int?, lastRetryAt: Date?) async throws
 }
 
 struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
@@ -57,6 +61,43 @@ struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
         transaction.status = .revoked
         try await transaction.save(on: database)
         return true
+    }
+
+    func findPendingValidations() async throws -> [TransactionModel] {
+        try await TransactionModel.query(on: database)
+            .filter(\.$status == .pendingValidation)
+            .all()
+    }
+
+    func findByReceiptHash(receiptHash: String) async throws -> TransactionModel? {
+        try await TransactionModel.query(on: database)
+            .filter(\.$receiptHash == receiptHash)
+            .first()
+    }
+
+    func findPendingByReceiptHash(receiptHash: String) async throws -> TransactionModel? {
+        try await TransactionModel.query(on: database)
+            .filter(\.$receiptHash == receiptHash)
+            .filter(\.$status == .pendingValidation)
+            .first()
+    }
+
+    func updateStatus(id: UUID, status: TransactionStatus, retryCount: Int?, lastRetryAt: Date?) async throws {
+        guard let transaction = try await find(id: id) else {
+            return
+        }
+        transaction.status = status
+        if let retryCount {
+            transaction.retryCount = retryCount
+        }
+        if let lastRetryAt {
+            transaction.lastRetryAt = lastRetryAt
+        }
+        // Clear sensitive receipt data when no longer needed for retries
+        if status == .validationFailed || status == .valid {
+            transaction.receiptData = nil
+        }
+        try await transaction.save(on: database)
     }
 }
 
