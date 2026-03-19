@@ -101,10 +101,8 @@ final class PendingValidationJob: @unchecked Sendable {
             // Check for duplicate with the real transaction ID
             if let existing = try await repository.find(transactionId: result.transactionId),
                existing.id != transactionId {
-                // Another transaction with the real ID already exists — clean up this pending record
-                transaction.status = .valid
-                transaction.receiptData = nil
-                try await transaction.save(on: app.db)
+                // Another transaction with the real ID already exists — remove this pending record
+                try await transaction.delete(on: app.db)
             } else {
                 // Update with real transaction ID and final status
                 let finalStatus: TransactionStatus = result.isValid ? .valid : .validationFailed
@@ -242,5 +240,15 @@ final class PendingValidationJob: @unchecked Sendable {
         case .apiError(let code, _):
             return code < 500
         }
+    }
+}
+
+// MARK: - Lifecycle Handler
+
+struct PendingValidationJobLifecycleHandler: LifecycleHandler {
+    let job: PendingValidationJob
+
+    func shutdown(_ app: Application) {
+        job.shutdown()
     }
 }

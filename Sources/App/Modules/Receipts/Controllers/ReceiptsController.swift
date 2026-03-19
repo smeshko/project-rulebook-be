@@ -216,14 +216,25 @@ struct ReceiptsController {
         receiptHash: String,
         receiptPayload: String
     ) async throws -> Response {
-        // Idempotency: check if a pending transaction with same receipt hash already exists
-        if let existing = try await req.repositories.receipts.findPendingByReceiptHash(receiptHash: receiptHash) {
-            let body = Receipts.Validate.Response(
-                success: true,
-                status: "pending",
-                transactionId: existing.transactionId
-            )
-            return try await body.encodeResponse(status: .accepted, for: req)
+        // Check if any transaction with same receipt hash already exists (regardless of status)
+        if let existing = try await req.repositories.receipts.findByReceiptHash(receiptHash: receiptHash) {
+            if existing.status == .pendingValidation {
+                // Idempotent: return existing pending transaction
+                let body = Receipts.Validate.Response(
+                    success: true,
+                    status: "pending",
+                    transactionId: existing.transactionId
+                )
+                return try await body.encodeResponse(status: .accepted, for: req)
+            } else {
+                // Already validated — return as already_processed
+                let body = Receipts.Validate.Response(
+                    success: true,
+                    status: "already_processed",
+                    transactionId: existing.transactionId
+                )
+                return try await body.encodeResponse(status: .ok, for: req)
+            }
         }
 
         let tempTransactionId = UUID().uuidString

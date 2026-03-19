@@ -241,6 +241,8 @@ extension Application {
     self.pendingValidationJob = job
     job.start()
 
+    lifecycle.use(PendingValidationJobLifecycleHandler(job: job))
+
     logger.info("Background jobs started: PendingValidationJob")
   }
 }

@@ -11,6 +11,7 @@ protocol ReceiptsRepository: Repository {
     @discardableResult
     func markRevoked(transactionId: String) async throws -> Bool
     func findPendingValidations() async throws -> [TransactionModel]
+    func findByReceiptHash(receiptHash: String) async throws -> TransactionModel?
     func findPendingByReceiptHash(receiptHash: String) async throws -> TransactionModel?
     func updateStatus(id: UUID, status: TransactionStatus, retryCount: Int?, lastRetryAt: Date?) async throws
 }
@@ -68,6 +69,12 @@ struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
             .all()
     }
 
+    func findByReceiptHash(receiptHash: String) async throws -> TransactionModel? {
+        try await TransactionModel.query(on: database)
+            .filter(\.$receiptHash == receiptHash)
+            .first()
+    }
+
     func findPendingByReceiptHash(receiptHash: String) async throws -> TransactionModel? {
         try await TransactionModel.query(on: database)
             .filter(\.$receiptHash == receiptHash)
@@ -85,6 +92,10 @@ struct DatabaseReceiptsRepository: ReceiptsRepository, DatabaseRepository {
         }
         if let lastRetryAt {
             transaction.lastRetryAt = lastRetryAt
+        }
+        // Clear sensitive receipt data when no longer needed for retries
+        if status == .validationFailed || status == .valid {
+            transaction.receiptData = nil
         }
         try await transaction.save(on: database)
     }
