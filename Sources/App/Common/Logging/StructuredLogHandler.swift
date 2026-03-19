@@ -19,6 +19,11 @@ public struct StructuredLogHandler: LogHandler {
 
     private let label: String
     private let stream: TextOutputStream
+    nonisolated(unsafe) private static let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     public init(label: String, logLevel: Logger.Level = .info) {
         self.label = label
@@ -46,7 +51,7 @@ public struct StructuredLogHandler: LogHandler {
         let mergedMetadata = Self.mergeMetadata(base: baseWithProvider, override: metadata)
 
         var entry: [String: Any] = [
-            "timestamp": ISO8601DateFormatter().string(from: Date()),
+            "timestamp": Self.dateFormatter.string(from: Date()),
             "level": level.rawValue,
             "message": "\(message)",
             "label": label,

@@ -116,7 +116,7 @@ struct GoogleGeminiService: LLMService {
             } catch let error as GeminiError {
                 throw error
             } catch {
-                app.logger.error(
+                logger.error(
                     "Gemini image analysis failed (attempt \(attempt)/\(maxRetries)): \(error)")
                 throw GeminiError.requestFailed(error)
             }
