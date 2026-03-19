@@ -156,7 +156,7 @@ struct FeedbackRepositoryTests {
     // MARK: - Helpers
 
     private func makeModel(
-        rulesSummaryId: UUID = UUID(),
+        rulesSummaryId: UUID? = UUID(),
         gameTitle: String = "Catan",
         feedbackType: FeedbackType = .incorrect,
         description: String = "The setup instructions are wrong",

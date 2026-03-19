@@ -4,7 +4,7 @@ import Foundation
 extension FeedbackModel {
     static func mock(
         id: UUID? = UUID(),
-        rulesSummaryId: UUID = UUID(),
+        rulesSummaryId: UUID? = UUID(),
         gameTitle: String = "Test Game",
         feedbackType: FeedbackType = .incorrect,
         description: String = "Test feedback description",

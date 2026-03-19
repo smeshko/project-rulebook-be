@@ -16,6 +16,9 @@ actor TestFeedbackRepository: FeedbackRepository, TestRepository {
 
     func create(_ model: FeedbackModel) async throws {
         model.id = model.id ?? UUID()
+        if model.createdAt == nil {
+            model.createdAt = Date()
+        }
         feedbacks.append(model)
     }
 

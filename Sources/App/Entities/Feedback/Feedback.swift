@@ -41,7 +41,7 @@ public extension Feedback {
     enum Detail {
         public struct Response: Codable, Equatable, Sendable {
             public let id: UUID
-            public let rulesSummaryId: UUID
+            public let rulesSummaryId: UUID?
             public let gameTitle: String
             public let feedbackType: String
             public let description: String
@@ -51,7 +51,7 @@ public extension Feedback {
 
             public init(
                 id: UUID,
-                rulesSummaryId: UUID,
+                rulesSummaryId: UUID?,
                 gameTitle: String,
                 feedbackType: String,
                 description: String,

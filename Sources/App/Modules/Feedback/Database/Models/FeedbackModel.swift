@@ -8,8 +8,8 @@ final class FeedbackModel: @unchecked Sendable, DatabaseModelInterface {
     @ID()
     var id: UUID?
 
-    @Field(key: FieldKeys.v1.rulesSummaryId)
-    var rulesSummaryId: UUID
+    @OptionalField(key: FieldKeys.v1.rulesSummaryId)
+    var rulesSummaryId: UUID?
 
     @Field(key: FieldKeys.v1.gameTitle)
     var gameTitle: String
@@ -33,7 +33,7 @@ final class FeedbackModel: @unchecked Sendable, DatabaseModelInterface {
 
     init(
         id: UUID? = nil,
-        rulesSummaryId: UUID,
+        rulesSummaryId: UUID?,
         gameTitle: String,
         feedbackType: FeedbackType,
         description: String,

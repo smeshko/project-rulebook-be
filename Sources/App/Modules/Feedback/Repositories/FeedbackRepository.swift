@@ -40,20 +40,23 @@ struct DatabaseFeedbackRepository: FeedbackRepository, DatabaseRepository {
     }
 
     func findPaginated(status: FeedbackStatus?, page: Int, limit: Int) async throws -> (items: [FeedbackModel], total: Int) {
+        let safePage = max(1, page)
+        let safeLimit = max(1, min(limit, 100))
+
         var countQuery = FeedbackModel.query(on: database)
         if let status {
             countQuery = countQuery.filter(\.$status == status)
         }
         let total = try await countQuery.count()
 
-        let offset = (page - 1) * limit
+        let offset = (safePage - 1) * safeLimit
         var itemsQuery = FeedbackModel.query(on: database)
         if let status {
             itemsQuery = itemsQuery.filter(\.$status == status)
         }
         let items = try await itemsQuery
             .sort(\.$createdAt, .descending)
-            .range(offset..<(offset + limit))
+            .range(offset..<(offset + safeLimit))
             .all()
 
         return (items: items, total: total)
