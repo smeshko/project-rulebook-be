@@ -84,18 +84,33 @@ struct ReceiptsController {
                 }
                 transactionId = result.transactionId
             } catch let validationError as AppStoreValidationError {
-                let errorString: String
-                if case .bundleIdMismatch = validationError {
-                    errorString = "invalid_app_identity"
-                } else {
-                    errorString = "\(validationError)"
+                switch validationError {
+                case .configurationError:
+                    throw validationError
+                default:
+                    let errorString: String
+                    if case .bundleIdMismatch = validationError {
+                        errorString = "invalid_app_identity"
+                    } else {
+                        errorString = "\(validationError)"
+                    }
+                    let body = Receipts.Validate.Response(
+                        success: false,
+                        status: "invalid",
+                        error: errorString
+                    )
+                    return try await body.encodeResponse(status: .forbidden, for: req)
                 }
-                let body = Receipts.Validate.Response(
-                    success: false,
-                    status: "invalid",
-                    error: errorString
+            } catch {
+                // Transient error (timeout, connection refused, etc.) — store as pending
+                return try await storePendingValidation(
+                    req: req,
+                    platform: platform,
+                    productId: validateRequest.productId,
+                    creditAmount: creditAmount,
+                    receiptHash: receiptHash,
+                    receiptPayload: receiptPayload
                 )
-                return try await body.encodeResponse(status: .forbidden, for: req)
             }
 
         case .android:
@@ -125,12 +140,37 @@ struct ReceiptsController {
                 }
                 transactionId = result.transactionId
             } catch let validationError as PlayStoreValidationError {
-                let body = Receipts.Validate.Response(
-                    success: false,
-                    status: "invalid",
-                    error: "\(validationError)"
+                switch validationError {
+                case .apiError(let code, _) where code >= 500:
+                    // Transient upstream error — store as pending
+                    return try await storePendingValidation(
+                        req: req,
+                        platform: platform,
+                        productId: validateRequest.productId,
+                        creditAmount: creditAmount,
+                        receiptHash: receiptHash,
+                        receiptPayload: receiptPayload
+                    )
+                case .configurationError:
+                    throw validationError
+                default:
+                    let body = Receipts.Validate.Response(
+                        success: false,
+                        status: "invalid",
+                        error: "\(validationError)"
+                    )
+                    return try await body.encodeResponse(status: .forbidden, for: req)
+                }
+            } catch {
+                // Transient error (timeout, connection refused, etc.) — store as pending
+                return try await storePendingValidation(
+                    req: req,
+                    platform: platform,
+                    productId: validateRequest.productId,
+                    creditAmount: creditAmount,
+                    receiptHash: receiptHash,
+                    receiptPayload: receiptPayload
                 )
-                return try await body.encodeResponse(status: .forbidden, for: req)
             }
         }
 
@@ -166,5 +206,43 @@ struct ReceiptsController {
 
     private func computeReceiptHash(_ payload: String) -> String {
         SHA256.hash(payload)
+    }
+
+    private func storePendingValidation(
+        req: Request,
+        platform: TransactionPlatform,
+        productId: String,
+        creditAmount: Int,
+        receiptHash: String,
+        receiptPayload: String
+    ) async throws -> Response {
+        // Idempotency: check if a pending transaction with same receipt hash already exists
+        if let existing = try await req.repositories.receipts.findPendingByReceiptHash(receiptHash: receiptHash) {
+            let body = Receipts.Validate.Response(
+                success: true,
+                status: "pending",
+                transactionId: existing.transactionId
+            )
+            return try await body.encodeResponse(status: .accepted, for: req)
+        }
+
+        let tempTransactionId = UUID().uuidString
+        let transaction = TransactionModel(
+            transactionId: tempTransactionId,
+            platform: platform,
+            productId: productId,
+            creditAmount: creditAmount,
+            receiptHash: receiptHash,
+            status: .pendingValidation,
+            receiptData: receiptPayload
+        )
+        try await req.repositories.receipts.create(transaction)
+
+        let body = Receipts.Validate.Response(
+            success: true,
+            status: "pending",
+            transactionId: tempTransactionId
+        )
+        return try await body.encodeResponse(status: .accepted, for: req)
     }
 }
