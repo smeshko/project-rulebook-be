@@ -39,9 +39,11 @@ struct HealthController {
 
     private func checkDatabase(_ req: Request) async -> String {
         do {
-            if let sqlDB = req.db as? any SQLDatabase {
-                _ = try await sqlDB.raw("SELECT 1").first()
+            guard let sqlDB = req.db as? any SQLDatabase else {
+                req.logger.warning("Database health check skipped: req.db is not an SQLDatabase")
+                return "error"
             }
+            _ = try await sqlDB.raw("SELECT 1").first()
             return "ok"
         } catch {
             req.logger.error("Database health check failed", metadata: [

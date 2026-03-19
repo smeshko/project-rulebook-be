@@ -15,5 +15,6 @@ struct HealthRouter: RouteCollection {
                 description: "Health check endpoint for monitoring and deployment systems. Returns service health status with database and Redis connectivity checks.",
                 response: .type(Health.Check.Response.self)
             )
+            .response(statusCode: .serviceUnavailable, description: "One or more health checks failed")
     }
 }
