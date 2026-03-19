@@ -82,6 +82,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
     private let passwordTokenRepository: TestPasswordTokenRepository
     private let generatedRuleRepository: TestGeneratedRuleRepository
     private let remoteConfigRepository: TestRemoteConfigRepository
+    private let feedbackRepository: TestFeedbackRepository
 
     // MARK: - Mock Services
     private let fakeLLMService: FakeLLMService
@@ -110,6 +111,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         self.passwordTokenRepository = TestPasswordTokenRepository()
         self.generatedRuleRepository = TestGeneratedRuleRepository()
         self.remoteConfigRepository = TestRemoteConfigRepository()
+        self.feedbackRepository = TestFeedbackRepository()
 
         // Create fresh service instances
         self.fakeLLMService = FakeLLMService(app: app)
@@ -153,6 +155,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.passwordTokenRepository = self.passwordTokenRepository
         app.generatedRuleRepository = self.generatedRuleRepository
         app.remoteConfigRepository = self.remoteConfigRepository
+        app.feedbackRepository = self.feedbackRepository
 
         // Assign mock services directly to Application storage
         app.emailService = FakeEmailProvider()
@@ -229,6 +232,11 @@ final class IsolatedTestWorld: @unchecked Sendable {
         remoteConfigRepository
     }
 
+    /// Access to the isolated feedback repository.
+    var feedbacks: TestFeedbackRepository {
+        feedbackRepository
+    }
+
     // MARK: - Public Access to Mock Services
     
     /// Access to the isolated LLM service for configuring AI responses.
@@ -271,6 +279,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         await passwordTokenRepository.reset()
         await generatedRuleRepository.reset()
         await remoteConfigRepository.reset()
+        await feedbackRepository.reset()
 
         // Reset services
         fakeLLMService.reset()
