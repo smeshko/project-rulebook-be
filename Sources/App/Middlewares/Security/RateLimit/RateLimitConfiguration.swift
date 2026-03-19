@@ -144,6 +144,20 @@ struct RateLimitConfiguration {
     /// Time window for receipt validation rate limiting in seconds.
     let receiptWindow: Int
 
+    // MARK: - Feedback Submission Limits
+
+    /// Maximum number of feedback submission requests allowed within the time window per IP.
+    ///
+    /// Feedback submission operations protect against spam and abuse
+    /// of the user feedback system.
+    ///
+    /// **Production**: 5 requests/hour
+    /// **Development**: 50 requests/hour
+    let feedbackLimit: Int
+
+    /// Time window for feedback submission rate limiting in seconds.
+    let feedbackWindow: Int
+
     /// Default rate limiting configuration suitable for most deployments.
     ///
     /// Provides balanced limits that protect against abuse while supporting
@@ -181,9 +195,13 @@ struct RateLimitConfiguration {
 
         // Receipt validation: Restrictive
         receiptLimit: 30,
-        receiptWindow: 3600 // 1 hour
+        receiptWindow: 3600, // 1 hour
+
+        // Feedback submission: Restrictive
+        feedbackLimit: 5,
+        feedbackWindow: 3600 // 1 hour
     )
-    
+
     /// Production rate limiting configuration optimized for cost control and security.
     ///
     /// Implements conservative limits designed for production environments where
@@ -219,7 +237,9 @@ struct RateLimitConfiguration {
             waitlistLimit: 10,
             waitlistWindow: 3600,
             receiptLimit: 30,
-            receiptWindow: 3600
+            receiptWindow: 3600,
+            feedbackLimit: 5,
+            feedbackWindow: 3600
         )
     }
 
@@ -258,7 +278,9 @@ struct RateLimitConfiguration {
             waitlistLimit: 100,
             waitlistWindow: 3600,
             receiptLimit: 300,
-            receiptWindow: 3600
+            receiptWindow: 3600,
+            feedbackLimit: 50,
+            feedbackWindow: 3600
         )
     }
 }

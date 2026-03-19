@@ -230,4 +230,6 @@ This guide helps you find relevant documentation based on what you're working on
     - When implementing feedback collection or submission in the Feedback module
     - When adding database enum fields with Fluent @Enum property wrappers
     - When implementing paginated repository queries with optional status filtering
-    - When extending the Feedback module with new endpoints (Stories 3.2/3.3)
+    - When adding validation logic with structured error responses in the Feedback module
+    - When configuring rate limiting for the feedback submission endpoint
+    - When implementing admin feedback management endpoints (Story 3.3)

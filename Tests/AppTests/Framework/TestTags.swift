@@ -72,6 +72,9 @@ extension Tag {
     /// Receipts and in-app purchase related tests.
     @Tag static var receipts: Self
 
+    /// Feedback submission related tests.
+    @Tag static var feedback: Self
+
     // MARK: Test Type Tags
 
     /// Integration tests - full application stack with HTTP.
