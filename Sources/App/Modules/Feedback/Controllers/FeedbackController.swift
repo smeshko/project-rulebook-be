@@ -28,13 +28,17 @@ struct FeedbackController {
             throw FeedbackError.invalidFeedbackType
         }
 
+        // Normalize optional userContact
+        let trimmedContact = input.userContact?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let userContact: String? = (trimmedContact?.isEmpty == false) ? trimmedContact : nil
+
         // Create model
         let model = FeedbackModel(
             rulesSummaryId: input.rulesSummaryId,
             gameTitle: trimmedGameTitle,
             feedbackType: feedbackType,
             description: trimmedDescription,
-            userContact: input.userContact,
+            userContact: userContact,
             status: .pending
         )
 
@@ -46,7 +50,7 @@ struct FeedbackController {
             "feedbackId": .string(feedbackId.uuidString),
             "gameTitle": .string(trimmedGameTitle),
             "feedbackType": .string(feedbackType.rawValue),
-            "hasContact": .string(input.userContact != nil ? "true" : "false")
+            "hasContact": .string(userContact != nil ? "true" : "false")
         ])
 
         return Feedback.Submit.Response(

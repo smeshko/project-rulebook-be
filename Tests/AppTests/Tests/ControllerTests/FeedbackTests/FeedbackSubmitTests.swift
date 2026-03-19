@@ -111,6 +111,25 @@ struct FeedbackSubmitTests {
         })
     }
 
+    @Test("Submission fails with gameTitle exceeding 500 characters", .tags(.p1Core, .feedback, .integration))
+    func submitFailsWithGameTitleTooLong() async throws {
+        await testWorld.resetAll()
+
+        let longGameTitle = String(repeating: "a", count: 501)
+        let request = Feedback.Submit.Request(
+            rulesSummaryId: UUID(),
+            gameTitle: longGameTitle,
+            feedbackType: "incorrect",
+            description: "Some description"
+        )
+
+        try await app.test(.POST, submitPath, beforeRequest: { req in
+            try req.content.encode(request)
+        }, afterResponse: { res in
+            expectResponseError(res, FeedbackError.gameTitleTooLong)
+        })
+    }
+
     // MARK: - Validation: Description
 
     @Test("Submission fails with empty description", .tags(.p1Core, .feedback, .integration))
