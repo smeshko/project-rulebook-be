@@ -175,6 +175,8 @@ final class MockRateLimitService: @unchecked Sendable {
             return configuration.waitlistLimit
         case .receipt:
             return configuration.receiptLimit
+        case .feedback:
+            return configuration.feedbackLimit
         }
     }
 
@@ -194,6 +196,8 @@ final class MockRateLimitService: @unchecked Sendable {
             return configuration.waitlistWindow
         case .receipt:
             return configuration.receiptWindow
+        case .feedback:
+            return configuration.feedbackWindow
         }
     }
 }
