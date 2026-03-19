@@ -32,6 +32,15 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
     @OptionalField(key: FieldKeys.v3.refundedAt)
     var refundedAt: Date?
 
+    @OptionalField(key: FieldKeys.v4.receiptData)
+    var receiptData: String?
+
+    @Field(key: FieldKeys.v4.retryCount)
+    var retryCount: Int
+
+    @OptionalField(key: FieldKeys.v4.lastRetryAt)
+    var lastRetryAt: Date?
+
     init() {}
 
     init(
@@ -42,7 +51,10 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
         creditAmount: Int,
         receiptHash: String,
         status: TransactionStatus = .valid,
-        refundedAt: Date? = nil
+        refundedAt: Date? = nil,
+        receiptData: String? = nil,
+        retryCount: Int = 0,
+        lastRetryAt: Date? = nil
     ) {
         self.id = id
         self.transactionId = transactionId
@@ -52,6 +64,9 @@ final class TransactionModel: @unchecked Sendable, DatabaseModelInterface {
         self.receiptHash = receiptHash
         self.status = status
         self.refundedAt = refundedAt
+        self.receiptData = receiptData
+        self.retryCount = retryCount
+        self.lastRetryAt = lastRetryAt
     }
 }
 
@@ -71,6 +86,11 @@ extension TransactionModel {
             static var status: FieldKey { "status" }
             static var refundedAt: FieldKey { "refunded_at" }
         }
+        struct v4 {
+            static var receiptData: FieldKey { "receipt_data" }
+            static var retryCount: FieldKey { "retry_count" }
+            static var lastRetryAt: FieldKey { "last_retry_at" }
+        }
     }
 }
 
@@ -83,4 +103,6 @@ public enum TransactionStatus: String, Codable, CaseIterable, Sendable {
     case valid
     case refunded
     case revoked
+    case pendingValidation = "pending_validation"
+    case validationFailed = "validation_failed"
 }
