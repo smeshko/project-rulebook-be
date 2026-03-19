@@ -1,17 +1,17 @@
 ## [Unreleased] - 2026-03-19
 
 ### Added
-- Register POST route in feedback router with OpenAPI documentation
-- Implement feedback submission controller with input validation and trimming
-- Create FeedbackError enum with abort error mapping for structured validation errors
-- Add feedback rate limit type and configuration (5 req/hour production, 50 req/hour development)
+- Admin feedback DTOs for update status operations
+- Feedback admin controller with list and update status endpoints
+- Feedback admin router with authentication middleware and OpenAPI docs
+- Register admin router in feedback module
 
 ### Fixed
-- Trim userContact and normalize empty values to nil
-- Add gameTitle max length validation (500 chars)
+- Clamp pagination params in controller to match repository bounds
 
 ### Documentation
-- Update feedback module docs with submission endpoint details
+- Update feedback module docs with admin endpoints
 
 ### Other
-- Add 10 comprehensive feedback submission integration tests
+- Add admin feedback list endpoint tests
+- Add admin feedback update status endpoint tests

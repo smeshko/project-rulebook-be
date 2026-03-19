@@ -6,6 +6,7 @@ extension Feedback.Submit.Request: Content {}
 extension Feedback.Submit.Response: Content {}
 extension Feedback.Detail.Response: Content {}
 extension Feedback.List.Response: Content {}
+extension Feedback.UpdateStatus.Request: Content {}
 
 // MARK: - Model to DTO Conversion
 

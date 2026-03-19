@@ -71,6 +71,18 @@ public extension Feedback {
         }
     }
 
+    enum UpdateStatus {
+        public struct Request: Codable, Equatable, Sendable {
+            public let status: String
+
+            public init(status: String) {
+                self.status = status
+            }
+        }
+
+        public typealias Response = Feedback.Detail.Response
+    }
+
     enum List {
         public struct Response: Codable, Equatable, Sendable {
             public let items: [Feedback.Detail.Response]
