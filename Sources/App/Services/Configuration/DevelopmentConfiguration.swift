@@ -108,7 +108,8 @@ struct DevelopmentConfiguration: ConfigurationService {
       GooglePlayConfig(
         serviceAccountEmail: Environment.get("GOOGLE_SERVICE_ACCOUNT_EMAIL") ?? "dev@dev-project.iam.gserviceaccount.com",
         privateKey: Environment.get("GOOGLE_PRIVATE_KEY") ?? "dev_private_key",
-        packageName: Environment.get("GOOGLE_PACKAGE_NAME") ?? "com.dev.app"
+        packageName: Environment.get("GOOGLE_PACKAGE_NAME") ?? "com.dev.app",
+        pubsubVerificationToken: Environment.get("GOOGLE_PUBSUB_VERIFICATION_TOKEN") ?? "dev_pubsub_token"
       )
     }
   }

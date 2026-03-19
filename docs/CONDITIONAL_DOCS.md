@@ -209,3 +209,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new Apple notification types to the webhook handler
     - When troubleshooting JWS signature verification for Apple server-to-server notifications
     - When implementing webhook endpoints that must always return HTTP 200
+
+- docs/features/google-play-notifications.md
+  - Conditions:
+    - When implementing or modifying Google Play Real-Time Developer Notifications in the Receipts module
+    - When handling Android purchase lifecycle events (refunds, cancellations) via Cloud Pub/Sub
+    - When adding new Google Play notification types to the RTDN webhook handler
+    - When configuring Google Cloud Pub/Sub push subscription verification for the Receipts module
+    - When implementing webhook endpoints that verify via query parameter token authentication

@@ -102,7 +102,8 @@ struct TestingConfiguration: ConfigurationService {
       GooglePlayConfig(
         serviceAccountEmail: "test@test-project.iam.gserviceaccount.com",
         privateKey: "test_private_key",
-        packageName: "com.test.app"
+        packageName: "com.test.app",
+        pubsubVerificationToken: "test_pubsub_token"
       )
     }
   }

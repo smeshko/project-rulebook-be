@@ -1,19 +1,17 @@
-## [Unreleased] - 2026-03-18
+## [Unreleased] - 2026-03-19
 
 ### Added
-- Register Apple notification webhook route
-- Create AppleNotificationsController
-- Create AppleNotificationService for JWS verification
-- Add markRefunded and markRevoked repository methods
-- Create database migration v3 for transaction status
-- Add TransactionStatus enum and new fields to TransactionModel
+- Add pubsub verification token to Google Play config
+- Create Google notification service for Pub/Sub RTDN decoding and voided purchase verification
+- Create Google notifications controller with token verification and notification routing
+- Register Google notification service and route (`POST /api/v1/notifications/google`)
 
 ### Fixed
-- Handle unknown Apple notification types gracefully
-- Fix @Enum/string mismatch and silent missing-transaction handling
-
-### Other
-- Add AppleNotificationsController integration tests
+- Add 401 cache invalidation, remove unused isVoided property
+- Remove extra blank line from enum cleanup
 
 ### Documentation
-- Add Apple Server Notifications V2 feature documentation
+- Add feature documentation for Google Play RTDN notifications
+
+### Other
+- Add Google notifications controller tests (11 test cases)
