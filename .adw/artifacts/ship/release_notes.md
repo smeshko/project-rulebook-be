@@ -1,17 +1,19 @@
 ## [Unreleased] - 2026-03-19
 
 ### Added
-- Add pubsub verification token to Google Play config
-- Create Google notification service for Pub/Sub RTDN decoding and voided purchase verification
-- Create Google notifications controller with token verification and notification routing
-- Register Google notification service and route (`POST /api/v1/notifications/google`)
+- Extend TransactionModel with pending validation fields and v4 migration
+- Add pending validation repository queries (`findPendingValidations`, `findPendingByReceiptHash`, `updateStatus`)
+- Handle store API downtime with 202 pending response for transient upstream errors
+- Create PendingValidationJob for background retry with exponential backoff (5min, 20min, 60min)
+- Register PendingValidationJob in application setup with LifecycleHandler
 
 ### Fixed
-- Add 401 cache invalidation, remove unused isVoided property
-- Remove extra blank line from enum cleanup
+- Fix job retention, retry logic, and data cleanup (review cycle 1)
+- Receipt dedup, job lifecycle, and data cleanup (review cycle 2)
+
+### Testing
+- Add graceful degradation tests and fix v4 migration for SQLite compatibility
+- 10 integration/unit tests covering timeout-to-202, pending storage, dedup, definitive errors-to-403, repository queries, backoff validation
 
 ### Documentation
-- Add feature documentation for Google Play RTDN notifications
-
-### Other
-- Add Google notifications controller tests (11 test cases)
+- Add feature doc for store API graceful degradation
