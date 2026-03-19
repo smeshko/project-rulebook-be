@@ -12,7 +12,14 @@ struct FeedbackRouter: RouteCollection {
             .grouped("feedback")
             .groupedOpenAPI(tags: .init(name: "Feedback", description: "User feedback on generated rules"))
 
-        // Route bindings will be added in Story 3.2 (submission) and Story 3.3 (admin)
-        _ = api
+        api
+            .post(use: controller.submit)
+            .openAPI(
+                description: "Submit feedback about incorrect or incomplete rules. No authentication required.",
+                body: .type(Feedback.Submit.Request.self),
+                response: .type(Feedback.Submit.Response.self)
+            )
+            .response(statusCode: .badRequest, description: "Validation error (missing fields, invalid type, or exceeds length limits)")
+            .response(statusCode: .tooManyRequests, description: "Rate limit exceeded (5 requests per hour)")
     }
 }
