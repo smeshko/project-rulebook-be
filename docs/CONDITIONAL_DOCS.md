@@ -233,3 +233,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding validation logic with structured error responses in the Feedback module
     - When configuring rate limiting for the feedback submission endpoint
     - When implementing admin feedback management endpoints (Story 3.3)
+
+- docs/features/health-check-endpoint.md
+  - Conditions:
+    - When implementing health check or readiness probes for the Health module
+    - When adding infrastructure monitoring endpoints outside the `/api/v1` route group
+    - When probing database connectivity via SQLKit raw queries in health checks
+    - When probing Redis connectivity through the CacheService abstraction layer
+    - When returning custom HTTP status codes from Vapor controllers using Response instead of Content
