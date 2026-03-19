@@ -37,8 +37,15 @@ final class RedisAICacheService: AICacheServiceInterface {
     // MARK: - Service Pattern Method
     
     func `for`(_ request: Request) -> AICacheServiceInterface {
+        // Pass request-scoped logger to the underlying cache service for correlation ID propagation
+        let requestScopedCache: CacheService
+        if let redisCacheService = cacheService as? RedisCacheService {
+            requestScopedCache = redisCacheService.withLogger(request.logger)
+        } else {
+            requestScopedCache = cacheService
+        }
         return RedisAICacheService(
-            cacheService: cacheService,
+            cacheService: requestScopedCache,
             keyGenerator: keyGenerator,
             logger: request.logger
         )
