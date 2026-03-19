@@ -75,6 +75,9 @@ extension Tag {
     /// Feedback submission related tests.
     @Tag static var feedback: Self
 
+    /// Health check and infrastructure monitoring tests.
+    @Tag static var health: Self
+
     // MARK: Test Type Tags
 
     /// Integration tests - full application stack with HTTP.
