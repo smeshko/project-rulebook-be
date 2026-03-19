@@ -241,3 +241,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When probing database connectivity via SQLKit raw queries in health checks
     - When probing Redis connectivity through the CacheService abstraction layer
     - When returning custom HTTP status codes from Vapor controllers using Response instead of Content
+
+- docs/features/structured-logging-correlation-ids.md
+  - Conditions:
+    - When implementing structured logging or modifying log output format in the StructuredLogHandler
+    - When propagating correlation IDs through new services via the request-scoped logger pattern
+    - When adding new middleware that needs to interact with correlation ID lifecycle
+    - When configuring environment-specific logging behavior in entrypoint.swift
+    - When debugging request tracing across LLM or cache service calls

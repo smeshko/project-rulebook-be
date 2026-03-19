@@ -9,8 +9,8 @@ public final class RedisCacheService: CacheService, @unchecked Sendable {
     
     private let redis: RedisClient
     private let configuration: RedisConfig
-    private let logger: Logger
-    
+    private var logger: Logger
+
     public init(
         redis: RedisClient,
         configuration: RedisConfig,
@@ -19,6 +19,12 @@ public final class RedisCacheService: CacheService, @unchecked Sendable {
         self.redis = redis
         self.configuration = configuration
         self.logger = logger
+    }
+
+    /// Returns a copy of this service that uses the given request-scoped logger,
+    /// enabling correlation ID propagation through cache operations.
+    public func withLogger(_ logger: Logger) -> RedisCacheService {
+        RedisCacheService(redis: redis, configuration: configuration, logger: logger)
     }
     
     // MARK: - CacheService Implementation

@@ -39,20 +39,21 @@ public struct CorrelationIDMiddleware: AsyncMiddleware {
     
     public func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
         // Try to extract existing correlation ID from headers
-        let correlationID = extractCorrelationID(from: request) ?? generateCorrelationID(from: request)
-        
+        let existingID = extractCorrelationID(from: request)
+        let correlationID = existingID ?? generateCorrelationID(from: request)
+
         // Store in request storage for access throughout the request lifecycle
         request.storage[CorrelationIDKey.self] = correlationID
-        
+
         // Add to logger metadata for structured logging
         request.logger[metadataKey: "correlation_id"] = .string(correlationID)
-        
+
         // Log request start with correlation ID
         request.logger.info("Request started", metadata: [
             "method": .string(request.method.rawValue),
             "path": .string(request.url.path),
             "correlation_id": .string(correlationID),
-            "has_existing_id": .string(extractCorrelationID(from: request) != nil ? "true" : "false")
+            "has_existing_id": .string(existingID != nil ? "true" : "false")
         ])
         
         do {
