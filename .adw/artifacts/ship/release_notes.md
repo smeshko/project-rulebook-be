@@ -1,17 +1,17 @@
 ## [Unreleased] - 2026-03-19
 
 ### Added
-- Admin feedback DTOs for update status operations
-- Feedback admin controller with list and update status endpoints
-- Feedback admin router with authentication middleware and OpenAPI docs
-- Register admin router in feedback module
+- Add health module following ModuleInterface pattern
+- Add health router at root /health path
+- Add health controller with database and redis probes
+- Add health check response DTO
+- Register health module and remove old basic route
 
 ### Fixed
-- Clamp pagination params in controller to match repository bounds
+- Improve health check robustness
 
 ### Documentation
-- Update feedback module docs with admin endpoints
+- Add feature documentation for health check endpoint
 
 ### Other
-- Add admin feedback list endpoint tests
-- Add admin feedback update status endpoint tests
+- Add health check endpoint integration tests
