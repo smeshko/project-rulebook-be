@@ -28,8 +28,10 @@ struct Entrypoint {
         // Use structured JSON logging in production/staging for log aggregation,
         // keep default text format in development for readability
         if env.name == "production" || env.name == "staging" {
+            let logLevel: Logger.Level = Environment.get("LOG_LEVEL")
+                .flatMap { Logger.Level(rawValue: $0) } ?? .info
             LoggingSystem.bootstrap { label in
-                StructuredLogHandler(label: label)
+                StructuredLogHandler(label: label, logLevel: logLevel)
             }
         } else {
             try LoggingSystem.bootstrap(from: &env)

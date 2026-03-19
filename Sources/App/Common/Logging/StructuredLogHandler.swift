@@ -40,8 +40,10 @@ public struct StructuredLogHandler: LogHandler {
         function: String,
         line: UInt
     ) {
-        // Merge logger-level metadata with per-message metadata
-        let mergedMetadata = Self.mergeMetadata(base: self.metadata, override: metadata)
+        // Merge logger-level metadata, provider metadata, and per-message metadata
+        let providerMetadata = self.metadataProvider?.get() ?? [:]
+        let baseWithProvider = Self.mergeMetadata(base: self.metadata, override: providerMetadata)
+        let mergedMetadata = Self.mergeMetadata(base: baseWithProvider, override: metadata)
 
         var entry: [String: Any] = [
             "timestamp": ISO8601DateFormatter().string(from: Date()),

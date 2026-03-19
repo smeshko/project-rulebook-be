@@ -69,6 +69,20 @@ struct CorrelationIDTests {
         )
     }
 
+    @Test("X-B3-TraceId header is accepted as correlation ID", .tags(.p1Core, .integration))
+    func acceptsB3TraceIDHeader() async throws {
+        let testID = "b3-trace-id-fghij"
+        try await app.test(
+            .GET, "health",
+            headers: ["X-B3-TraceId": testID],
+            afterResponse: { res async throws in
+                let responseCorrelationID = res.headers.first(name: "X-Correlation-ID")
+                #expect(responseCorrelationID == testID,
+                    "X-B3-TraceId should be used as correlation ID")
+            }
+        )
+    }
+
     @Test("X-Correlation-ID takes priority over X-Request-ID", .tags(.p1Core, .integration))
     func correlationIDHeaderPriority() async throws {
         let primaryID = "primary-correlation-id"
