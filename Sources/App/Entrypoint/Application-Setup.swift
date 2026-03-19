@@ -81,6 +81,7 @@ extension Application {
 
   func setupModules() throws {
     let modules: [ModuleInterface] = [
+      HealthModule(),
       UserModule(),
       AuthModule(),
       FrontendModule(),
