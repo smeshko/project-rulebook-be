@@ -233,4 +233,13 @@ extension Application {
 
     logger.info("Services initialized successfully")
   }
+
+  func setupBackgroundJobs() {
+    guard environment != .testing else { return }
+
+    let pendingValidationJob = PendingValidationJob(app: self)
+    pendingValidationJob.start()
+
+    logger.info("Background jobs started: PendingValidationJob")
+  }
 }

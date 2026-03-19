@@ -29,4 +29,6 @@ public func configure(_ app: Application) throws {
     .response(statusCode: .ok, body: .type([String: String].self))
 
     try app.autoMigrate().wait()
+
+    app.setupBackgroundJobs()
 }
