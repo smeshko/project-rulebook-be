@@ -89,6 +89,7 @@ extension Application {
       WaitlistModule(),
       RemoteConfigModule(),
       ReceiptsModule(),
+      FeedbackModule(),
     ]
 
     for module in modules {
@@ -196,6 +197,7 @@ extension Application {
     waitlistRepository = DatabaseWaitlistRepository(database: db)
     remoteConfigRepository = DatabaseRemoteConfigRepository(database: db)
     receiptsRepository = DatabaseReceiptsRepository(database: db)
+    feedbackRepository = DatabaseFeedbackRepository(database: db)
 
     // Initialize foundation services (no dependencies)
     randomGeneratorService = RealRandomGeneratorService(app: self)

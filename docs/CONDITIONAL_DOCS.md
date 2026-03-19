@@ -224,3 +224,10 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding background retry jobs with exponential backoff
     - When handling pending validation states for receipt transactions
     - When classifying transient vs. definitive validation errors for iOS/Android stores
+
+- docs/features/feedback-module.md
+  - Conditions:
+    - When implementing feedback collection or submission in the Feedback module
+    - When adding database enum fields with Fluent @Enum property wrappers
+    - When implementing paginated repository queries with optional status filtering
+    - When extending the Feedback module with new endpoints (Stories 3.2/3.3)

@@ -1,19 +1,22 @@
 ## [Unreleased] - 2026-03-19
 
 ### Added
-- Extend TransactionModel with pending validation fields and v4 migration
-- Add pending validation repository queries (`findPendingValidations`, `findPendingByReceiptHash`, `updateStatus`)
-- Handle store API downtime with 202 pending response for transient upstream errors
-- Create PendingValidationJob for background retry with exponential backoff (5min, 20min, 60min)
-- Register PendingValidationJob in application setup with LifecycleHandler
+- Create FeedbackModel database entity with FeedbackType and FeedbackStatus enums
+- Create FeedbackMigrations with PostgreSQL enum types and foreign key to generated_rules
+- Create FeedbackRepository protocol and DatabaseFeedbackRepository with CRUD, status filtering, and paginated queries
+- Create Feedback entity DTOs (Submit.Request/Response, Detail.Response, List.Response)
+- Add Feedback+Model content extensions with model-to-DTO mapping
+- Create FeedbackController stub for module pattern compliance
+- Create FeedbackRouter and FeedbackModule with /api/v1/feedback route group
+- Register FeedbackModule and DatabaseFeedbackRepository in application setup
 
 ### Fixed
-- Fix job retention, retry logic, and data cleanup (review cycle 1)
-- Receipt dedup, job lifecycle, and data cleanup (review cycle 2)
-
-### Testing
-- Add graceful degradation tests and fix v4 migration for SQLite compatibility
-- 10 integration/unit tests covering timeout-to-202, pending storage, dedup, definitive errors-to-403, repository queries, backoff validation
+- Address code review findings
+- Align test mock pagination with production clamping
 
 ### Documentation
-- Add feature doc for store API graceful degradation
+- Add Feedback module feature documentation
+
+### Other
+- Create test infrastructure (TestFeedbackRepository actor, FeedbackModel+Mock factory, IsolatedTestWorld integration)
+- Add 6 FeedbackRepository integration tests (CRUD round-trip, status filtering, pagination, count, migration verification)

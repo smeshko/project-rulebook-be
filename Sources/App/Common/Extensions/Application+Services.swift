@@ -37,6 +37,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var waitlistRepository: (any WaitlistRepository)?
     var remoteConfigRepository: (any RemoteConfigRepository)?
     var receiptsRepository: (any ReceiptsRepository)?
+    var feedbackRepository: (any FeedbackRepository)?
 
     init() {}
 }
@@ -190,5 +191,10 @@ extension Application {
     var receiptsRepository: any ReceiptsRepository {
         get { serviceStorage.receiptsRepository! }
         set { serviceStorage.receiptsRepository = newValue }
+    }
+
+    var feedbackRepository: any FeedbackRepository {
+        get { serviceStorage.feedbackRepository! }
+        set { serviceStorage.feedbackRepository = newValue }
     }
 }
