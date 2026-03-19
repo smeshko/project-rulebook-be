@@ -708,4 +708,253 @@ struct ReceiptsControllerTests {
 
         #expect(stored?.receiptHash == expectedHash)
     }
+
+    // MARK: - Graceful Degradation Tests (Store API Downtime)
+
+    @Test("iOS API timeout returns 202 Accepted with pending status", .tags(.p0Critical, .integration))
+    func iosTimeoutReturns202Pending() async throws {
+        mockAppStore.genericErrorToThrow = URLError(.timedOut)
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "timeout-receipt-data",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == true)
+                #expect(body.status == "pending")
+                #expect(body.transactionId != nil)
+                #expect(body.error == nil)
+            }
+        }
+    }
+
+    @Test("Android API 5xx returns 202 Accepted with pending status", .tags(.p0Critical, .integration))
+    func android5xxReturns202Pending() async throws {
+        mockPlayStore.errorToThrow = .apiError(500, "Internal Server Error")
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "timeout-purchase-token",
+            productId: "credits_1",
+            packageName: "com.test.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == true)
+                #expect(body.status == "pending")
+                #expect(body.transactionId != nil)
+                #expect(body.error == nil)
+            }
+        }
+    }
+
+    @Test("Pending transaction is stored with correct fields", .tags(.p0Critical, .integration))
+    func pendingTransactionStoredCorrectly() async throws {
+        mockAppStore.genericErrorToThrow = URLError(.timedOut)
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "pending-store-receipt",
+            productId: "credits_3"
+        )
+
+        var pendingTransactionId: String?
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                pendingTransactionId = body.transactionId
+            }
+        }
+
+        // Verify the stored transaction
+        guard let txnId = pendingTransactionId else {
+            Issue.record("No transactionId returned")
+            return
+        }
+
+        let stored = try await TransactionModel.query(on: app.db)
+            .filter(\.$transactionId == txnId)
+            .first()
+
+        #expect(stored != nil)
+        #expect(stored?.status == .pendingValidation)
+        #expect(stored?.receiptData == "pending-store-receipt")
+        #expect(stored?.retryCount == 0)
+        #expect(stored?.lastRetryAt == nil)
+        #expect(stored?.platform == .ios)
+        #expect(stored?.productId == "credits_3")
+        #expect(stored?.creditAmount == 3)
+    }
+
+    @Test("Duplicate pending request returns existing pending transaction ID", .tags(.p0Critical, .integration))
+    func duplicatePendingReturnsExistingId() async throws {
+        mockAppStore.genericErrorToThrow = URLError(.cannotConnectToHost)
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "duplicate-pending-receipt",
+            productId: "credits_1"
+        )
+
+        // First request — creates a pending transaction
+        var firstTransactionId: String?
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                firstTransactionId = body.transactionId
+            }
+        }
+
+        // Second request with same receipt — should return same pending ID
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.transactionId == firstTransactionId)
+            }
+        }
+    }
+
+    @Test("iOS invalid signature still returns 403, not 202", .tags(.p0Critical, .integration))
+    func iosInvalidSignatureStillReturns403() async throws {
+        mockAppStore.errorToThrow = .invalidSignature
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "ios",
+            receiptData: "invalid-sig-receipt",
+            productId: "credits_1"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+            }
+        }
+    }
+
+    @Test("Android invalid token still returns 403, not 202", .tags(.p0Critical, .integration))
+    func androidInvalidTokenStillReturns403() async throws {
+        mockPlayStore.errorToThrow = .invalidToken
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "invalid-token-data",
+            productId: "credits_1",
+            packageName: "com.test.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+            }
+        }
+    }
+
+    @Test("Android generic timeout returns 202 Accepted", .tags(.p0Critical, .integration))
+    func androidGenericTimeoutReturns202() async throws {
+        mockPlayStore.genericErrorToThrow = URLError(.timedOut)
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "android-timeout-token",
+            productId: "credits_1",
+            packageName: "com.test.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .accepted)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == true)
+                #expect(body.status == "pending")
+                #expect(body.transactionId != nil)
+            }
+        }
+    }
+
+    @Test("Android 4xx API error still returns 403, not 202", .tags(.p1Core, .integration))
+    func android4xxApiErrorStillReturns403() async throws {
+        mockPlayStore.errorToThrow = .apiError(400, "Bad Request")
+
+        let requestBody = Receipts.Validate.Request(
+            platform: "android",
+            purchaseToken: "bad-request-token",
+            productId: "credits_1",
+            packageName: "com.test.app"
+        )
+
+        try await app.test(.POST, validatePath, beforeRequest: { req in
+            try req.content.encode(requestBody)
+        }) { response in
+            #expect(response.status == .forbidden)
+            expectContent(Receipts.Validate.Response.self, response) { body in
+                #expect(body.success == false)
+                #expect(body.status == "invalid")
+            }
+        }
+    }
+
+    // MARK: - Repository Tests
+
+    @Test("findPendingValidations returns only pending transactions", .tags(.p1Core, .integration))
+    func findPendingValidationsQuery() async throws {
+        // Create a valid transaction
+        let valid = TransactionModel(
+            transactionId: "valid_txn",
+            platform: .ios,
+            productId: "credits_1",
+            creditAmount: 1,
+            receiptHash: "hash_valid"
+        )
+        try await valid.create(on: app.db)
+
+        // Create a pending transaction
+        let pending = TransactionModel(
+            transactionId: "pending_txn",
+            platform: .ios,
+            productId: "credits_1",
+            creditAmount: 1,
+            receiptHash: "hash_pending",
+            status: .pendingValidation,
+            receiptData: "some-receipt"
+        )
+        try await pending.create(on: app.db)
+
+        let results = try await DatabaseReceiptsRepository(database: app.db).findPendingValidations()
+        #expect(results.count == 1)
+        #expect(results.first?.transactionId == "pending_txn")
+    }
+
+    // MARK: - PendingValidationJob Unit Tests
+
+    @Test("PendingValidationJob backoff schedule intervals are correct", .tags(.unit))
+    func backoffScheduleIntervals() {
+        #expect(PendingValidationJob.backoffIntervals == [300, 1200, 3600])
+        #expect(PendingValidationJob.maxRetries == 3)
+    }
 }

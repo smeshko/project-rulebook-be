@@ -209,6 +209,7 @@ struct PlayStoreValidationServiceTests {
 final class MockPlayStoreValidationService: PlayStoreValidationService, @unchecked Sendable {
     var resultToReturn: PlayStoreValidationResult?
     var errorToThrow: PlayStoreValidationError?
+    var genericErrorToThrow: (any Error)?
     var verifyCallCount = 0
     var lastProductId: String?
     var lastPurchaseToken: String?
@@ -217,6 +218,10 @@ final class MockPlayStoreValidationService: PlayStoreValidationService, @uncheck
         verifyCallCount += 1
         lastProductId = productId
         lastPurchaseToken = purchaseToken
+
+        if let error = genericErrorToThrow {
+            throw error
+        }
 
         if let error = errorToThrow {
             throw error
@@ -232,6 +237,7 @@ final class MockPlayStoreValidationService: PlayStoreValidationService, @uncheck
     func reset() {
         resultToReturn = nil
         errorToThrow = nil
+        genericErrorToThrow = nil
         verifyCallCount = 0
         lastProductId = nil
         lastPurchaseToken = nil

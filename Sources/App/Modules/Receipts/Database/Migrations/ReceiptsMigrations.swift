@@ -73,7 +73,13 @@ enum ReceiptsMigrations {
         func prepare(on db: Database) async throws {
             try await db.schema(TransactionModel.schema)
                 .field(TransactionModel.FieldKeys.v4.receiptData, .string)
+                .update()
+
+            try await db.schema(TransactionModel.schema)
                 .field(TransactionModel.FieldKeys.v4.retryCount, .int, .required, .sql(.default(0)))
+                .update()
+
+            try await db.schema(TransactionModel.schema)
                 .field(TransactionModel.FieldKeys.v4.lastRetryAt, .datetime)
                 .update()
         }
@@ -81,7 +87,13 @@ enum ReceiptsMigrations {
         func revert(on db: Database) async throws {
             try await db.schema(TransactionModel.schema)
                 .deleteField(TransactionModel.FieldKeys.v4.lastRetryAt)
+                .update()
+
+            try await db.schema(TransactionModel.schema)
                 .deleteField(TransactionModel.FieldKeys.v4.retryCount)
+                .update()
+
+            try await db.schema(TransactionModel.schema)
                 .deleteField(TransactionModel.FieldKeys.v4.receiptData)
                 .update()
         }
