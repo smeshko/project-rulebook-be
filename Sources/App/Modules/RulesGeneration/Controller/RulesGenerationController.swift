@@ -251,58 +251,11 @@ struct RulesGenerationController {
                 ])
         }
 
-        // Enhanced prompt for comprehensive, consistent rule generation
-        let systemPrompt = """
-            You are an expert board game rules instructor. Generate a comprehensive rules guide for the specified game.
-
-            Follow this content framework:
-            1. Overview: Core concept and objective in 2-3 sentences
-            2. Setup: Clear, numbered steps for game preparation
-            3. First Round: Step-by-step guide for new players
-            4. Victory: Win conditions and end game triggers
-            5. Deep Dive: Advanced rules, special cases, strategy tips
-            6. Resources: Helpful links for learning
-
-            Respond ONLY in valid JSON WITHOUT any markdown formatting. DO NOT use ** for bolding.
-            DO NOT add ANY KIND of numbering to the steps. You MUST use this structure:
-            {
-              "title": "exact game name",
-              "playerCount": "X-Y players",
-              "playTime": "X-Y minutes",
-              "summary": "engaging 2-3 sentence overview explaining theme and main objective",
-              "initialSetup": ["numbered setup steps", "be specific about component placement"],
-              "firstRoundGuide": ["step-by-step first turn", "explain decision points", "show example moves"],
-              "winCondition": "clear victory conditions and game end triggers",
-              "deepDive": ["advanced strategies", "common rule clarifications", "variant rules if applicable"],
-              "resources": {
-                "videoLinks": ["up to 3 tutorial video suggestions"],
-                "webLinks": ["official rules", "BGG page", "strategy guides"]
-              },
-              "confidence": 0-100,
-              "notes": "mention any assumptions or uncertainties about specific rules"
-            }
-
-            Quality standards:
-            - Use clear, friendly language appropriate for ages 10+
-            - Number all setup steps and procedures
-            - Include specific examples where helpful
-            - Mention component names consistently
-            - If unsure about exact rules, note assumptions
-
-            Confidence scoring:
-            - 90-100: Well-known game with established rules
-            - 70-89: Familiar with game type, some details estimated
-            - 50-69: Making educated guesses based on genre
-            - Below 50: Unfamiliar game, using board game conventions
-            """
-
-        let userPrompt = "Game: \(sanitizedGameTitle)"
-
         // Create combined input with system instructions and user prompt
         let combinedPrompt = """
-            \(systemPrompt)
+            \(PromptTemplates.RulesGeneration.systemPrompt)
 
-            \(userPrompt)
+            \(PromptTemplates.RulesGeneration.userPrompt(gameTitle: sanitizedGameTitle))
             """
 
         let rulesResponse: String
@@ -454,38 +407,10 @@ struct RulesGenerationController {
         logger: Logger,
         llmService: LLMService
     ) async throws -> String {
-        // Construct optimized prompt for game identification
-        let systemPrompt = """
-        You are an expert board game identification assistant. Analyze the game box image carefully.
-
-        Follow this process:
-        1. Examine all visible text on the box (title, publisher, descriptions)
-        2. Note visual indicators (artwork style, component images, age ratings)
-        3. Consider franchise/series if applicable
-        4. Assess your confidence based on text clarity and distinctive features
-
-        Respond ONLY in valid JSON WITHOUT any markdown formatting. Return a JSON response with this exact structure:
-        {
-          "guessedTitle": "exact game title as shown on box",
-          "confidence": 0-100,
-          "alternativeTitles": ["list any subtitle variations or international names"],
-          "keywordsDetected": ["all visible text elements", "publisher name", "player count", "age range"],
-          "notes": "mention any uncertainties, image quality issues, or special observations"
-        }
-
-        Confidence guidelines:
-        - 90-100: Title clearly visible and readable
-        - 70-89: Title partially visible or slightly unclear
-        - 50-69: Making educated guess based on artwork/components
-        - Below 50: Very uncertain, image quality poor
-
-        If text is unclear, mention it in notes. For franchise games, include the specific edition.
-        """
-
         do {
             return try await llmService.analyzeImage(
                 imageData: dataURL,
-                prompt: systemPrompt
+                prompt: PromptTemplates.GameBoxAnalysis.systemPrompt
             )
         } catch {
             logger.error("LLM service error during game identification", metadata: [

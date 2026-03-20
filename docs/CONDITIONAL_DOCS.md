@@ -249,3 +249,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When adding new middleware that needs to interact with correlation ID lifecycle
     - When configuring environment-specific logging behavior in entrypoint.swift
     - When debugging request tracing across LLM or cache service calls
+
+- docs/features/prompt-templates-optimization.md
+  - Conditions:
+    - When adding or modifying AI prompts in the RulesGeneration module
+    - When creating new LLM prompt templates following the PromptTemplates pattern
+    - When optimizing token count for Gemini or OpenAI prompt submissions
+    - When modifying JSON schema fields in AI prompts that validators depend on
+    - When troubleshooting AI response format issues from game box analysis or rules generation
