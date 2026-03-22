@@ -155,6 +155,20 @@ struct RulesGenerationController {
             throw processingError
         }
 
+        // Track request stats for cache warming (fire-and-forget)
+        if let statsRepository = req.application.serviceStorage.gameRequestStatsRepository {
+            Task {
+                do {
+                    try await statsRepository.incrementCount(for: sanitizedGameTitle)
+                } catch {
+                    req.logger.warning("Failed to increment game request stats", metadata: [
+                        "game_title": .string(sanitizedGameTitle),
+                        "error": .string(String(describing: error))
+                    ])
+                }
+            }
+        }
+
         // PERFORMANCE OPTIMIZATION: Check cache first
         let cacheKey = req.services.cacheKeyGenerator.generateRulesKey(for: sanitizedGameTitle)
 
