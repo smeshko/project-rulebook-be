@@ -257,3 +257,11 @@ This guide helps you find relevant documentation based on what you're working on
     - When optimizing token count for Gemini or OpenAI prompt submissions
     - When modifying JSON schema fields in AI prompts that validators depend on
     - When troubleshooting AI response format issues from game box analysis or rules generation
+
+- docs/features/cache-warming.md
+  - Conditions:
+    - When implementing background cache warming for the CacheAdmin module
+    - When adding scheduled background jobs using the LifecycleHandler pattern
+    - When tracking game request frequency via the GameRequestStats model
+    - When modifying the cache warming admin endpoint or warming strategy
+    - When implementing fire-and-forget stats tracking in request controllers
