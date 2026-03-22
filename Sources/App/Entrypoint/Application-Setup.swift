@@ -199,6 +199,7 @@ extension Application {
     remoteConfigRepository = DatabaseRemoteConfigRepository(database: db)
     receiptsRepository = DatabaseReceiptsRepository(database: db)
     feedbackRepository = DatabaseFeedbackRepository(database: db)
+    gameRequestStatsRepository = DatabaseGameRequestStatsRepository(database: db)
 
     // Initialize foundation services (no dependencies)
     randomGeneratorService = RealRandomGeneratorService(app: self)
@@ -246,6 +247,12 @@ extension Application {
 
     lifecycle.use(PendingValidationJobLifecycleHandler(job: job))
 
-    logger.info("Background jobs started: PendingValidationJob")
+    let warmingJob = CacheWarmingJob(app: self)
+    self.cacheWarmingJob = warmingJob
+    warmingJob.start()
+
+    lifecycle.use(CacheWarmingJobLifecycleHandler(job: warmingJob))
+
+    logger.info("Background jobs started: PendingValidationJob, CacheWarmingJob")
   }
 }
