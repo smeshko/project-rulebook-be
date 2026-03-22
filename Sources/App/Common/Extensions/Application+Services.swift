@@ -26,6 +26,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var appleNotificationService: AppleNotificationService?
     var googleNotificationService: GoogleNotificationService?
     var pendingValidationJob: PendingValidationJob?
+    var cacheWarmingJob: CacheWarmingJob?
 
     // MARK: - Repositories
 
@@ -38,6 +39,7 @@ final class ServiceStorageContainer: @unchecked Sendable {
     var remoteConfigRepository: (any RemoteConfigRepository)?
     var receiptsRepository: (any ReceiptsRepository)?
     var feedbackRepository: (any FeedbackRepository)?
+    var gameRequestStatsRepository: (any GameRequestStatsRepository)?
 
     init() {}
 }
@@ -151,6 +153,11 @@ extension Application {
         set { serviceStorage.pendingValidationJob = newValue }
     }
 
+    var cacheWarmingJob: CacheWarmingJob? {
+        get { serviceStorage.cacheWarmingJob }
+        set { serviceStorage.cacheWarmingJob = newValue }
+    }
+
     // MARK: - Repositories
 
     var userRepository: any UserRepository {
@@ -196,5 +203,10 @@ extension Application {
     var feedbackRepository: any FeedbackRepository {
         get { serviceStorage.feedbackRepository! }
         set { serviceStorage.feedbackRepository = newValue }
+    }
+
+    var gameRequestStatsRepository: any GameRequestStatsRepository {
+        get { serviceStorage.gameRequestStatsRepository! }
+        set { serviceStorage.gameRequestStatsRepository = newValue }
     }
 }

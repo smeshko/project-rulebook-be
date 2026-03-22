@@ -168,6 +168,30 @@ public extension CacheAdmin {
         }
     }
     
+    enum Warm {
+        public struct Response: Content, Equatable {
+            public let status: String
+            public let gamesToWarm: Int
+            public let timestamp: Date
+
+            public init(
+                status: String,
+                gamesToWarm: Int,
+                timestamp: Date
+            ) {
+                self.status = status
+                self.gamesToWarm = gamesToWarm
+                self.timestamp = timestamp
+            }
+
+            enum CodingKeys: String, CodingKey {
+                case status
+                case gamesToWarm = "games_to_warm"
+                case timestamp
+            }
+        }
+    }
+
     enum RedisHealth {
         public enum Status: String, Codable, Equatable, Sendable {
             case healthy = "healthy"

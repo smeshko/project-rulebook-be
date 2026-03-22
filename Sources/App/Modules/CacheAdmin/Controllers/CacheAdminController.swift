@@ -148,6 +148,41 @@ struct CacheAdminController {
         )
     }
 
+    // MARK: - Cache Warming Endpoint
+
+    /// POST /api/admin/cache/warm
+    /// Triggers an immediate cache warming cycle for popular games.
+    func warmCache(_ req: Request) async throws -> CacheAdmin.Warm.Response {
+        let clientIP = req.services.ipExtractor.extractClientIP(from: req)
+
+        req.logger.info("Admin cache warming triggered", metadata: [
+            "endpoint": "warmCache",
+            "client_ip": .string(clientIP),
+            "timestamp": .string(ISO8601DateFormatter().string(from: Date()))
+        ])
+
+        let repository = DatabaseGameRequestStatsRepository(database: req.db)
+        let trackedGameCount = try await repository.totalTrackedGames()
+        let gamesToWarm = min(trackedGameCount, CacheWarmingJob.maxGamesToWarm)
+
+        guard let job = req.application.cacheWarmingJob else {
+            throw Abort(.serviceUnavailable, reason: "Cache warming job is not running")
+        }
+
+        job.triggerImmediate()
+
+        req.logger.info("Admin cache warming started", metadata: [
+            "games_to_warm": .string("\(gamesToWarm)"),
+            "client_ip": .string(clientIP)
+        ])
+
+        return CacheAdmin.Warm.Response(
+            status: "started",
+            gamesToWarm: gamesToWarm,
+            timestamp: Date()
+        )
+    }
+
     // MARK: - Cache Health Endpoint
 
     /// GET /api/admin/cache/health

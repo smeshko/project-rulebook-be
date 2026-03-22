@@ -57,6 +57,14 @@ struct CacheAdminRouter: RouteCollection {
             )
 
         adminAPI
+            .post("warm", use: controller.warmCache)
+            .openAPI(
+                description: "Trigger immediate cache warming for popular games. Warming runs in the background. Admin only.",
+                response: .type(CacheAdmin.Warm.Response.self),
+                auth: .bearer(id: "bearerAuth")
+            )
+
+        adminAPI
             .post("cleanup", use: controller.manualCleanup)
             .openAPI(
                 description: "Manually trigger cache cleanup to remove expired entries. Normally handled automatically but useful for testing. Admin only.",
