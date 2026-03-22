@@ -156,6 +156,7 @@ final class IsolatedTestWorld: @unchecked Sendable {
         app.generatedRuleRepository = self.generatedRuleRepository
         app.remoteConfigRepository = self.remoteConfigRepository
         app.feedbackRepository = self.feedbackRepository
+        app.gameRequestStatsRepository = DatabaseGameRequestStatsRepository(database: app.db)
 
         // Assign mock services directly to Application storage
         app.emailService = FakeEmailProvider()
