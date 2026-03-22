@@ -157,11 +157,12 @@ struct RulesGenerationController {
 
         // Track request stats for cache warming (fire-and-forget)
         if let statsRepository = req.application.serviceStorage.gameRequestStatsRepository {
+            let logger = req.logger
             Task {
                 do {
                     try await statsRepository.incrementCount(for: sanitizedGameTitle)
                 } catch {
-                    req.logger.warning("Failed to increment game request stats", metadata: [
+                    logger.warning("Failed to increment game request stats", metadata: [
                         "game_title": .string(sanitizedGameTitle),
                         "error": .string(String(describing: error))
                     ])

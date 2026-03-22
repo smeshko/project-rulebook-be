@@ -10,6 +10,7 @@ final class CacheWarmingJob: @unchecked Sendable {
 
     private let app: Application
     private var task: Task<Void, Never>?
+    private var isWarming = false
 
     /// Interval between periodic warming cycles (1 hour).
     static let jobInterval: UInt64 = 3600
@@ -40,7 +41,12 @@ final class CacheWarmingJob: @unchecked Sendable {
     }
 
     /// Triggers an immediate warming cycle in the background.
+    /// Skips if a warming cycle is already in progress.
     func triggerImmediate() {
+        guard !isWarming else {
+            app.logger.info("CacheWarmingJob: Warming cycle already in progress, skipping manual trigger")
+            return
+        }
         Task { [weak self] in
             guard let self else { return }
             await self.warmCaches()
@@ -56,6 +62,10 @@ final class CacheWarmingJob: @unchecked Sendable {
     // MARK: - Private
 
     private func warmCaches() async {
+        guard !isWarming else { return }
+        isWarming = true
+        defer { isWarming = false }
+
         let logger = app.logger
 
         logger.info("CacheWarmingJob: Starting cache warming cycle")
