@@ -162,7 +162,8 @@ struct CacheAdminController {
         ])
 
         let repository = DatabaseGameRequestStatsRepository(database: req.db)
-        let topGames = try await repository.topGames(limit: CacheWarmingJob.maxGamesToWarm)
+        let trackedGameCount = try await repository.totalTrackedGames()
+        let gamesToWarm = min(trackedGameCount, CacheWarmingJob.maxGamesToWarm)
 
         guard let job = req.application.cacheWarmingJob else {
             throw Abort(.serviceUnavailable, reason: "Cache warming job is not running")
@@ -171,13 +172,13 @@ struct CacheAdminController {
         job.triggerImmediate()
 
         req.logger.info("Admin cache warming started", metadata: [
-            "games_to_warm": .string("\(topGames.count)"),
+            "games_to_warm": .string("\(gamesToWarm)"),
             "client_ip": .string(clientIP)
         ])
 
         return CacheAdmin.Warm.Response(
             status: "started",
-            gamesToWarm: topGames.count,
+            gamesToWarm: gamesToWarm,
             timestamp: Date()
         )
     }
