@@ -108,6 +108,16 @@ struct OpenAIService: LLMService {
     }
   }
 
+  func generateRules(systemPrompt: String, userPrompt: String) async throws -> String {
+    return try await withRetry(maxAttempts: maxRetries) { attempt in
+      try await performRulesGeneration(
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt,
+        attempt: attempt
+      )
+    }
+  }
+
   /// Analyzes images using OpenAI's vision capabilities with retry logic.
   ///
   /// This method processes images and generates structured analysis responses.
@@ -180,42 +190,58 @@ struct OpenAIService: LLMService {
         .init(string: "https://api.openai.com/v1/responses"),
         headers: headers,
         content: OpenAIRequest(
-          model: "gpt-4o-mini",
+          model: "gpt-5.4-mini",
           input: .text(input),
           instructions: nil,
           temperature: nil,
           maxOutputTokens: nil,
-          text: nil
+          text: nil,
+          tools: nil
         )
       )
 
-      // Check response status before processing
-      switch response.status {
-      case .tooManyRequests:
-        logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
-        throw OpenAIError.rateLimitExceeded(retryAfter: extractRetryAfter(from: response))
-      case .unauthorized:
-        logger.error("OpenAI authentication failed")
-        throw OpenAIError.authenticationFailed
-      case let status where status.code >= 500:
-        logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
-        throw OpenAIError.serverError(Int(status.code))
-      case .ok:
-        return try await processResponse(response)
-      default:
-        logger.error(
-          "OpenAI unexpected status (attempt \(attempt)/\(maxRetries)): \(response.status)")
-        throw OpenAIError.requestFailed(
-          NSError(
-            domain: "OpenAI", code: Int(response.status.code),
-            userInfo: [NSLocalizedDescriptionKey: "Unexpected HTTP status: \(response.status)"]))
-      }
+      return try processHTTPResponse(response, attempt: attempt, context: "generation")
 
     } catch let error as OpenAIError {
       throw error
 
     } catch {
       logger.error("OpenAI request failed (attempt \(attempt)/\(maxRetries)): \(error)")
+      throw OpenAIError.requestFailed(error)
+    }
+  }
+
+  /// Performs a single rules generation request using GPT-5.4 with web search and structured output.
+  private func performRulesGeneration(
+    systemPrompt: String,
+    userPrompt: String,
+    attempt: Int
+  ) async throws -> String {
+    do {
+      let response = try await app.client.post(
+        .init(string: "https://api.openai.com/v1/responses"),
+        headers: headers,
+        content: OpenAIRequest(
+          model: "gpt-5.4",
+          input: .text(userPrompt),
+          instructions: systemPrompt,
+          temperature: 0.1,
+          maxOutputTokens: nil,
+          text: .init(format: .jsonSchema(
+            name: "board_game_rules",
+            schema: RulesGenerationSchema.schema
+          )),
+          tools: [.webSearch]
+        )
+      )
+
+      return try processHTTPResponse(response, attempt: attempt, context: "rules generation")
+
+    } catch let error as OpenAIError {
+      throw error
+
+    } catch {
+      logger.error("OpenAI rules generation failed (attempt \(attempt)/\(maxRetries)): \(error)")
       throw OpenAIError.requestFailed(error)
     }
   }
@@ -240,36 +266,17 @@ struct OpenAIService: LLMService {
         .init(string: "https://api.openai.com/v1/responses"),
         headers: headers,
         content: OpenAIRequest(
-          model: "gpt-4o-mini",
+          model: "gpt-5.4-mini",
           input: .messages([message]),
           instructions: nil,
           temperature: nil,
           maxOutputTokens: nil,
-          text: nil
+          text: nil,
+          tools: nil
         )
       )
 
-      // Check response status before processing
-      switch response.status {
-      case .tooManyRequests:
-        logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries))")
-        throw OpenAIError.rateLimitExceeded(retryAfter: extractRetryAfter(from: response))
-      case .unauthorized:
-        logger.error("OpenAI authentication failed")
-        throw OpenAIError.authenticationFailed
-      case let status where status.code >= 500:
-        logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)): \(status)")
-        throw OpenAIError.serverError(Int(status.code))
-      case .ok:
-        return try await processResponse(response)
-      default:
-        logger.error(
-          "OpenAI unexpected status (attempt \(attempt)/\(maxRetries)): \(response.status)")
-        throw OpenAIError.requestFailed(
-          NSError(
-            domain: "OpenAI", code: Int(response.status.code),
-            userInfo: [NSLocalizedDescriptionKey: "Unexpected HTTP status: \(response.status)"]))
-      }
+      return try processHTTPResponse(response, attempt: attempt, context: "image analysis")
 
     } catch let error as OpenAIError {
       throw error
@@ -281,26 +288,35 @@ struct OpenAIService: LLMService {
     }
   }
 
-  /// Processes and validates OpenAI API responses.
-  ///
-  /// This method handles the parsing and validation of responses from OpenAI's API,
-  /// including error detection and content extraction.
-  ///
-  /// ## Response Processing Steps
-  /// 1. Decode JSON response using snake_case conversion
-  /// 2. Check for API error messages in response
-  /// 3. Extract text content from response structure
-  /// 4. Validate that response is not empty
-  ///
-  /// ## Error Handling
-  /// - API errors: Throws ``OpenAIError.apiError`` with error message
-  /// - Empty responses: Throws ``OpenAIError.emptyResponse``
-  /// - Invalid JSON: Throws ``OpenAIError.invalidResponse`` with decoding error
-  ///
-  /// - Parameter response: Raw HTTP response from OpenAI API
-  /// - Returns: Extracted text content from the response
-  /// - Throws: ``OpenAIError`` for various response processing failures
-  private func processResponse(_ response: ClientResponse) async throws -> String {
+  /// Checks HTTP status and extracts text from a successful response.
+  private func processHTTPResponse(
+    _ response: ClientResponse,
+    attempt: Int,
+    context: String
+  ) throws -> String {
+    switch response.status {
+    case .tooManyRequests:
+      logger.warning("OpenAI rate limit hit (attempt \(attempt)/\(maxRetries)) [\(context)]")
+      throw OpenAIError.rateLimitExceeded(retryAfter: extractRetryAfter(from: response))
+    case .unauthorized:
+      logger.error("OpenAI authentication failed [\(context)]")
+      throw OpenAIError.authenticationFailed
+    case let status where status.code >= 500:
+      logger.warning("OpenAI server error (attempt \(attempt)/\(maxRetries)) [\(context)]: \(status)")
+      throw OpenAIError.serverError(Int(status.code))
+    case .ok:
+      return try processResponseBody(response)
+    default:
+      logger.error("OpenAI unexpected status (attempt \(attempt)/\(maxRetries)) [\(context)]: \(response.status)")
+      throw OpenAIError.requestFailed(
+        NSError(
+          domain: "OpenAI", code: Int(response.status.code),
+          userInfo: [NSLocalizedDescriptionKey: "Unexpected HTTP status: \(response.status)"]))
+    }
+  }
+
+  /// Decodes and extracts text content from the OpenAI response body.
+  private func processResponseBody(_ response: ClientResponse) throws -> String {
     let decoder = JSONDecoder()
     decoder.keyDecodingStrategy = .convertFromSnakeCase
 

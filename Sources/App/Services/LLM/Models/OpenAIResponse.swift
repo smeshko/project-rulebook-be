@@ -12,11 +12,11 @@ struct OpenAIResponse: Content {
       }
     }
 
-    let id: String
+    let id: String?
     let type: String
-    let status: String
+    let status: String?
     let role: String?
-    let content: [OutputContent]
+    let content: [OutputContent]?
 
     enum CodingKeys: String, CodingKey {
       case id
@@ -75,7 +75,7 @@ struct OpenAIResponse: Content {
   // Extract text from the response
   func extractText() -> String? {
     guard let text = output.first(where: { $0.type == "message" })?
-      .content.first(where: { $0.type == "output_text" })?
+      .content?.first(where: { $0.type == "output_text" })?
       .text else {
       return nil
     }

@@ -92,7 +92,7 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
     // MARK: - Constants
     
     private enum ValidationConstants {
-        static let maxResponseSize = 50_000 // 50KB max response
+        static let maxResponseSize = 100_000 // 100KB max response (structured output is larger)
         static let minResponseSize = 10 // 10 characters minimum
         
         static let suspiciousPatterns = [
@@ -192,9 +192,12 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
         
         // Additional validation for specific fields
         let requiredFields = [
-            "\"playerCount\"", "\"playTime\"", "\"initialSetup\"",
-            "\"firstRoundGuide\"", "\"winCondition\"", "\"deepDive\"",
-            "\"resources\"", "\"confidence\"", "\"notes\""
+            "\"playerCount\"", "\"playTime\"", "\"complexity\"",
+            "\"recommendedAge\"", "\"mechanics\"", "\"initialSetup\"",
+            "\"firstRoundGuide\"", "\"winCondition\"", "\"endGameTrigger\"",
+            "\"turnStructure\"", "\"components\"", "\"scoringCategories\"",
+            "\"glossary\"", "\"commonMistakes\"", "\"quickReference\"",
+            "\"deepDive\"", "\"resources\"", "\"confidence\"", "\"notes\""
         ]
         
         let missingFields = requiredFields.filter { !validatedResponse.contains($0) }

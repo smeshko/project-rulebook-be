@@ -1,5 +1,54 @@
 import Vapor
 
+// MARK: - JSONValue
+
+/// Lightweight enum for encoding arbitrary JSON structures (used for OpenAI JSON schemas).
+enum JSONValue: Content, Equatable {
+  case string(String)
+  case number(Double)
+  case bool(Bool)
+  case null
+  case array([JSONValue])
+  case object([String: JSONValue])
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.singleValueContainer()
+    switch self {
+    case .string(let s): try container.encode(s)
+    case .number(let n): try container.encode(n)
+    case .bool(let b): try container.encode(b)
+    case .null: try container.encodeNil()
+    case .array(let a): try container.encode(a)
+    case .object(let o): try container.encode(o)
+    }
+  }
+
+  init(from decoder: Decoder) throws {
+    let container = try decoder.singleValueContainer()
+    if container.decodeNil() {
+      self = .null
+    } else if let b = try? container.decode(Bool.self) {
+      self = .bool(b)
+    } else if let n = try? container.decode(Double.self) {
+      self = .number(n)
+    } else if let s = try? container.decode(String.self) {
+      self = .string(s)
+    } else if let a = try? container.decode([JSONValue].self) {
+      self = .array(a)
+    } else if let o = try? container.decode([String: JSONValue].self) {
+      self = .object(o)
+    } else {
+      throw DecodingError.typeMismatch(
+        JSONValue.self,
+        DecodingError.Context(
+          codingPath: decoder.codingPath,
+          debugDescription: "Unable to decode JSONValue"))
+    }
+  }
+}
+
+// MARK: - OpenAIRequest
+
 struct OpenAIRequest: Content {
   // Input can be either string or array of messages
   enum Input: Content {
@@ -114,11 +163,34 @@ struct OpenAIRequest: Content {
     }
   }
 
-  struct TextFormat: Content {
+  // MARK: - Tool
+
+  /// Represents an OpenAI tool (e.g., web_search_preview).
+  struct Tool: Content {
     let type: String
 
-    static let json = TextFormat(type: "json_object")
-    static let text = TextFormat(type: "text")
+    static let webSearch = Tool(type: "web_search_preview")
+  }
+
+  // MARK: - Text Configuration for Structured Output
+
+  /// Configures the text output format, including JSON schema for structured output.
+  struct TextConfig: Content {
+    let format: FormatSpec
+
+    struct FormatSpec: Content {
+      let type: String
+      let name: String?
+      let strict: Bool?
+      let schema: JSONValue?
+
+      static let json = FormatSpec(type: "json_object", name: nil, strict: nil, schema: nil)
+      static let text = FormatSpec(type: "text", name: nil, strict: nil, schema: nil)
+
+      static func jsonSchema(name: String, schema: JSONValue) -> FormatSpec {
+        FormatSpec(type: "json_schema", name: name, strict: true, schema: schema)
+      }
+    }
   }
 
   let model: String
@@ -126,7 +198,8 @@ struct OpenAIRequest: Content {
   let instructions: String?
   let temperature: Double?
   let maxOutputTokens: Int?
-  let text: TextFormat?
+  let text: TextConfig?
+  let tools: [Tool]?
 
   enum CodingKeys: String, CodingKey {
     case model
@@ -135,5 +208,6 @@ struct OpenAIRequest: Content {
     case temperature
     case maxOutputTokens = "max_output_tokens"
     case text
+    case tools
   }
 }

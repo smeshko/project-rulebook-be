@@ -96,11 +96,47 @@ struct GeneratedRuleRepositoryTests {
             title: "Settlers of Catan",
             playerCount: "3-4",
             playTime: "60-90 minutes",
+            complexity: 2.3,
+            recommendedAge: "10+",
+            mechanics: ["Trading", "Route Building", "Dice Rolling"],
             summary: "Trade resources and build settlements",
-            initialSetup: ["Place the board", "Distribute resources"],
-            firstRoundGuide: ["Roll dice", "Collect resources"],
             winCondition: "Reach 10 victory points",
+            endGameTrigger: "A player reaches 10 victory points on their turn",
+            scoringCategories: [
+                RulesSummary.Response.ScoringCategory(name: "Settlements", value: "1 VP each"),
+                RulesSummary.Response.ScoringCategory(name: "Cities", value: "2 VP each"),
+            ],
+            components: [
+                RulesSummary.Response.Component(name: "Resource Cards", quantity: 95, category: .cards),
+                RulesSummary.Response.Component(name: "Game Board", quantity: 1, category: .board),
+            ],
+            initialSetup: [
+                RulesSummary.Response.SetupStep(step: 1, action: "Assemble the game board by arranging hex tiles"),
+                RulesSummary.Response.SetupStep(step: 2, action: "Place number tokens on each resource hex"),
+            ],
+            turnStructure: RulesSummary.Response.TurnStructure(
+                type: .sequential,
+                actions: [
+                    RulesSummary.Response.GameAction(id: "roll_dice", name: "Roll Dice", icon: "dice.fill", description: "Roll both dice to determine resource production"),
+                    RulesSummary.Response.GameAction(id: "trade", name: "Trade", icon: "arrow.triangle.2.circlepath", description: "Trade resources with other players or the bank"),
+                    RulesSummary.Response.GameAction(id: "build", name: "Build", icon: "hammer.fill", description: "Build roads, settlements, or cities"),
+                ]
+            ),
+            firstRoundGuide: [
+                RulesSummary.Response.GuideStep(step: 1, description: "Roll the dice and collect any resources"),
+                RulesSummary.Response.GuideStep(step: 2, description: "Trade with other players if desired"),
+            ],
+            glossary: [
+                RulesSummary.Response.GlossaryTerm(term: "Settlement", definition: "A building placed at an intersection worth 1 VP"),
+            ],
             deepDive: ["Longest road strategy", "Development cards"],
+            commonMistakes: [
+                RulesSummary.Response.CommonMistake(rule: "Robber activation", mistake: "Forgetting to move the robber when a 7 is rolled", correct: "Always move the robber and steal when a 7 is rolled", severity: .gameBreaking),
+            ],
+            quickReference: RulesSummary.Response.QuickReference(
+                turnSummary: ["Roll dice", "Collect resources", "Trade", "Build"],
+                keyRules: ["Need 10 VP to win", "7 triggers robber"]
+            ),
             resourcesVideoLinks: ["https://videos.example/catan"],
             resourcesWebLinks: ["https://boardgamegeek.com/boardgame/13/catan"],
             confidence: 95,

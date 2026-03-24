@@ -95,6 +95,11 @@ final class FakeLLMService: LLMService, @unchecked Sendable {
         logger.info("FakeLLMService analyzing image with prompt: \(prompt.prefix(50))...")
         return findMatchingResponse(for: prompt)
     }
+
+    func generateRules(systemPrompt: String, userPrompt: String) async throws -> String {
+        logger.info("FakeLLMService generating rules for: \(userPrompt.prefix(50))...")
+        return findMatchingResponse(for: userPrompt)
+    }
     
     func `for`(_ request: Request) -> LLMService {
         return self
