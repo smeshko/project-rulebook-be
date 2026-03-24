@@ -73,6 +73,18 @@ protocol LLMService {
         prompt: String
     ) async throws -> String
 
+    /// Generates a structured rules summary using a dedicated model with web search and structured output.
+    ///
+    /// This method uses a higher-capability model (e.g., GPT-5.4) with web search grounding
+    /// and JSON schema enforcement for accurate, comprehensive rules generation.
+    ///
+    /// - Parameters:
+    ///   - systemPrompt: The system instructions for rules generation
+    ///   - userPrompt: The user prompt containing the game title
+    /// - Returns: Generated JSON string matching the rules schema
+    /// - Throws: Provider-specific API errors
+    func generateRules(systemPrompt: String, userPrompt: String) async throws -> String
+
     /// Returns a service instance configured for the specific request context.
     ///
     /// This method is part of the service pattern used throughout the application,
@@ -81,6 +93,20 @@ protocol LLMService {
     /// - Parameter request: The current request context
     /// - Returns: A service instance configured for the request
     func `for`(_ request: Request) -> LLMService
+}
+
+// MARK: - Default Implementation
+
+extension LLMService {
+    /// Default implementation that concatenates prompts and calls `generate(input:)`.
+    func generateRules(systemPrompt: String, userPrompt: String) async throws -> String {
+        let combinedPrompt = """
+            \(systemPrompt)
+
+            \(userPrompt)
+            """
+        return try await generate(input: combinedPrompt)
+    }
 }
 
 extension Application.Services {

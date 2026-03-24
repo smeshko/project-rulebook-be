@@ -148,13 +148,10 @@ final class CacheWarmingJob: @unchecked Sendable {
 
             // Phase 3: Generate via LLM
             do {
-                let combinedPrompt = """
-                    \(PromptTemplates.RulesGeneration.systemPrompt)
-
-                    \(PromptTemplates.RulesGeneration.userPrompt(gameTitle: gameTitle))
-                    """
-
-                let rulesResponse = try await app.llmService.generate(input: combinedPrompt)
+                let rulesResponse = try await app.llmService.generateRules(
+                    systemPrompt: PromptTemplates.RulesGeneration.systemPrompt,
+                    userPrompt: PromptTemplates.RulesGeneration.userPrompt(gameTitle: gameTitle)
+                )
 
                 let validatedResponse = try app.aiResponseValidatorService.validateRulesSummaryResponse(
                     rulesResponse,
@@ -219,11 +216,21 @@ final class CacheWarmingJob: @unchecked Sendable {
             title: model.title,
             playerCount: model.playerCount,
             playTime: model.playTime,
+            complexity: model.complexity,
+            recommendedAge: model.recommendedAge,
+            mechanics: model.mechanics,
             summary: model.summary,
-            initialSetup: model.initialSetup,
-            firstRoundGuide: model.firstRoundGuide,
             winCondition: model.winCondition,
+            endGameTrigger: model.endGameTrigger,
+            scoringCategories: model.scoringCategories,
+            components: model.components,
+            initialSetup: model.initialSetup,
+            turnStructure: model.turnStructure,
+            firstRoundGuide: model.firstRoundGuide,
+            glossary: model.glossary,
             deepDive: model.deepDive,
+            commonMistakes: model.commonMistakes,
+            quickReference: model.quickReference,
             resources: .init(
                 videoLinks: model.resourcesVideoLinks,
                 webLinks: model.resourcesWebLinks
@@ -247,11 +254,21 @@ final class CacheWarmingJob: @unchecked Sendable {
             title: rulesSummary.title,
             playerCount: rulesSummary.playerCount,
             playTime: rulesSummary.playTime,
+            complexity: rulesSummary.complexity,
+            recommendedAge: rulesSummary.recommendedAge,
+            mechanics: rulesSummary.mechanics,
             summary: rulesSummary.summary,
-            initialSetup: rulesSummary.initialSetup,
-            firstRoundGuide: rulesSummary.firstRoundGuide,
             winCondition: rulesSummary.winCondition,
+            endGameTrigger: rulesSummary.endGameTrigger,
+            scoringCategories: rulesSummary.scoringCategories,
+            components: rulesSummary.components,
+            initialSetup: rulesSummary.initialSetup,
+            turnStructure: rulesSummary.turnStructure,
+            firstRoundGuide: rulesSummary.firstRoundGuide,
+            glossary: rulesSummary.glossary,
             deepDive: rulesSummary.deepDive,
+            commonMistakes: rulesSummary.commonMistakes,
+            quickReference: rulesSummary.quickReference,
             resourcesVideoLinks: rulesSummary.resources.videoLinks,
             resourcesWebLinks: rulesSummary.resources.webLinks,
             confidence: rulesSummary.confidence,
@@ -273,11 +290,21 @@ final class CacheWarmingJob: @unchecked Sendable {
                     existing.title = rulesSummary.title
                     existing.playerCount = rulesSummary.playerCount
                     existing.playTime = rulesSummary.playTime
+                    existing.complexity = rulesSummary.complexity
+                    existing.recommendedAge = rulesSummary.recommendedAge
+                    existing.mechanics = rulesSummary.mechanics
                     existing.summary = rulesSummary.summary
-                    existing.initialSetup = rulesSummary.initialSetup
-                    existing.firstRoundGuide = rulesSummary.firstRoundGuide
                     existing.winCondition = rulesSummary.winCondition
+                    existing.endGameTrigger = rulesSummary.endGameTrigger
+                    existing.scoringCategories = rulesSummary.scoringCategories
+                    existing.components = rulesSummary.components
+                    existing.initialSetup = rulesSummary.initialSetup
+                    existing.turnStructure = rulesSummary.turnStructure
+                    existing.firstRoundGuide = rulesSummary.firstRoundGuide
+                    existing.glossary = rulesSummary.glossary
                     existing.deepDive = rulesSummary.deepDive
+                    existing.commonMistakes = rulesSummary.commonMistakes
+                    existing.quickReference = rulesSummary.quickReference
                     existing.resourcesVideoLinks = rulesSummary.resources.videoLinks
                     existing.resourcesWebLinks = rulesSummary.resources.webLinks
                     existing.confidence = rulesSummary.confidence

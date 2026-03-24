@@ -266,16 +266,13 @@ struct RulesGenerationController {
                 ])
         }
 
-        // Create combined input with system instructions and user prompt
-        let combinedPrompt = """
-            \(PromptTemplates.RulesGeneration.systemPrompt)
-
-            \(PromptTemplates.RulesGeneration.userPrompt(gameTitle: sanitizedGameTitle))
-            """
-
+        // Generate rules using dedicated method with web search + structured output
         let rulesResponse: String
         do {
-            rulesResponse = try await req.services.llm.generate(input: combinedPrompt)
+            rulesResponse = try await req.services.llm.generateRules(
+                systemPrompt: PromptTemplates.RulesGeneration.systemPrompt,
+                userPrompt: PromptTemplates.RulesGeneration.userPrompt(gameTitle: sanitizedGameTitle)
+            )
         } catch {
             req.logger.error(
                 "LLM service error during rules generation",
@@ -465,11 +462,21 @@ struct RulesGenerationController {
             title: model.title,
             playerCount: model.playerCount,
             playTime: model.playTime,
+            complexity: model.complexity,
+            recommendedAge: model.recommendedAge,
+            mechanics: model.mechanics,
             summary: model.summary,
-            initialSetup: model.initialSetup,
-            firstRoundGuide: model.firstRoundGuide,
             winCondition: model.winCondition,
+            endGameTrigger: model.endGameTrigger,
+            scoringCategories: model.scoringCategories,
+            components: model.components,
+            initialSetup: model.initialSetup,
+            turnStructure: model.turnStructure,
+            firstRoundGuide: model.firstRoundGuide,
+            glossary: model.glossary,
             deepDive: model.deepDive,
+            commonMistakes: model.commonMistakes,
+            quickReference: model.quickReference,
             resources: .init(
                 videoLinks: model.resourcesVideoLinks,
                 webLinks: model.resourcesWebLinks
@@ -497,11 +504,21 @@ struct RulesGenerationController {
             title: rulesSummary.title,
             playerCount: rulesSummary.playerCount,
             playTime: rulesSummary.playTime,
+            complexity: rulesSummary.complexity,
+            recommendedAge: rulesSummary.recommendedAge,
+            mechanics: rulesSummary.mechanics,
             summary: rulesSummary.summary,
-            initialSetup: rulesSummary.initialSetup,
-            firstRoundGuide: rulesSummary.firstRoundGuide,
             winCondition: rulesSummary.winCondition,
+            endGameTrigger: rulesSummary.endGameTrigger,
+            scoringCategories: rulesSummary.scoringCategories,
+            components: rulesSummary.components,
+            initialSetup: rulesSummary.initialSetup,
+            turnStructure: rulesSummary.turnStructure,
+            firstRoundGuide: rulesSummary.firstRoundGuide,
+            glossary: rulesSummary.glossary,
             deepDive: rulesSummary.deepDive,
+            commonMistakes: rulesSummary.commonMistakes,
+            quickReference: rulesSummary.quickReference,
             resourcesVideoLinks: rulesSummary.resources.videoLinks,
             resourcesWebLinks: rulesSummary.resources.webLinks,
             confidence: rulesSummary.confidence,
@@ -534,11 +551,21 @@ struct RulesGenerationController {
                     existing.title = rulesSummary.title
                     existing.playerCount = rulesSummary.playerCount
                     existing.playTime = rulesSummary.playTime
+                    existing.complexity = rulesSummary.complexity
+                    existing.recommendedAge = rulesSummary.recommendedAge
+                    existing.mechanics = rulesSummary.mechanics
                     existing.summary = rulesSummary.summary
-                    existing.initialSetup = rulesSummary.initialSetup
-                    existing.firstRoundGuide = rulesSummary.firstRoundGuide
                     existing.winCondition = rulesSummary.winCondition
+                    existing.endGameTrigger = rulesSummary.endGameTrigger
+                    existing.scoringCategories = rulesSummary.scoringCategories
+                    existing.components = rulesSummary.components
+                    existing.initialSetup = rulesSummary.initialSetup
+                    existing.turnStructure = rulesSummary.turnStructure
+                    existing.firstRoundGuide = rulesSummary.firstRoundGuide
+                    existing.glossary = rulesSummary.glossary
                     existing.deepDive = rulesSummary.deepDive
+                    existing.commonMistakes = rulesSummary.commonMistakes
+                    existing.quickReference = rulesSummary.quickReference
                     existing.resourcesVideoLinks = rulesSummary.resources.videoLinks
                     existing.resourcesWebLinks = rulesSummary.resources.webLinks
                     existing.confidence = rulesSummary.confidence

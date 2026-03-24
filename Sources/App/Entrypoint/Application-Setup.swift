@@ -212,7 +212,7 @@ extension Application {
 
     // Initialize external services
     emailService = BrevoClient(app: self)
-    llmService = GoogleGeminiService(app: self, logger: logger)
+    llmService = OpenAIService(app: self, logger: logger)
     appStoreValidationService = DefaultAppStoreValidationService(app: self)
     playStoreValidationService = DefaultPlayStoreValidationService(app: self)
     appleNotificationService = DefaultAppleNotificationService(app: self)

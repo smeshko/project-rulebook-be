@@ -5,7 +5,7 @@ struct RulesGenerationModule: ModuleInterface {
     let router = RulesGenerationRouter()
     
     func boot(_ app: Application) throws {
-        app.migrations.add(RulesGenerationMigrations.v1())
+        app.migrations.add(RulesGenerationMigrations.v2())
         try router.boot(routes: app.routes)
     }
 }

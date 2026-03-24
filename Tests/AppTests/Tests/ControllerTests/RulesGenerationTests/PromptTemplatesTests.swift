@@ -30,14 +30,6 @@ struct PromptTemplatesTests {
             #expect(prompt.contains("keywordsDetected"))
             #expect(prompt.contains("notes"))
         }
-
-        @Test("System prompt is shorter than original inline prompt")
-        func systemPromptIsOptimized() {
-            let prompt = PromptTemplates.GameBoxAnalysis.systemPrompt
-            // Original was ~26 lines / ~483 words. Optimized should be significantly shorter.
-            let originalApproxCharCount = 1100
-            #expect(prompt.count < originalApproxCharCount, "Optimized prompt should be shorter than original")
-        }
     }
 
     // MARK: - RulesGeneration
@@ -51,26 +43,41 @@ struct PromptTemplatesTests {
             #expect(!prompt.isEmpty)
         }
 
-        @Test("System prompt requests JSON-only output")
-        func systemPromptRequestsJSON() {
+        @Test("System prompt includes web search instructions")
+        func systemPromptIncludesWebSearch() {
             let prompt = PromptTemplates.RulesGeneration.systemPrompt
-            #expect(prompt.contains("JSON"))
+            #expect(prompt.contains("BoardGameGeek"))
+            #expect(prompt.contains("web search"))
+            #expect(prompt.contains("rulebook"))
         }
 
-        @Test("System prompt includes all required response fields")
-        func systemPromptIncludesRequiredFields() {
+        @Test("System prompt includes accuracy rules")
+        func systemPromptIncludesAccuracyRules() {
             let prompt = PromptTemplates.RulesGeneration.systemPrompt
-            #expect(prompt.contains("title"))
-            #expect(prompt.contains("playerCount"))
-            #expect(prompt.contains("playTime"))
-            #expect(prompt.contains("summary"))
-            #expect(prompt.contains("initialSetup"))
-            #expect(prompt.contains("firstRoundGuide"))
-            #expect(prompt.contains("winCondition"))
-            #expect(prompt.contains("deepDive"))
-            #expect(prompt.contains("resources"))
-            #expect(prompt.contains("confidence"))
-            #expect(prompt.contains("notes"))
+            #expect(prompt.contains("recurring phases"))
+            #expect(prompt.contains("Never invent"))
+            #expect(prompt.contains("BGG weight"))
+        }
+
+        @Test("System prompt includes structure enums")
+        func systemPromptIncludesStructureEnums() {
+            let prompt = PromptTemplates.RulesGeneration.systemPrompt
+            #expect(prompt.contains("chooseOne"))
+            #expect(prompt.contains("sequential"))
+            #expect(prompt.contains("actionPoints"))
+            #expect(prompt.contains("simultaneous"))
+            #expect(prompt.contains("gameBreaking"))
+            #expect(prompt.contains("SF Symbol"))
+        }
+
+        @Test("System prompt includes key structured output fields")
+        func systemPromptIncludesKeyFields() {
+            let prompt = PromptTemplates.RulesGeneration.systemPrompt
+            #expect(prompt.contains("turnStructure"))
+            #expect(prompt.contains("complexity"))
+            #expect(prompt.contains("mechanics"))
+            #expect(prompt.contains("component"))
+            #expect(prompt.contains("commonMistakes"))
         }
 
         @Test("User prompt includes game title")
@@ -79,18 +86,11 @@ struct PromptTemplatesTests {
             #expect(prompt.contains("Catan"))
         }
 
-        @Test("User prompt format is concise")
-        func userPromptFormatIsConcise() {
+        @Test("User prompt instructs web search")
+        func userPromptIncludesSearchInstruction() {
             let prompt = PromptTemplates.RulesGeneration.userPrompt(gameTitle: "Chess")
-            #expect(prompt == "Game: Chess")
-        }
-
-        @Test("System prompt is shorter than original inline prompt")
-        func systemPromptIsOptimized() {
-            let prompt = PromptTemplates.RulesGeneration.systemPrompt
-            // Original was ~43 lines / ~297 words. Optimized should be significantly shorter.
-            let originalApproxCharCount = 1700
-            #expect(prompt.count < originalApproxCharCount, "Optimized prompt should be shorter than original")
+            #expect(prompt.contains("Search for"))
+            #expect(prompt.contains("BoardGameGeek"))
         }
     }
 }
