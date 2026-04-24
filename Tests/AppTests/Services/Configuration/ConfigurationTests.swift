@@ -231,6 +231,63 @@ struct ConfigurationTests {
         #expect(testAPNS.teamId == "TEST_TEAM_ID")
     }
     
+    @Test("aiConfidenceThreshold defaults to 70 when env var is unset", .tags(.p1Core, .aiServices, .unit))
+    func aiConfidenceThresholdDefault() async throws {
+        unsetenv("AI_CONFIDENCE_THRESHOLD")
+
+        let devConfig = DevelopmentConfiguration()
+        let devServices = try devConfig.services
+        #expect(devServices.aiConfidenceThreshold == 70)
+
+        let testConfig = TestingConfiguration()
+        let testServices = try testConfig.services
+        #expect(testServices.aiConfidenceThreshold == 70)
+    }
+
+    @Test("aiConfidenceThreshold reads valid custom value from env", .tags(.p1Core, .aiServices, .unit))
+    func aiConfidenceThresholdCustomValue() async throws {
+        setenv("AI_CONFIDENCE_THRESHOLD", "85", 1)
+        defer { unsetenv("AI_CONFIDENCE_THRESHOLD") }
+
+        let devConfig = DevelopmentConfiguration()
+        let devServices = try devConfig.services
+        #expect(devServices.aiConfidenceThreshold == 85)
+    }
+
+    @Test("aiConfidenceThreshold falls back to default for non-numeric input", .tags(.p1Core, .aiServices, .unit))
+    func aiConfidenceThresholdInvalidValue() async throws {
+        setenv("AI_CONFIDENCE_THRESHOLD", "not-a-number", 1)
+        defer { unsetenv("AI_CONFIDENCE_THRESHOLD") }
+
+        let devConfig = DevelopmentConfiguration()
+        let services = try devConfig.services
+        #expect(services.aiConfidenceThreshold == 70)
+    }
+
+    @Test("aiConfidenceThreshold clamps out-of-range values", .tags(.p1Core, .aiServices, .unit))
+    func aiConfidenceThresholdClamping() async throws {
+        setenv("AI_CONFIDENCE_THRESHOLD", "150", 1)
+        let devConfig = DevelopmentConfiguration()
+        #expect(try devConfig.services.aiConfidenceThreshold == 70)
+
+        setenv("AI_CONFIDENCE_THRESHOLD", "-5", 1)
+        #expect(try devConfig.services.aiConfidenceThreshold == 70)
+
+        unsetenv("AI_CONFIDENCE_THRESHOLD")
+    }
+
+    @Test("aiConfidenceThreshold accepts boundary values 0 and 100", .tags(.p1Core, .aiServices, .unit))
+    func aiConfidenceThresholdBoundaries() async throws {
+        setenv("AI_CONFIDENCE_THRESHOLD", "0", 1)
+        let devConfig = DevelopmentConfiguration()
+        #expect(try devConfig.services.aiConfidenceThreshold == 0)
+
+        setenv("AI_CONFIDENCE_THRESHOLD", "100", 1)
+        #expect(try devConfig.services.aiConfidenceThreshold == 100)
+
+        unsetenv("AI_CONFIDENCE_THRESHOLD")
+    }
+
     // Test that production configuration requires environment variables
     // Note: We can't easily test production config validation without setting
     // actual environment variables, but we can test the factory selection

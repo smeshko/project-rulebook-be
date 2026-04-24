@@ -75,6 +75,29 @@ struct ServicesConfig: Sendable {
     /// - Board game box image analysis
     /// - Content validation and processing
     let geminiApiKey: String
+
+    /// Minimum acceptable confidence (0-100) before the LLM fallback orchestrator
+    /// retries a low-confidence primary response against the secondary model.
+    ///
+    /// Configured via the `AI_CONFIDENCE_THRESHOLD` environment variable.
+    /// Defaults to 70. Invalid or out-of-range values fall back to the default.
+    let aiConfidenceThreshold: Int
+
+    /// Default AI confidence threshold used when the environment variable is unset,
+    /// non-numeric, or outside the 0-100 range.
+    static let defaultAIConfidenceThreshold: Int = 70
+
+    /// Parses the `AI_CONFIDENCE_THRESHOLD` env var. Returns `defaultAIConfidenceThreshold`
+    /// if the value is missing, non-numeric, or outside `0...100`.
+    static func loadAIConfidenceThreshold() -> Int {
+        guard let raw = Environment.get("AI_CONFIDENCE_THRESHOLD") else {
+            return defaultAIConfidenceThreshold
+        }
+        guard let parsed = Int(raw), (0...100).contains(parsed) else {
+            return defaultAIConfidenceThreshold
+        }
+        return parsed
+    }
 }
 
 /// Security configuration including authentication, CORS, and rate limiting settings.

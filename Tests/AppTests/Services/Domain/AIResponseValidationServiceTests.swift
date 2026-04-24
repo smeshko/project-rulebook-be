@@ -347,6 +347,62 @@ final class AIResponseValidationServiceTests: Sendable {
             }
         }
     }
+
+    // MARK: - Confidence Extraction Tests
+
+    @Test("confidenceFrom returns integer confidence when present", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromIntegerValue() async throws {
+        let service = DefaultAIResponseValidationService()
+        let json = #"{"title":"Chess","confidence":85,"notes":"ok"}"#
+        #expect(service.confidenceFrom(validatedJSONString: json) == 85)
+    }
+
+    @Test("confidenceFrom returns nil when confidence field is missing", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromMissingField() async throws {
+        let service = DefaultAIResponseValidationService()
+        let json = #"{"title":"Chess","notes":"no confidence"}"#
+        #expect(service.confidenceFrom(validatedJSONString: json) == nil)
+    }
+
+    @Test("confidenceFrom returns nil for malformed JSON", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromMalformedJSON() async throws {
+        let service = DefaultAIResponseValidationService()
+        #expect(service.confidenceFrom(validatedJSONString: "not json") == nil)
+        #expect(service.confidenceFrom(validatedJSONString: "") == nil)
+        #expect(service.confidenceFrom(validatedJSONString: "{\"confidence\":}") == nil)
+    }
+
+    @Test("confidenceFrom returns nil when confidence is non-numeric string", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromStringConfidence() async throws {
+        let service = DefaultAIResponseValidationService()
+        let json = #"{"confidence":"high"}"#
+        #expect(service.confidenceFrom(validatedJSONString: json) == nil)
+    }
+
+    @Test("confidenceFrom accepts numeric string and double values", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromNumericVariants() async throws {
+        let service = DefaultAIResponseValidationService()
+        // Double value (e.g., 0.92) should be normalized to Int by truncation.
+        let doubleJSON = #"{"confidence":0.95}"#
+        #expect(service.confidenceFrom(validatedJSONString: doubleJSON) == 0)
+
+        let doubleJSON2 = #"{"confidence":85.9}"#
+        #expect(service.confidenceFrom(validatedJSONString: doubleJSON2) == 85)
+
+        // Numeric string should be parsed as Int.
+        let stringJSON = #"{"confidence":"75"}"#
+        #expect(service.confidenceFrom(validatedJSONString: stringJSON) == 75)
+    }
+
+    @Test("confidenceFrom returns value as-is even when out of range", .tags(.p1Core, .aiServices, .unit))
+    func confidenceFromOutOfRange() async throws {
+        let service = DefaultAIResponseValidationService()
+        let highJSON = #"{"confidence":200}"#
+        #expect(service.confidenceFrom(validatedJSONString: highJSON) == 200)
+
+        let lowJSON = #"{"confidence":-10}"#
+        #expect(service.confidenceFrom(validatedJSONString: lowJSON) == -10)
+    }
 }
 
 // MARK: - Security Domain Service Testing Pattern Note

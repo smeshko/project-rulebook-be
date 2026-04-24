@@ -265,3 +265,12 @@ This guide helps you find relevant documentation based on what you're working on
     - When tracking game request frequency via the GameRequestStats model
     - When modifying the cache warming admin endpoint or warming strategy
     - When implementing fire-and-forget stats tracking in request controllers
+
+- docs/features/llm-confidence-fallback.md
+  - Conditions:
+    - When modifying the LLM fallback decision logic or confidence-based routing in LLMFallbackService
+    - When registering or wiring primary/secondary LLM services in Application-Setup.swift
+    - When extracting confidence scores from AI responses via AIResponseValidationService
+    - When adjusting the AI_CONFIDENCE_THRESHOLD environment variable or ServicesConfig threshold handling
+    - When troubleshooting fallback log entries (event=llm_fallback) or correlation ID propagation through LLM calls
+    - When adding new LLMService-conforming providers that need to participate in the fallback pipeline

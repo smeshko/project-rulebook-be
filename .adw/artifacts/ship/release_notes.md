@@ -1,16 +1,18 @@
-## [Unreleased] - 2026-03-22
+## [Unreleased] - 2026-04-24
 
 ### Added
-- Add POST /api/v1/admin/cache/warm endpoint
-- Increment game request stats on rules generation
-- Add GameRequestStats model, migration, repository, and CacheWarmingJob
+- Add `AI_CONFIDENCE_THRESHOLD` to services config
+- Add confidence extraction helper to AI validator
+- Add `LLMFallbackService` orchestrator with structured logs
+- Wire LLM fallback orchestrator into service setup
 
 ### Fixed
-- Cycle 2 - prevent overlapping warming cycles, fix req capture in Task
-- Resolve race condition in incrementCount and optimize warmCache query
+- Resolve adversarial review findings (cycle 1)
+- Include `secondary_error` in both-failed log (cycle 2)
 
 ### Documentation
-- Add feature documentation for cache warming (RULE-166)
+- Document LLM low-confidence fallback feature
+- Register `llm-confidence-fallback` in conditional docs guide
 
 ### Other
-- Add tests for GameRequestStats and cache warming endpoint
+- Add integration tests for LLM fallback wiring

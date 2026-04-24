@@ -10,6 +10,8 @@ final class ServiceStorageContainer: @unchecked Sendable {
     // MARK: - Services
 
     var llmService: LLMService?
+    var primaryLLMService: LLMService?
+    var secondaryLLMService: LLMService?
     var emailService: EmailService?
     var aiCacheService: AICacheServiceInterface?
     var cacheService: CacheService?
@@ -74,6 +76,22 @@ extension Application {
     var llmService: LLMService {
         get { serviceStorage.llmService! }
         set { serviceStorage.llmService = newValue }
+    }
+
+    /// The primary LLM service used by the fallback orchestrator.
+    ///
+    /// Exposed so admin endpoints or background jobs can bypass the fallback
+    /// and target a specific model if a need arises. Production controllers
+    /// should continue to use `llmService` (the fallback-wrapped accessor).
+    var primaryLLMService: LLMService {
+        get { serviceStorage.primaryLLMService! }
+        set { serviceStorage.primaryLLMService = newValue }
+    }
+
+    /// The secondary (fallback) LLM service used by the fallback orchestrator.
+    var secondaryLLMService: LLMService {
+        get { serviceStorage.secondaryLLMService! }
+        set { serviceStorage.secondaryLLMService = newValue }
     }
 
     var emailService: EmailService {
