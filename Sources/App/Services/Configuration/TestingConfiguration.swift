@@ -19,7 +19,8 @@ struct TestingConfiguration: ConfigurationService {
         brevoAPIKey: "test_brevo_key",
         brevoURL: "https://test.brevo.com",
         openAIKey: "test_openai_key",
-        geminiApiKey: "test-gemini-api-key"
+        geminiApiKey: "test-gemini-api-key",
+        aiConfidenceThreshold: ServicesConfig.loadAIConfidenceThreshold()
       )
     }
   }

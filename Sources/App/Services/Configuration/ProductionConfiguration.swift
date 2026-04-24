@@ -84,7 +84,8 @@ struct ProductionConfiguration: ConfigurationService {
         brevoAPIKey: brevoAPIKey,
         brevoURL: Environment.get("BREVO_URL") ?? "https://api.brevo.com",
         openAIKey: openAIKey,
-        geminiApiKey: geminiKey
+        geminiApiKey: geminiKey,
+        aiConfidenceThreshold: ServicesConfig.loadAIConfidenceThreshold()
       )
     }
   }

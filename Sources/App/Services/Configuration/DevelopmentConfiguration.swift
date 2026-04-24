@@ -19,7 +19,8 @@ struct DevelopmentConfiguration: ConfigurationService {
         brevoAPIKey: Environment.get("BREVO_API_KEY") ?? "dev_brevo_key",
         brevoURL: Environment.get("BREVO_URL") ?? "https://api.brevo.com",
         openAIKey: Environment.get("OPENAI_KEY") ?? "dev_openai_key",
-        geminiApiKey: Environment.get("GEMINI_API_KEY") ?? "dev_gemini_key"
+        geminiApiKey: Environment.get("GEMINI_API_KEY") ?? "dev_gemini_key",
+        aiConfidenceThreshold: ServicesConfig.loadAIConfidenceThreshold()
       )
     }
   }
