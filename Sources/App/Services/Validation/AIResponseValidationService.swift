@@ -81,6 +81,17 @@ protocol AIResponseValidationService: Sendable {
         clientIP: String,
         logger: Logger
     ) throws -> String
+
+    /// Extracts the `confidence` integer from an already-validated AI response JSON string.
+    ///
+    /// Returns the parsed confidence when the field is present and convertible to `Int`,
+    /// or `nil` if the JSON is malformed, the field is absent, or the value is not a number.
+    /// The returned value is NOT range-validated — callers decide how to treat 0-100 bounds.
+    ///
+    /// - Parameter validatedJSONString: JSON string that has already passed security validation.
+    /// - Returns: Integer confidence or `nil` when not extractable.
+    /// - Note: Must not throw. Malformed input means "unknown confidence".
+    func confidenceFrom(validatedJSONString: String) -> Int?
 }
 
 /// Production implementation of AIResponseValidationService.
@@ -244,6 +255,27 @@ final class DefaultAIResponseValidationService: AIResponseValidationService {
         return response
     }
     
+    func confidenceFrom(validatedJSONString: String) -> Int? {
+        guard !validatedJSONString.isEmpty else { return nil }
+        guard let data = validatedJSONString.data(using: .utf8) else { return nil }
+        guard let parsed = try? JSONSerialization.jsonObject(with: data, options: []) else { return nil }
+        guard let object = parsed as? [String: Any] else { return nil }
+
+        guard let raw = object["confidence"] else { return nil }
+
+        if let intValue = raw as? Int {
+            return intValue
+        }
+        if let nsNumber = raw as? NSNumber {
+            // Covers Int, Double, and Bool (Bool will be 0/1 — acceptable signal for "unknown").
+            return nsNumber.intValue
+        }
+        if let stringValue = raw as? String, let parsedInt = Int(stringValue) {
+            return parsedInt
+        }
+        return nil
+    }
+
     // MARK: - Private Validation Methods
     
     /// Validates response size to prevent resource exhaustion.
