@@ -40,6 +40,8 @@ struct RulesGenerationFallbackTests {
     func requestServices_routesThroughFallback() async throws {
         let testWorld = try await TestWorld()
         let app = testWorld.app
+        let originalLLM = app.llmService
+        defer { app.llmService = originalLLM }
 
         let primary = RecordingLLMService()
         let secondary = RecordingLLMService()
@@ -71,6 +73,8 @@ struct RulesGenerationFallbackTests {
     func requestServices_primaryAccepted_secondarySkipped() async throws {
         let testWorld = try await TestWorld()
         let app = testWorld.app
+        let originalLLM = app.llmService
+        defer { app.llmService = originalLLM }
 
         let primary = RecordingLLMService()
         let secondary = RecordingLLMService()
@@ -102,6 +106,8 @@ struct RulesGenerationFallbackTests {
     func requestServices_primaryThrows_fallsThroughToSecondary() async throws {
         let testWorld = try await TestWorld()
         let app = testWorld.app
+        let originalLLM = app.llmService
+        defer { app.llmService = originalLLM }
 
         let primary = RecordingLLMService()
         let secondary = RecordingLLMService()

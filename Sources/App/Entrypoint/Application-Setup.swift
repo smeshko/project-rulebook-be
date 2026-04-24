@@ -220,8 +220,7 @@ extension Application {
     let secondaryLLM = GoogleGeminiService(app: self, logger: logger)
     primaryLLMService = primaryLLM
     secondaryLLMService = secondaryLLM
-    let confidenceThreshold = (try? configuration.services.aiConfidenceThreshold)
-        ?? ServicesConfig.defaultAIConfidenceThreshold
+    let confidenceThreshold = try configuration.services.aiConfidenceThreshold
     llmService = LLMFallbackService(
         primary: primaryLLM,
         secondary: secondaryLLM,

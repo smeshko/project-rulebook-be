@@ -251,8 +251,6 @@ struct LLMFallbackServiceTests {
         #expect(scoped is LLMFallbackService)
         let result = try await scoped.generate(input: "hello")
         #expect(result.contains("\"source\":\"P\""))
-
-        try await app.asyncShutdown()
     }
 }
 

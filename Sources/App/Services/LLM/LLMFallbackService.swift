@@ -81,7 +81,7 @@ final class LLMFallbackService: LLMService, @unchecked Sendable {
         secondaryCall: () async throws -> String
     ) async throws -> String {
         // Phase 1: call primary (may throw)
-        var primaryResult: Result<(response: String, confidence: Int), Error>
+        let primaryResult: Result<(response: String, confidence: Int), Error>
         do {
             let response = try await primaryCall()
             let confidence = extractConfidence(from: response)
@@ -116,11 +116,7 @@ final class LLMFallbackService: LLMService, @unchecked Sendable {
         case (.success(let primary), .success(let secondary)):
             // Primary wins ties (>=), secondary must be strictly higher.
             let selectPrimary = primary.confidence >= secondary.confidence
-            let reason = determineReason(
-                primaryConfidence: primary.confidence,
-                secondaryConfidence: secondary.confidence,
-                selectedPrimary: selectPrimary
-            )
+            let reason = determineReason(secondaryConfidence: secondary.confidence)
             logFallback(
                 level: .info,
                 primaryConfidence: primary.confidence,
@@ -168,18 +164,12 @@ final class LLMFallbackService: LLMService, @unchecked Sendable {
         validator.confidenceFrom(validatedJSONString: response) ?? 0
     }
 
-    private func determineReason(
-        primaryConfidence: Int,
-        secondaryConfidence: Int,
-        selectedPrimary: Bool
-    ) -> String {
-        // We only reach this path when primaryConfidence < threshold (Phase 1 would have
-        // returned otherwise). So primary is always "below". If secondary is also below,
-        // both are low-confidence; otherwise secondary was higher (and therefore selected).
-        if secondaryConfidence < threshold {
-            return "both_low_confidence"
-        }
-        return selectedPrimary ? "tie_break_primary" : "secondary_higher_confidence"
+    private func determineReason(secondaryConfidence: Int) -> String {
+        // Entry precondition: primary confidence < threshold (Phase 1 returned otherwise).
+        // If secondary is also below threshold, both are low-confidence. Otherwise
+        // secondary cleared the bar and, since primary < threshold <= secondary,
+        // the secondary must have been selected (strictly higher).
+        secondaryConfidence < threshold ? "both_low_confidence" : "secondary_higher_confidence"
     }
 
     private func logFallback(
