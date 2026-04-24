@@ -24,7 +24,7 @@ extension Application {
     logger.info("Configuration loaded for environment: \(environment.name)")
     let db = try configuration.database
     logger.info("Database host: \(db.host)")
-    logger.info("Services configured: Brevo, OpenAI")
+    logger.info("Services configured: Brevo, OpenAI + Gemini (fallback)")
   }
 
   func setupMiddleware() throws {
@@ -212,7 +212,31 @@ extension Application {
 
     // Initialize external services
     emailService = BrevoClient(app: self)
-    llmService = GoogleGeminiService(app: self, logger: logger)
+
+    // LLM services: OpenAI is primary, Gemini is secondary (fallback).
+    // `llmService` exposes a fallback orchestrator that transparently retries
+    // low-confidence primary responses against the secondary model.
+    let primaryLLM = OpenAIService(app: self, logger: logger)
+    let secondaryLLM = GoogleGeminiService(app: self, logger: logger)
+    primaryLLMService = primaryLLM
+    secondaryLLMService = secondaryLLM
+    let confidenceThreshold = (try? configuration.services.aiConfidenceThreshold)
+        ?? ServicesConfig.defaultAIConfidenceThreshold
+    llmService = LLMFallbackService(
+        primary: primaryLLM,
+        secondary: secondaryLLM,
+        threshold: confidenceThreshold,
+        validator: aiResponseValidatorService,
+        logger: logger,
+        primaryName: "OpenAIService",
+        secondaryName: "GoogleGeminiService"
+    )
+    logger.info("LLM fallback orchestrator configured", metadata: [
+        "primary": .string("OpenAIService"),
+        "secondary": .string("GoogleGeminiService"),
+        "threshold": .string("\(confidenceThreshold)")
+    ])
+
     appStoreValidationService = DefaultAppStoreValidationService(app: self)
     playStoreValidationService = DefaultPlayStoreValidationService(app: self)
     appleNotificationService = DefaultAppleNotificationService(app: self)
