@@ -148,13 +148,14 @@ final class LLMFallbackService: LLMService, @unchecked Sendable {
             )
             return secondary.response
 
-        case (.failure(let primaryError), .failure):
+        case (.failure(let primaryError), .failure(let secondaryError)):
             // Both failed — re-throw the primary error (the originating cause).
             logger.error("llm_fallback_both_failed", metadata: [
                 "event": .string("llm_fallback_both_failed"),
                 "primary_model": .string(primaryName),
                 "secondary_model": .string(secondaryName),
-                "primary_error": .string(String(describing: primaryError))
+                "primary_error": .string(String(describing: primaryError)),
+                "secondary_error": .string(String(describing: secondaryError))
             ])
             throw primaryError
         }
